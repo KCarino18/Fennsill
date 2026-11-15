@@ -29,6 +29,8 @@ Or open the full [latest release](https://github.com/KCarino18/Fennsill/releases
 | `factory/` | Flash/provision scripts used by the Factory exe |
 | `firmware/` | Panel firmware (ESP32-S3 + EE04) |
 | `connector/` | USB push, MCP tools, install helpers |
+| `cloud/` | Hosted MCP server (SQLite) |
+| `account-web/` | Signup site — point Claude at [`account-web/PROMPT.md`](account-web/PROMPT.md) |
 | `docs/` | Shipping, device, cloud notes |
 
 ## Build from source
