@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Artiphact account</title>
+  <link rel="stylesheet" href="/setup.css">
+</head>
+<body>
+  <main class="page">
+    <div class="mark">
+      <strong>ARTIPHACT</strong>
+      <span>ACCOUNT</span>
+    </div>
+    <h1>Log in. Connect the AI subscription you already pay for.</h1>
+    <p class="lead">Works with Claude, ChatGPT, Gemini, Grok, and Cursor. Design the 800×480 page in that AI. Artiphact only delivers it to the panel.</p>
+
+    <form id="login-form" method="post" action="/setup">
+      <div class="modes">
+        <label><input type="radio" name="mode" value="signup" checked> Create account</label>
+        <label><input type="radio" name="mode" value="login"> Log in</label>
+      </div>
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" minlength="8" required>
+      <p id="form-error" class="error hidden"></p>
+      <button type="submit">Continue</button>
+    </form>
+
+    <section id="account" class="done hidden">
+      <h2 id="who">Account</h2>
+      <p id="sub-line">No subscription connected yet.</p>
+      <div class="providers" id="providers">
+        <button type="button" data-provider="claude">Claude</button>
+        <button type="button" data-provider="chatgpt">ChatGPT</button>
+        <button type="button" data-provider="gemini">Gemini</button>
+        <button type="button" data-provider="grok">Grok</button>
+        <button type="button" data-provider="cursor">Cursor</button>
+      </div>
+      <button id="plug" type="button">Panel is plugged in</button>
+      <p id="status" class="hint"></p>
+    </section>
+  </main>
+  <script src="/setup.js"></script>
+</body>
+</html>

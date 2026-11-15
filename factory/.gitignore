@@ -1,0 +1,6 @@
+master.key
+*.pem
+ledger/device_secrets.csv
+__pycache__/
+tools/
+arduino-cli.zip

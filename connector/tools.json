@@ -1,0 +1,88 @@
+{
+  "version": "1.3.0",
+  "note": "Frozen tools. The buyer talks to their AI. The AI calls these tools. No paste UI required.",
+  "tools": [
+    {
+      "name": "list_panels",
+      "description": "List Artiphact e-ink panels plugged in over USB.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "push_artifact",
+      "description": "Push a finished 800x480 black/white HTML or SVG page to the Artiphact panel now. Use this after you build charts/dashboards from the user's data (including SQL results they pasted). Self-contained HTML only — no external URLs inside the page. You may look up live data first, then bake the numbers into the HTML.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string",
+            "maxLength": 512000,
+            "description": "Finished HTML page (800x480, self-contained)."
+          },
+          "svg": {
+            "type": "string",
+            "maxLength": 512000,
+            "description": "Finished SVG page (800x480, self-contained)."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "start_live_update",
+      "description": "Start a recurring live feed on the Artiphact panel so it stays up to date without the user pasting anything. Use when the user asks to keep scores or similar data current. kind=nfl_scores refreshes NFL scoreboard HTML on an interval.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["nfl_scores"],
+            "description": "Which live feed to run."
+          },
+          "interval_sec": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 3600,
+            "description": "Seconds between refreshes (default 300)."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": ["kind"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "stop_live_update",
+      "description": "Stop a live feed previously started with start_live_update. Omit kind to stop all live feeds.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["nfl_scores"]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "set_wifi",
+      "description": "Send home Wi-Fi name and password to the panel over USB.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ssid": { "type": "string", "maxLength": 32 },
+          "password": { "type": "string", "maxLength": 63 }
+        },
+        "required": ["ssid", "password"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

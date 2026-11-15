@@ -1,0 +1,15 @@
+{
+  "brand": "ARTIPHACT",
+  "as_of": "NOV 3",
+  "title": "MARKET MOVERS",
+  "columns": ["TICKER", "LAST", "CHANGE"],
+  "rows": [
+    ["NVDA", "142.18", "+2.4%"],
+    ["AAPL", "228.05", "-0.6%"],
+    ["MSFT", "428.90", "+1.1%"],
+    ["AMZN", "197.40", "+0.8%"],
+    ["META", "592.15", "-1.3%"],
+    ["GOOGL", "176.22", "+0.4%"]
+  ],
+  "footer": "REFRESHES ON ITS OWN"
+}

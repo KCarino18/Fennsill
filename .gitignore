@@ -1,0 +1,62 @@
+# Secrets / factory offline material
+factory/master.key
+factory/ledger/device_secrets.csv
+factory/ledger/*.csv
+!**/.gitkeep
+*.pem
+.env
+.env.*
+
+# Factory tool downloads (huge)
+factory/tools/
+factory/arduino-cli.zip
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# .NET build
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# Local / generated
+dist/
+connector/browsers/
+connector/pages/
+connector/live_jobs.json
+connector/setup_status.json
+connector/panel_setup_done.json
+connector/rotate_playlist.json
+connector/autostart.json
+connector/linked.json
+pages/
+*.log
+.DS_Store
+Thumbs.db
+
+# Local exes at repo root (build artifacts)
+/Artiphact.exe
+/ArtiphactHost.exe
+/Artiphact Panel.exe
+factory/ArtiphactFactory.exe
+factory/*.pdb
+factory/*.dll
+
+# Cursor / IDE
+.cursor/
+.vs/
+
+connector/bridge_token.txt
+connector/public_url.txt
+connector/_exe_check.txt
+connector/_debug_*.py
+updates/*.bin
+updates/update_key.hex
+artiphact-*/bin/
+artiphact-*/obj/
+artiphact-*/out/
+
