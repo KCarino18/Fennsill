@@ -1,8 +1,7 @@
-"""Wire local MCP where it still helps (Cursor); Claude/ChatGPT use Host URL.
+"""Clear stale local MCP entries. Claude/ChatGPT use the cloud account MCP URL.
 
-Claude Desktop and ChatGPT custom connectors need the hosted Streamable HTTP
-MCP from Fennsill Host (Start-Fennsill-Host.bat) — not local stdio.
-This installer keeps Cursor stdio and clears stale Claude/ChatGPT stdio entries.
+Buyers do not run a local Host / tunnel. This installer only removes leftover
+stdio MCP configs (Fennsill Host, Artiphact, etc.).
 """
 
 from __future__ import annotations
@@ -373,36 +372,31 @@ def install_copilot() -> Path | None:
 
 
 def main():
-    written = []
+    # Cloud MCP only — strip leftover local Host / stdio entries everywhere we know.
     cleared = clear_claude_chatgpt_stdio()
-    for path in install_cursor():
-        written.append(("cursor", str(path)))
-    # Gemini / Copilot stay local-stdio optional (same machine). Claude/ChatGPT → Host.
-    gem = install_gemini_antigravity()
-    if gem:
-        written.append(("gemini", str(gem)))
-    cop = install_copilot()
-    if cop:
-        written.append(("copilot", str(cop)))
+    for path in (
+        ROOT / ".cursor" / "mcp.json",
+        Path(os.environ.get("USERPROFILE", "")) / ".cursor" / "mcp.json",
+    ):
+        for name in ("fennsill", "artiphact", "Artiphact", "Mcp_with_artiphact"):
+            done = remove_json_mcp(path, name=name)
+            if done and done not in cleared:
+                cleared.append(done)
 
     status = {
         "ok": True,
         "message": (
-            "Claude and ChatGPT use Fennsill Host (remote MCP URL), not local stdio. "
-            "Run FennsillHost.exe → Start server → Start public link → Copy MCP URL "
-            "into Customize → Connectors (Claude) or Plugins → custom MCP (ChatGPT). "
-            "Cursor still uses local stdio."
+            "Claude and ChatGPT use the Fennsill cloud MCP URL from your account site. "
+            "There is no local Host app. In Connect to a custom MCP: URL = MCP URL, "
+            "leave Bearer env empty, Headers Authorization = Bearer <token> (Copy header)."
         ),
         "apps": [
-            "Cursor (local stdio)",
-            "Claude Desktop (Fennsill Host URL + Connectors)",
-            "ChatGPT (Fennsill Host URL + custom MCP)",
+            "Claude Desktop (cloud MCP URL + Connectors)",
+            "ChatGPT (cloud MCP URL + custom MCP)",
         ],
-        "written": written,
+        "written": [],
         "cleared_stdio": [str(p) for p in cleared],
-        "host": {
-            "launcher": str(ROOT / "FennsillHost.exe"),
-            "local_mcp": "http://127.0.0.1:8766/mcp",
+        "cloud": {
             "setup_prompt": str(ROOT / "connector" / "prompts" / "remote_mcp_setup.md"),
             "push_prompt": str(ROOT / "connector" / "prompts" / "remote_mcp_push.md"),
         },
@@ -413,8 +407,6 @@ def main():
     }
     write_json(STATUS_PATH, status)
     print(json.dumps(status, indent=2))
-    for label, path in written:
-        print(f"{label}\t{path}")
     for path in cleared:
         print(f"cleared\t{path}")
 

@@ -48,14 +48,6 @@ try {
     Copy-Item -Force $ExeSrc $DestExe
 }
 
-$HostSrc = Join-Path $Payload "FennsillHost.exe"
-if (-not (Test-Path $HostSrc)) {
-    $HostSrc = Join-Path $Payload "fennsill-host\out\FennsillHost.exe"
-}
-if (Test-Path $HostSrc) {
-    Copy-Item -Force $HostSrc (Join-Path $Dest "FennsillHost.exe")
-}
-
 function Sync-Tree([string]$src, [string]$dst) {
     if (-not (Test-Path $src)) { return }
     New-Item -ItemType Directory -Force -Path $dst | Out-Null
@@ -107,13 +99,9 @@ try {
     $sc.TargetPath = $Launch
     $sc.WorkingDirectory = $Dest
     $sc.Save()
-    $HostExe = Join-Path $Dest "FennsillHost.exe"
-    if (Test-Path $HostExe) {
-        $sc2 = $Wsh.CreateShortcut((Join-Path $Desktop "Fennsill Host.lnk"))
-        $sc2.TargetPath = $HostExe
-        $sc2.WorkingDirectory = $Dest
-        $sc2.Save()
-    }
+    # Remove leftover local Host shortcut (cloud MCP replaced FennsillHost).
+    $oldHost = Join-Path $Desktop "Fennsill Host.lnk"
+    if (Test-Path $oldHost) { Remove-Item -Force $oldHost -ErrorAction SilentlyContinue }
     $FactoryExe = Join-Path $Dest "factory\FennsillFactory.exe"
     if (Test-Path $FactoryExe) {
         $sc3 = $Wsh.CreateShortcut((Join-Path $Desktop "Fennsill Factory.lnk"))

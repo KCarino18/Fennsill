@@ -1,8 +1,10 @@
-# Fennsill remote MCP setup
+# Fennsill cloud MCP setup
 
-Use this **public MCP URL** (Streamable HTTP):
+Use this **public MCP URL** (Streamable HTTP) from your Fennsill account site:
 
 `{{MCP_URL}}`
+
+There is **no local Host app**. Buyers do not run MCP on the PC.
 
 ## What goes where
 
@@ -19,7 +21,7 @@ Use this **public MCP URL** (Streamable HTTP):
 2. **+ Add** → **Add custom connector**.
 3. Name: `Fennsill`
 4. URL: `{{MCP_URL}}`
-5. Auth: leave bearer env empty; set header `Authorization` = `Bearer <token>` (or “No sign-in” only for local Host).
+5. Auth: leave bearer env empty; set header `Authorization` = `Bearer <token>`.
 6. Save, then start a **new chat** and enable the **Fennsill** connector.
 
 ## ChatGPT
@@ -30,6 +32,4 @@ Use this **public MCP URL** (Streamable HTTP):
 4. Leave Bearer token env-var empty; Headers Authorization = `Bearer <token>`.
 5. Create / install, then start a **new chat** and select Fennsill.
 
-Local LAN URL (same PC only): `{{LOCAL_MCP_URL}}`
-
-Keep **Fennsill Host** running for local MCP, or use the cloud account token for hosted MCP.
+Keep **Fennsill.exe** (desk) open with the panel plugged in so the PC can claim cloud push jobs over USB.

@@ -61,17 +61,6 @@ def find_desk_exe() -> Path:
     raise SystemExit("Fennsill.exe / FennsillDesk.exe missing — publish the desk app first.")
 
 
-def find_host_exe() -> Path:
-    for cand in (
-        ROOT / "FennsillHost.exe",
-        ROOT / "fennsill-host" / "out" / "FennsillHost.exe",
-        ROOT / "releases" / "host" / "FennsillHost.exe",
-    ):
-        if cand.is_file():
-            return cand
-    raise SystemExit("FennsillHost.exe missing — publish fennsill-host first.")
-
-
 def find_setup_exe() -> Path | None:
     for cand in (
         ROOT / "fennsill-setup" / "out" / "FennsillSetup.exe",
@@ -124,6 +113,8 @@ def stage_factory() -> None:
         shutil.rmtree(FACTORY_OUT)
     FACTORY_OUT.mkdir(parents=True)
     copy_tree(ROOT / "factory", FACTORY_OUT)
+    # Standalone C:\factory needs panel_ports + sketch without the full repo.
+    copy_tree(ROOT / "firmware", FACTORY_OUT / "firmware")
     # Never ship master key / secret ledgers
     for banned in ("master.key",):
         p = FACTORY_OUT / banned
@@ -133,18 +124,14 @@ def stage_factory() -> None:
     if secrets.exists():
         secrets.unlink()
     exe = find_factory_exe()
+    nested = OUT / "factory"
+    nested.mkdir(parents=True, exist_ok=True)
     if exe:
         shutil.copy2(exe, FACTORY_OUT / "FennsillFactory.exe")
-        # Also nest under buyer zip so unzipping one archive has factory beside apps.
-        nested = OUT / "factory"
-        nested.mkdir(parents=True, exist_ok=True)
-        copy_tree(FACTORY_OUT, nested)
     else:
-        # Scripts-only factory folder still ships; README explains how to build the exe.
-        nested = OUT / "factory"
-        nested.mkdir(parents=True, exist_ok=True)
-        copy_tree(FACTORY_OUT, nested)
         print("WARN: FennsillFactory.exe not built — factory scripts copied without exe.")
+    # Also nest under buyer zip so unzipping one archive has factory beside apps.
+    copy_tree(FACTORY_OUT, nested)
 
 
 def main():
@@ -157,8 +144,6 @@ def main():
     shutil.copy2(desk, OUT / "Fennsill.exe")
     if desk.name.lower() == "fennsilldesk.exe":
         shutil.copy2(desk, OUT / "FennsillDesk.exe")
-
-    shutil.copy2(find_host_exe(), OUT / "FennsillHost.exe")
 
     setup_exe = find_setup_exe()
     if setup_exe:
@@ -217,7 +202,7 @@ def main():
                 "   - URL = MCP URL from the Fennsill account site",
                 "   - Leave Bearer token env-var empty if the form asks for one",
                 "   - Headers: Authorization = Bearer <token> (Copy header)",
-                "5. Local Host (optional): FennsillHost.exe - Copy MCP URL for localhost.",
+                "   There is no local Host app - cloud MCP only.",
                 "",
                 "FACTORY / MANUFACTURING",
                 "This download includes a factory\\ folder (scripts + FennsillFactory.exe when built).",
