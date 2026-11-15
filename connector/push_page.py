@@ -13,9 +13,9 @@ from panel_ports import confirmed_panels, panel_absence_message, scan_panels  # 
 from serial_guard import SerialBusy, SerialGuard  # noqa: E402
 from usb_protocol import encode_show, split_frame  # noqa: E402
 
-# MCP / intake should fail in seconds, not minutes (ChatGPT tool timeouts).
-DEFAULT_READY_TIMEOUT = 8.0
-DEFAULT_SHOW_TIMEOUT = 12.0
+# Tuned for scheduled MCP pushes (ChatGPT tool timeout ~120s total).
+DEFAULT_READY_TIMEOUT = 15.0
+DEFAULT_SHOW_TIMEOUT = 20.0
 
 
 def wait_ready(ser, timeout=DEFAULT_READY_TIMEOUT):

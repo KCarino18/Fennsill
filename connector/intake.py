@@ -25,8 +25,8 @@ from usb_protocol import encode_show, split_frame  # noqa: E402
 # Probe is short; lock wait is longer so ChatGPT can push while Artiphact.exe
 # is open (desk status / rotate may briefly hold the lock).
 PROBE_TIMEOUT = 1.2
-# Fail fast for MCP/automation — do not hold ChatGPT for tens of seconds.
-LOCK_TIMEOUT = 8.0
+# Scheduled ChatGPT/Cursor tasks need time to win the COM lock (tool timeout ~120s).
+LOCK_TIMEOUT = 45.0
 
 
 def render_frame(arguments: dict) -> bytes:
