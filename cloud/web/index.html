@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fennsill — account</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="brand">
+      <p class="wordmark">Fennsill</p>
+      <p class="tag">Cloud account for Claude / ChatGPT MCP</p>
+    </header>
+
+    <section id="auth-panel" class="panel">
+      <h1>Create an account or log in</h1>
+      <p class="lead">Each person needs their own account. After signup you’ll get a bearer token to paste into the Fennsill connector.</p>
+
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" data-mode="signup">Create account</button>
+        <button type="button" class="tab" data-mode="login">Log in</button>
+      </div>
+
+      <form id="auth-form">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="username" required>
+
+        <label for="password">Password (8+ characters)</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" minlength="8" required>
+
+        <p id="auth-error" class="error" hidden></p>
+        <button type="submit" id="auth-submit">Create account</button>
+      </form>
+    </section>
+
+    <section id="account-panel" class="panel" hidden>
+      <h1>You’re signed in</h1>
+      <p id="who" class="lead"></p>
+      <p id="sub-status" class="status"></p>
+
+      <div class="block">
+        <h2>1. MCP URL</h2>
+        <div class="copy-row">
+          <code id="mcp-url"></code>
+          <button type="button" class="ghost" data-copy="mcp-url">Copy</button>
+        </div>
+      </div>
+
+      <div class="block">
+        <h2>2. Bearer token</h2>
+        <p class="hint">Paste into ChatGPT / Claude connector auth as <code>Bearer &lt;token&gt;</code>.</p>
+        <div class="copy-row">
+          <code id="user-token" class="token"></code>
+          <button type="button" class="ghost" data-copy="user-token">Copy</button>
+        </div>
+        <div class="copy-row">
+          <code id="auth-header" class="token"></code>
+          <button type="button" class="ghost" data-copy="auth-header">Copy header</button>
+        </div>
+      </div>
+
+      <div class="block">
+        <h2>3. Link your panel</h2>
+        <p class="hint">Panel id from USB <code>ID?</code> — format <code>FS</code> + 12 hex digits.</p>
+        <label for="device-id">Device id</label>
+        <input id="device-id" type="text" placeholder="FSA1B2C3D4E5F6" maxlength="14" spellcheck="false">
+        <label for="device-label">Label (optional)</label>
+        <input id="device-label" type="text" placeholder="desk" maxlength="80">
+        <p id="device-error" class="error" hidden></p>
+        <button type="button" id="link-device">Link device</button>
+        <ul id="device-list" class="devices"></ul>
+      </div>
+
+      <div class="block">
+        <h2>4. Device key for Fennsill.exe</h2>
+        <p class="hint">Local agent only (heartbeat / claim jobs). Not for Claude or ChatGPT.</p>
+        <button type="button" id="mint-token">Mint device key for linked panel</button>
+        <div class="copy-row" id="device-token-row" hidden>
+          <code id="device-token" class="token"></code>
+          <button type="button" class="ghost" data-copy="device-token">Copy</button>
+        </div>
+      </div>
+
+      <button type="button" class="ghost" id="sign-out">Sign out</button>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

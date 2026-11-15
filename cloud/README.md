@@ -2,6 +2,8 @@
 
 Hosted MCP + agent API for Fennsill. Buyers’ AIs call `/mcp`. Agents poll jobs with a device key. **SQLite** for now — SQL Server is commented out / unused.
 
+Also serves the **account website** at `/` (signup, copy bearer token, link device).
+
 This is **not** `connector/mcp_http_server.py` (local USB Host).
 
 ## Quick start (local)

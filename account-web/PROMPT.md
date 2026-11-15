@@ -2,6 +2,12 @@
 
 Point Claude / Cursor at **this folder** (`account-web/`).
 
+## Prefer the main cloud container
+
+The account UI is now also built into [`cloud/`](../cloud/) (same process as MCP). Prefer rebuilding **fennell-cloud** / `cloud/` so one container serves `https://mcp.fennsill.com/` (website) and `https://mcp.fennsill.com/mcp`.
+
+Use **this** `account-web/` folder only if you want a separate site.
+
 ## Mission
 
 Ship a small **account website** so buyers can:

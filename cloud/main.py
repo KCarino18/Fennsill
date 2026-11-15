@@ -16,7 +16,7 @@ if str(CLOUD_ROOT) not in sys.path:
 from mcp.server.mcpserver import Context, MCPServer  # noqa: E402
 from mcp.server.transport_security import TransportSecuritySettings  # noqa: E402
 from starlette.requests import Request  # noqa: E402
-from starlette.responses import JSONResponse, Response  # noqa: E402
+from starlette.responses import FileResponse, JSONResponse, Response  # noqa: E402
 
 import store  # noqa: E402
 from security_artifact import (  # noqa: E402
@@ -28,7 +28,9 @@ from security_artifact import (  # noqa: E402
 
 HOST = os.environ.get("FENNSILL_CLOUD_HOST", "0.0.0.0")
 PORT = int(os.environ.get("FENNSILL_CLOUD_PORT", "8080"))
-PUBLIC_URL = os.environ.get("FENNSILL_PUBLIC_URL", f"http://{HOST}:{PORT}")
+PUBLIC_URL = os.environ.get("FENNSILL_PUBLIC_URL", f"http://{HOST}:{PORT}").rstrip("/")
+MCP_URL = os.environ.get("FENNSILL_PUBLIC_MCP_URL", f"{PUBLIC_URL}/mcp")
+WEB_DIR = CLOUD_ROOT / "web"
 
 # SQL Server later — do not enable:
 # FENNSILL_SQL_CONNECTION = os.environ.get("FENNSILL_SQL_CONNECTION")
@@ -93,7 +95,27 @@ async def _read_json(request: Request) -> dict | Response:
     return data
 
 
-# --- HTTP API (custom routes; auth checked manually) ---
+# --- HTTP API + account website (same container) ---
+
+
+@server.custom_route("/", methods=["GET"])
+async def homepage(_request: Request) -> Response:
+    return FileResponse(WEB_DIR / "index.html")
+
+
+@server.custom_route("/app.css", methods=["GET"])
+async def app_css(_request: Request) -> Response:
+    return FileResponse(WEB_DIR / "app.css", media_type="text/css")
+
+
+@server.custom_route("/app.js", methods=["GET"])
+async def app_js(_request: Request) -> Response:
+    return FileResponse(WEB_DIR / "app.js", media_type="application/javascript")
+
+
+@server.custom_route("/api/config", methods=["GET"])
+async def api_config(_request: Request) -> Response:
+    return _json(200, {"mcp_url": MCP_URL, "api_base": PUBLIC_URL})
 
 
 @server.custom_route("/health", methods=["GET"])
