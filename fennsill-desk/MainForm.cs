@@ -48,8 +48,7 @@ public class MainForm : Form
         var env = Environment.GetEnvironmentVariable("FENNSILL_ROOT");
         if (!string.IsNullOrWhiteSpace(env) && HasConnector(env)) return env;
 
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var installed = Path.Combine(local, "Fennsill");
+        var installed = DeskInstall.InstallRoot;
         if (HasConnector(installed)) return installed;
 
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

@@ -21,6 +21,20 @@ static class Program
         Application.SetHighDpiMode(HighDpiMode.SystemAware);
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
+
+        try
+        {
+            DeskInstall.EnsureInstalled();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                "Could not finish local install:\n\n" + ex.Message,
+                "Fennsill Setup",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+
         Application.Run(new MainForm());
         GC.KeepAlive(mutex);
     }

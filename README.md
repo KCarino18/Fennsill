@@ -8,14 +8,13 @@ Cloud MCP uses **SQLite** — **no SQL Server** required.
 
 | What | Download |
 |------|----------|
-| **Fennsill** (desk / USB panel) | [Fennsill.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/Fennsill.exe) |
-| **Fennsill Factory** (firmware flasher — wipe TRMNL, install Fennsill) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillFactory.exe) |
-| **Fennsill Setup** (install into LocalAppData) | [FennsillSetup.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillSetup.exe) |
-| **Full setup zip** (apps + `connector/` + **`factory/`** + firmware) | [Fennsill-Setup.zip](https://github.com/KCarino18/Fennsill/releases/latest/download/Fennsill-Setup.zip) |
+| **Fennsill** (desk — self-installs to LocalAppData) | [Fennsill.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/Fennsill.exe) |
+| **Fennsill Factory** (flasher — self-installs to LocalAppData) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillFactory.exe) |
+| **Full setup zip** (optional; same apps + extras) | [Fennsill-Setup.zip](https://github.com/KCarino18/Fennsill/releases/latest/download/Fennsill-Setup.zip) |
 
-Prefer the **zip** for first install (Setup alone needs `Install-Fennsill.ps1` next to it). Or open the [latest release](https://github.com/KCarino18/Fennsill/releases/latest).
+Each `.exe` is a **full install**: first launch copies scripts/firmware into `%LOCALAPPDATA%\Fennsill\` and creates a desktop shortcut. No `C:\factory` folder required.
 
-There is **no Fennsill Host** download anymore — use the cloud account MCP URL.
+There is **no Fennsill Host** — use the cloud account MCP URL.
 
 ### Run names on disk
 

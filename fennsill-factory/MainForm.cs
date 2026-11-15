@@ -459,6 +459,11 @@ public sealed class MainForm : Form
 
     static string FindRepoRoot()
     {
+        // Prefer the LocalAppData install created by FactoryInstall.
+        var installed = FactoryInstall.FactoryDir;
+        if (File.Exists(Path.Combine(installed, "provision.py")) && HasFirmware(installed))
+            return installed;
+
         var env = Environment.GetEnvironmentVariable("FENNSILL_ROOT");
         if (!string.IsNullOrWhiteSpace(env)
             && (File.Exists(Path.Combine(env, "factory", "provision.py"))

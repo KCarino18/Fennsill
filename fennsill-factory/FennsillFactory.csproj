@@ -12,8 +12,23 @@
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <DebugType>none</DebugType>
   </PropertyGroup>
+
+  <!-- Bundled so a lone FennsillFactory.exe download can self-install. -->
+  <ItemGroup>
+    <Content Include="..\factory\*.py" Link="payload\%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\factory\*.bat" Link="payload\%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\factory\*.md" Link="payload\%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\firmware\**\*" Link="payload\firmware\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="..\firmware\**\__pycache__\**" />
+    <Content Remove="..\factory\ledger\device_secrets.csv" />
+    <Content Remove="..\factory\master.key" />
+  </ItemGroup>
 
 </Project>

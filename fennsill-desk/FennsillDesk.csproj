@@ -12,8 +12,26 @@
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <DebugType>none</DebugType>
   </PropertyGroup>
+
+  <!-- Bundled payload so a lone Fennsill.exe download can self-install. -->
+  <ItemGroup>
+    <Content Include="..\connector\identity_status.py" Link="payload\connector\identity_status.py" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\connector\device_bind_tool.py" Link="payload\connector\device_bind_tool.py" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\connector\runtime\**\*" Link="payload\connector\runtime\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\connector\prompts\**\*" Link="payload\connector\prompts\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\connector\requirements.txt" Link="payload\connector\requirements.txt" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\firmware\**\*" Link="payload\firmware\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\templates\**\*" Link="payload\templates\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="..\firmware\**\__pycache__\**" />
+    <Content Remove="..\connector\runtime\**\__pycache__\**" />
+    <Content Remove="..\templates\**\__pycache__\**" />
+  </ItemGroup>
 
 </Project>
