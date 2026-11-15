@@ -75,8 +75,9 @@ def push_artifact(html: str | None = None, svg: str | None = None) -> str:
 
 @server.tool(
     description=(
-        "Start a recurring live feed on the Artiphact panel. "
-        "kind=nfl_scores refreshes an NFL scoreboard on an interval."
+        "Start a recurring live feed on the Artiphact panel (local worker, not a cloud schedule). "
+        "kind=counter counts up on the panel each interval (use this instead of a every-minute ChatGPT task). "
+        "kind=nfl_scores refreshes an NFL scoreboard. interval_sec: counter min 5, nfl min 60."
     )
 )
 def start_live_update(kind: str, interval_sec: int = 300, title: str = "") -> str:

@@ -41,19 +41,26 @@ def save_jobs(data: dict):
     JOBS_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
+SUPPORTED_KINDS = {"nfl_scores", "counter"}
+
+
 def upsert_job(*, kind: str, interval_sec: int, title: str = "") -> dict:
     kind = kind.strip().lower()
-    if kind not in {"nfl_scores"}:
-        raise ValueError("Supported live kinds right now: nfl_scores")
-    interval_sec = max(60, min(int(interval_sec), 3600))
+    if kind not in SUPPORTED_KINDS:
+        raise ValueError("Supported live kinds: nfl_scores, counter")
+    # Counter can tick fast; scoreboards stay at least once a minute.
+    lo = 5 if kind == "counter" else 60
+    interval_sec = max(lo, min(int(interval_sec), 3600))
     data = load_jobs()
+    prev = next((j for j in data["jobs"] if j.get("kind") == kind), None)
     jobs = [j for j in data["jobs"] if j.get("kind") != kind]
     job = {
         "kind": kind,
         "interval_sec": interval_sec,
-        "title": title or kind,
+        "title": title or ("Counter" if kind == "counter" else kind),
         "enabled": True,
         "last_run": 0,
+        "count": int((prev or {}).get("count") or 0),
     }
     jobs.append(job)
     data["jobs"] = jobs
@@ -118,12 +125,35 @@ h1{{margin:0 0 4px;font-size:34px;letter-spacing:.06em}}
 </div></body></html>"""
 
 
+def render_counter_html(n: int, title: str = "Counter") -> str:
+    stamp = time.strftime("%H:%M:%S")
+    return f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+html,body{{margin:0;width:800px;height:480px;background:#fff;color:#000;
+font-family:Georgia,serif;overflow:hidden}}
+.wrap{{display:flex;flex-direction:column;justify-content:center;align-items:center;
+height:480px;box-sizing:border-box;padding:24px}}
+h1{{margin:0;font-size:28px;letter-spacing:.12em;text-transform:uppercase}}
+.num{{margin:18px 0 0;font-size:180px;line-height:1;font-weight:700}}
+.sub{{margin:16px 0 0;font-size:18px}}
+</style></head><body><div class="wrap">
+<h1>{escape(title or "Counter")}</h1>
+<div class="num">{n}</div>
+<p class="sub">Artiphact live · {escape(stamp)}</p>
+</div></body></html>"""
+
+
 def run_job(job: dict) -> dict:
     kind = job.get("kind")
     if kind == "nfl_scores":
         data = fetch_json(ESPN_NFL)
         html = render_nfl_html(data)
         return intake_page(html=html, title=job.get("title") or "NFL scores", source="live-nfl", push=True)
+    if kind == "counter":
+        n = int(job.get("count") or 0) + 1
+        job["count"] = n
+        html = render_counter_html(n, str(job.get("title") or "Counter"))
+        return intake_page(html=html, title=job.get("title") or "Counter", source="live-counter", push=True)
     raise ValueError(f"Unknown job kind: {kind}")
 
 
@@ -135,7 +165,9 @@ def tick_once() -> int:
     for job in data["jobs"]:
         if not job.get("enabled", True):
             continue
-        interval = max(60, int(job.get("interval_sec") or 300))
+        kind = job.get("kind")
+        lo = 5 if kind == "counter" else 60
+        interval = max(lo, int(job.get("interval_sec") or 300))
         last = float(job.get("last_run") or 0)
         if now - last < interval:
             continue
