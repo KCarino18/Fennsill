@@ -40,20 +40,25 @@
       <p id="sub-status" class="status"></p>
 
       <div class="block">
-        <h2>1. MCP URL</h2>
+        <h2>1. Connect Claude / ChatGPT (custom MCP)</h2>
+        <p class="hint">
+          In ChatGPT or Claude “Connect to a custom MCP”:
+          <strong>URL</strong> = MCP URL below.
+          Leave any <strong>Bearer token</strong> environment-variable field <strong>empty</strong>.
+          Under <strong>Headers</strong>, set <code>Authorization</code> to the Copy header value (<code>Bearer &lt;token&gt;</code>).
+          Do <strong>not</strong> put Device ID in the MCP form.
+        </p>
+        <p class="hint">MCP URL</p>
         <div class="copy-row">
           <code id="mcp-url"></code>
           <button type="button" class="ghost" data-copy="mcp-url">Copy</button>
         </div>
-      </div>
-
-      <div class="block">
-        <h2>2. Bearer token</h2>
-        <p class="hint">Paste into ChatGPT / Claude connector auth as <code>Bearer &lt;token&gt;</code>.</p>
+        <p class="hint">Token (raw)</p>
         <div class="copy-row">
           <code id="user-token" class="token"></code>
-          <button type="button" class="ghost" data-copy="user-token">Copy</button>
+          <button type="button" class="ghost" data-copy="user-token">Copy token</button>
         </div>
+        <p class="hint">Headers → Authorization</p>
         <div class="copy-row">
           <code id="auth-header" class="token"></code>
           <button type="button" class="ghost" data-copy="auth-header">Copy header</button>
@@ -61,8 +66,12 @@
       </div>
 
       <div class="block">
-        <h2>3. Link your panel</h2>
-        <p class="hint">Panel id from USB <code>ID?</code> — format <code>FS</code> + 12 hex digits.</p>
+        <h2>2. Link your panel (website only)</h2>
+        <p class="hint">
+          Open <strong>Fennsill</strong> on the PC with the panel plugged in, then Copy <strong>Device ID</strong> from the desk app.
+          Paste it here — not into the ChatGPT/Claude MCP connector form.
+          Format <code>FS</code> + 12 hex digits.
+        </p>
         <label for="device-id">Device id</label>
         <input id="device-id" type="text" placeholder="FSA1B2C3D4E5F6" maxlength="14" spellcheck="false">
         <label for="device-label">Label (optional)</label>
@@ -73,8 +82,8 @@
       </div>
 
       <div class="block">
-        <h2>4. Device key for Fennsill.exe</h2>
-        <p class="hint">Local agent only (heartbeat / claim jobs). Not for Claude or ChatGPT.</p>
+        <h2>3. Device key for Fennsill.exe</h2>
+        <p class="hint">Local agent only (heartbeat / claim jobs). Not for Claude or ChatGPT MCP.</p>
         <button type="button" id="mint-token">Mint device key for linked panel</button>
         <div class="copy-row" id="device-token-row" hidden>
           <code id="device-token" class="token"></code>

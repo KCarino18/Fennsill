@@ -11,8 +11,10 @@ function Find-PayloadRoot {
     $start = Split-Path -Parent $MyInvocation.PSCommandPath
     if (-not $start) { $start = Split-Path -Parent $MyInvocation.MyCommand.Path }
     foreach ($cand in @($start, (Split-Path -Parent $start), (Join-Path $start "payload"))) {
-        if (Test-Path (Join-Path $cand "Fennsill.exe")) { return (Resolve-Path $cand).Path }
-        if (Test-Path (Join-Path $cand "fennsill-desk\out\Fennsill.exe")) { return (Resolve-Path $cand).Path }
+        foreach ($name in @("Fennsill.exe", "FennsillDesk.exe")) {
+            if (Test-Path (Join-Path $cand $name)) { return (Resolve-Path $cand).Path }
+            if (Test-Path (Join-Path $cand "fennsill-desk\out\$name")) { return (Resolve-Path $cand).Path }
+        }
     }
     throw "Fennsill.exe not found. Put Setup next to Fennsill.exe (website zip or USB stick)."
 }
@@ -29,11 +31,22 @@ Write-Host ""
 
 New-Item -ItemType Directory -Force -Path $Dest | Out-Null
 
-$ExeSrc = Join-Path $Payload "Fennsill.exe"
-if (-not (Test-Path $ExeSrc)) {
-    $ExeSrc = Join-Path $Payload "fennsill-desk\out\Fennsill.exe"
+$ExeSrc = $null
+foreach ($cand in @(
+    (Join-Path $Payload "Fennsill.exe"),
+    (Join-Path $Payload "FennsillDesk.exe"),
+    (Join-Path $Payload "fennsill-desk\out\Fennsill.exe"),
+    (Join-Path $Payload "fennsill-desk\out\FennsillDesk.exe")
+)) {
+    if (Test-Path $cand) { $ExeSrc = $cand; break }
 }
-Copy-Item -Force $ExeSrc (Join-Path $Dest "Fennsill.exe")
+$DestExe = Join-Path $Dest "Fennsill.exe"
+try {
+    Copy-Item -Force $ExeSrc $DestExe -ErrorAction Stop
+} catch {
+    $DestExe = Join-Path $Dest "FennsillDesk.exe"
+    Copy-Item -Force $ExeSrc $DestExe
+}
 
 $HostSrc = Join-Path $Payload "FennsillHost.exe"
 if (-not (Test-Path $HostSrc)) {
@@ -61,13 +74,31 @@ Sync-Tree $ConnSrc (Join-Path $Dest "connector")
 Sync-Tree $TemplSrc (Join-Path $Dest "templates")
 Sync-Tree $FwSrc (Join-Path $Dest "firmware")
 
-$Launch = Join-Path $Dest "Fennsill.cmd"
-@(
+# Also copy factory folder next to install payload when present in the zip.
+$FactorySrc = Join-Path $Payload "factory"
+if (Test-Path $FactorySrc) {
+    Sync-Tree $FactorySrc (Join-Path $Dest "factory")
+    Write-Host " Factory tools copied under $Dest\factory"
+}
+
+$launchLines = @(
     "@echo off"
     "set FENNSILL_ROOT=$Dest"
     "cd /d `"$Dest`""
-    "start `"`" `"$Dest\Fennsill.exe`""
-) | Set-Content -Encoding ASCII $Launch
+    "if exist `"$DestExe`" (start `"`" `"$DestExe`") else (start `"`" `"$Dest\FennsillDesk.exe`")"
+)
+$Launch = $null
+foreach ($name in @("Fennsill.cmd", "Launch-Fennsill.cmd")) {
+    $cand = Join-Path $Dest $name
+    try {
+        Set-Content -LiteralPath $cand -Value $launchLines -Encoding ASCII -ErrorAction Stop
+        $Launch = $cand
+        break
+    } catch {
+        Write-Host " Launcher name blocked: $name"
+    }
+}
+if (-not $Launch) { throw "Could not write a launcher under $Dest" }
 
 try {
     $Wsh = New-Object -ComObject WScript.Shell
@@ -83,6 +114,13 @@ try {
         $sc2.WorkingDirectory = $Dest
         $sc2.Save()
     }
+    $FactoryExe = Join-Path $Dest "factory\FennsillFactory.exe"
+    if (Test-Path $FactoryExe) {
+        $sc3 = $Wsh.CreateShortcut((Join-Path $Desktop "Fennsill Factory.lnk"))
+        $sc3.TargetPath = $FactoryExe
+        $sc3.WorkingDirectory = (Join-Path $Dest "factory")
+        $sc3.Save()
+    }
 } catch {
     Write-Host " Desktop shortcut skipped ($($_.Exception.Message))"
 }
@@ -91,7 +129,7 @@ try {
 try {
     $StartupDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup"
     New-Item -ItemType Directory -Force -Path $StartupDir | Out-Null
-    Copy-Item -Force $Launch (Join-Path $StartupDir "Fennsill.cmd") -ErrorAction Stop
+    Copy-Item -Force $Launch (Join-Path $StartupDir (Split-Path -Leaf $Launch)) -ErrorAction Stop
 } catch {
     Write-Host " Startup auto-launch skipped (permission denied). You can still open Fennsill from the desktop shortcut."
 }
@@ -110,8 +148,16 @@ if (Get-Command python -ErrorAction SilentlyContinue) {
         }
     }
     Write-Host " Reading panel serial (leave the panel plugged in)..."
+    $bindScript = $null
+    foreach ($cand in @(
+        (Join-Path $Dest "connector\device_bind_tool.py"),
+        (Join-Path $Dest "connector\bind_device.py"),
+        (Join-Path $Dest "connector\runtime\bind_device.py")
+    )) {
+        if (Test-Path $cand) { $bindScript = $cand; break }
+    }
     try {
-        python (Join-Path $Dest "connector\bind_device.py")
+        if ($bindScript) { python $bindScript }
     } catch {
         Write-Host " Panel bind skipped — open Fennsill with the panel plugged in to finish."
     }

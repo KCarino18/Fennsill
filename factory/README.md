@@ -1,10 +1,10 @@
-# Fennsill Factory (not Fennsill)
+# Fennsill Factory (manufacturing tool)
 
-Separate manufacturing tool. Buyers never see this. It flashes panel firmware, locks a **permanent serial**, locks a **device key**, and writes a ledger row.
+Separate from the buyer **Fennsill** desk app. Flashes panel firmware, locks a **permanent serial**, locks a **device key**, and writes a ledger row.
 
-Fennsill.exe only talks USB to an already-provisioned panel.
+`Fennsill.exe` only talks USB to an already-provisioned panel.
 
-**Download:** [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillFactory.exe) from the [latest release](https://github.com/KCarino18/Fennsill/releases/latest).
+**Download:** [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillFactory.exe) from the [latest release](https://github.com/KCarino18/Fennsill/releases/latest), or use the `factory\` folder inside `Fennsill-Setup.zip` (also staged as `dist\factory` by `installer\build_dist.py`). On a factory PC you can copy that folder to `C:\factory`.
 
 ## One-time setup (factory PC)
 

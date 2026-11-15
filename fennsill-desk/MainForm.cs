@@ -15,6 +15,9 @@ public class MainForm : Form
     readonly Label _readyBanner = new();
     readonly Label _status = new();
     readonly Label _hint = new();
+    readonly TextBox _deviceIdBox = new();
+    readonly TextBox _serialBox = new();
+    readonly TextBox _installKeyBox = new();
     readonly System.Windows.Forms.Timer _panelTimer = new();
     Process? _bridgeProcess;
     Process? _liveProcess;
@@ -22,6 +25,9 @@ public class MainForm : Form
     bool _panelReady;
     bool _setupRanForThisPlug;
     string _panelPorts = "";
+    string _deviceId = "";
+    string _serial = "";
+    string _installKey = "";
 
     public MainForm()
     {
@@ -42,10 +48,12 @@ public class MainForm : Form
         var env = Environment.GetEnvironmentVariable("FENNSILL_ROOT");
         if (!string.IsNullOrWhiteSpace(env) && HasConnector(env)) return env;
 
-        var installed = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Fennsill");
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var installed = Path.Combine(local, "Fennsill");
         if (HasConnector(installed)) return installed;
+        // Prefer Fennsill; fall back to leftover Artiphact tree only if not migrated yet.
+        var legacy = Path.Combine(local, "Artiphact");
+        if (HasConnector(legacy)) return legacy;
 
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir != null)
@@ -63,8 +71,29 @@ public class MainForm : Form
     }
 
     static bool HasConnector(string root) =>
-        File.Exists(Path.Combine(root, "connector", "mcp_server.py"))
-        || File.Exists(Path.Combine(root, "connector", "mcp_http_server.py"));
+        ResolveUnderRoot(root,
+            "mcp_server.py", "mcp_http_server.py",
+            "identity_status.py", "panel_status.py",
+            "device_bind_tool.py", "bind_device.py") != null;
+
+    static string? ResolveUnderRoot(string root, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            foreach (var dir in new[]
+                     {
+                         Path.Combine(root, "connector"),
+                         Path.Combine(root, "connector", "runtime"),
+                     })
+            {
+                var path = Path.Combine(dir, name);
+                if (File.Exists(path)) return path;
+            }
+        }
+        return null;
+    }
+
+    string? ResolveConnectorScript(params string[] names) => ResolveUnderRoot(_root, names);
 
     void BuildUi()
     {
@@ -74,9 +103,9 @@ public class MainForm : Form
         var muted = Color.FromArgb(154, 149, 140);
 
         Text = "Fennsill";
-        Width = 720;
-        Height = 420;
-        MinimumSize = new Size(560, 360);
+        Width = 760;
+        Height = 560;
+        MinimumSize = new Size(640, 480);
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = bg;
         ForeColor = text;
@@ -88,6 +117,7 @@ public class MainForm : Form
             Dock = DockStyle.Fill,
             BackColor = surface,
             Padding = new Padding(28, 24, 28, 24),
+            AutoScroll = true,
         };
 
         var title = new Label
@@ -100,29 +130,125 @@ public class MainForm : Form
         };
 
         _readyBanner.Location = new Point(28, 78);
-        _readyBanner.Size = new Size(640, 28);
+        _readyBanner.Size = new Size(680, 28);
         _readyBanner.Font = new Font("Segoe UI Semibold", 13F);
         _readyBanner.ForeColor = Color.FromArgb(232, 184, 74);
         _readyBanner.Text = "Waiting for panel…";
 
-        _status.Location = new Point(28, 118);
+        _status.Location = new Point(28, 112);
         _status.AutoSize = true;
-        _status.MaximumSize = new Size(640, 0);
+        _status.MaximumSize = new Size(680, 0);
         _status.ForeColor = muted;
         _status.Text = "Panel updates come from ChatGPT / Claude through Fennsill Host.";
 
-        _hint.Location = new Point(28, 160);
-        _hint.Size = new Size(640, 80);
+        var identityLabel = new Label
+        {
+            Text = "Copy these into the Fennsill website (Link your panel):",
+            ForeColor = muted,
+            AutoSize = true,
+            Location = new Point(28, 148),
+        };
+
+        var identity = new TableLayoutPanel
+        {
+            Location = new Point(28, 176),
+            Size = new Size(680, 132),
+            ColumnCount = 3,
+            RowCount = 3,
+            BackColor = Color.Transparent,
+        };
+        identity.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
+        identity.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        identity.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 88));
+        for (var i = 0; i < 3; i++)
+            identity.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+
+        void StyleIdBox(TextBox box)
+        {
+            box.ReadOnly = true;
+            box.BorderStyle = BorderStyle.FixedSingle;
+            box.BackColor = Color.FromArgb(22, 24, 28);
+            box.ForeColor = text;
+            box.Font = new Font("Consolas", 10F);
+            box.Dock = DockStyle.Fill;
+            box.Margin = new Padding(0, 4, 8, 4);
+        }
+
+        Button CopyBtn(Func<string> getValue) => new()
+        {
+            Text = "Copy",
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(40, 44, 52),
+            ForeColor = text,
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 4, 0, 4),
+            Cursor = Cursors.Hand,
+            Tag = getValue,
+        };
+
+        StyleIdBox(_deviceIdBox);
+        StyleIdBox(_serialBox);
+        StyleIdBox(_installKeyBox);
+        _deviceIdBox.Text = "(not bound yet)";
+        _serialBox.Text = "(not bound yet)";
+        _installKeyBox.Text = "(not bound yet)";
+
+        var copyDevice = CopyBtn(() => _deviceId);
+        var copySerial = CopyBtn(() => _serial);
+        var copyKey = CopyBtn(() => _installKey);
+        void CopyClick(object? sender, EventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not Func<string> getter) return;
+            var value = getter();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                MessageBox.Show(this, "Nothing to copy yet — plug the panel in so Fennsill can bind it.", "Fennsill");
+                return;
+            }
+            try
+            {
+                Clipboard.SetText(value);
+                _status.Text = "Copied — paste into the website.";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Copy failed");
+            }
+        }
+        copyDevice.Click += CopyClick;
+        copySerial.Click += CopyClick;
+        copyKey.Click += CopyClick;
+
+        Label IdLabel(string caption) => new()
+        {
+            Text = caption,
+            ForeColor = muted,
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0, 4, 8, 4),
+        };
+
+        identity.Controls.Add(IdLabel("Device ID"), 0, 0);
+        identity.Controls.Add(_deviceIdBox, 1, 0);
+        identity.Controls.Add(copyDevice, 2, 0);
+        identity.Controls.Add(IdLabel("Serial"), 0, 1);
+        identity.Controls.Add(_serialBox, 1, 1);
+        identity.Controls.Add(copySerial, 2, 1);
+        identity.Controls.Add(IdLabel("Install key"), 0, 2);
+        identity.Controls.Add(_installKeyBox, 1, 2);
+        identity.Controls.Add(copyKey, 2, 2);
+
+        _hint.Location = new Point(28, 318);
+        _hint.Size = new Size(680, 56);
         _hint.ForeColor = muted;
         _hint.Text =
-            "Keep this app open while the panel is plugged in.\n" +
-            "Run Fennsill Host for MCP / scheduled tasks.\n" +
-            "AI pushes go to the panel — nothing piles up in a gallery here.";
+            "Device ID → website “Link your panel” only (not the ChatGPT/Claude MCP form).\n" +
+            "MCP form: URL + Headers Authorization = Bearer <token>. Keep Host running.";
 
         var actions = new FlowLayoutPanel
         {
-            Location = new Point(28, 260),
-            Size = new Size(640, 80),
+            Location = new Point(28, 384),
+            Size = new Size(680, 80),
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = true,
             BackColor = Color.Transparent,
@@ -153,28 +279,38 @@ public class MainForm : Form
         top.Controls.Add(title);
         top.Controls.Add(_readyBanner);
         top.Controls.Add(_status);
+        top.Controls.Add(identityLabel);
+        top.Controls.Add(identity);
         top.Controls.Add(_hint);
         top.Controls.Add(actions);
         Controls.Add(top);
+        ApplyIdentityUi();
+    }
+
+    void ApplyIdentityUi()
+    {
+        _deviceIdBox.Text = string.IsNullOrEmpty(_deviceId) ? "(not bound yet)" : _deviceId;
+        _serialBox.Text = string.IsNullOrEmpty(_serial) ? "(not bound yet)" : _serial;
+        _installKeyBox.Text = string.IsNullOrEmpty(_installKey) ? "(not bound yet)" : _installKey;
     }
 
     void StartBackgroundServices()
     {
         try
         {
-            using var killer = StartPython("connector\\kill_orphans.py");
+            using var killer = StartPythonScript("kill_orphans.py");
             killer?.WaitForExit(8000);
         }
         catch { /* still start fresh workers */ }
-        _bridgeProcess = StartPython("connector\\http_bridge.py");
-        _liveProcess = StartPython("connector\\live_watch.py");
-        _liveJobsProcess = StartPython("connector\\live_jobs.py");
+        _bridgeProcess = StartPythonScript("http_bridge.py");
+        _liveProcess = StartPythonScript("live_watch.py");
+        _liveJobsProcess = StartPythonScript("live_jobs.py");
     }
 
-    Process? StartPython(string relative)
+    Process? StartPythonScript(params string[] names)
     {
-        var script = Path.Combine(_root, relative);
-        if (!File.Exists(script)) return null;
+        var script = ResolveConnectorScript(names);
+        if (script == null) return null;
         try
         {
             var psi = new ProcessStartInfo
@@ -189,6 +325,13 @@ public class MainForm : Form
             psi.Environment["FENNSILL_PAGES"] = _pagesDir;
             psi.Environment["PLAYWRIGHT_BROWSERS_PATH"] = Path.Combine(_root, "connector", "browsers");
             psi.Environment["PYTHONUNBUFFERED"] = "1";
+            // Workers import sibling modules from connector/ (or connector/runtime/).
+            var scriptDir = Path.GetDirectoryName(script);
+            if (!string.IsNullOrEmpty(scriptDir))
+                psi.Environment["PYTHONPATH"] = scriptDir +
+                    (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("PYTHONPATH"))
+                        ? ""
+                        : (Path.PathSeparator + Environment.GetEnvironmentVariable("PYTHONPATH")));
             return Process.Start(psi);
         }
         catch
@@ -199,8 +342,8 @@ public class MainForm : Form
 
     async Task RefreshPanelStatus()
     {
-        var script = Path.Combine(_root, "connector", "panel_status.py");
-        if (!File.Exists(script)) return;
+        var script = ResolveConnectorScript("identity_status.py", "panel_status.py", "status_check.py");
+        if (script == null) return;
         var wasReady = _panelReady;
         try
         {
@@ -225,6 +368,12 @@ public class MainForm : Form
                 _panelPorts = string.Join(", ", ports.EnumerateArray().Select(p => p.GetString()).Where(s => !string.IsNullOrEmpty(s)));
             else
                 _panelPorts = "";
+            if (doc.RootElement.TryGetProperty("device_id", out var did))
+                _deviceId = did.GetString()?.Trim().ToUpperInvariant() ?? "";
+            if (doc.RootElement.TryGetProperty("serial", out var ser))
+                _serial = ser.GetString()?.Trim() ?? "";
+            if (doc.RootElement.TryGetProperty("install_key", out var ik))
+                _installKey = ik.GetString()?.Trim() ?? "";
             _panelTimer.Interval = _panelReady ? 12000 : 3000;
         }
         catch
@@ -249,14 +398,35 @@ public class MainForm : Form
             _readyBanner.Text = "Waiting for panel…";
             _status.Text = string.IsNullOrEmpty(_panelPorts) ? "Waiting for panel." : $"Seen: {_panelPorts}";
         }
+        ApplyIdentityUi();
     }
 
     void RunClientSetupOnce()
     {
         if (_setupRanForThisPlug) return;
         _setupRanForThisPlug = true;
-        var script = Path.Combine(_root, "connector", "install_clients.py");
-        if (!File.Exists(script)) return;
+        try
+        {
+            var bind = ResolveConnectorScript("device_bind_tool.py", "bind_device.py");
+            if (bind != null)
+            {
+                var psiBind = new ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = $"\"{bind}\"",
+                    WorkingDirectory = _root,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+                psiBind.Environment["FENNSILL_ROOT"] = _root;
+                using var bindProc = Process.Start(psiBind);
+                bindProc?.WaitForExit(45000);
+            }
+        }
+        catch { /* bind optional until panel answers */ }
+
+        var script = ResolveConnectorScript("install_clients.py");
+        if (script == null) return;
         try
         {
             var psi = new ProcessStartInfo
@@ -272,6 +442,13 @@ public class MainForm : Form
             proc?.WaitForExit(60000);
         }
         catch { /* optional */ }
+
+        // Refresh identity from bind file after setup.
+        try
+        {
+            BeginInvoke(async () => await RefreshPanelStatus());
+        }
+        catch { /* form may be closing */ }
     }
 
     async Task PastePage()
@@ -308,8 +485,8 @@ public class MainForm : Form
 
     async Task IngestHtml(string html, string source)
     {
-        var script = Path.Combine(_root, "connector", "ingest_page.py");
-        if (!File.Exists(script))
+        var script = ResolveConnectorScript("ingest_page.py");
+        if (script == null)
         {
             MessageBox.Show(this, "ingest_page.py missing.", "Fennsill");
             return;

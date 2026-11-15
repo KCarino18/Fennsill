@@ -66,10 +66,15 @@ Put TLS (Swag / NPM / reverse proxy) in front. Public URL should be `https://mcp
    python scripts/agent_stub.py
    ```
 
-5. **Point Claude / ChatGPT** at `https://mcp.yourdomain.com/mcp` with header:
-   `Authorization: Bearer USER_TOKEN`
+5. **Point Claude / ChatGPT** (“Connect to a custom MCP”):
+   - **URL** = `https://mcp.yourdomain.com/mcp`
+   - Leave Bearer token **env-var** empty
+   - **Headers** `Authorization` = `Bearer USER_TOKEN` (account site **Copy header**)
+   - **Device ID** goes only in **Link your panel** on the website (from the desk app), not the MCP form
 
    First MCP call after heartbeat opens 30 days of access.
+
+Cloud storage is **SQLite** (`FENNSILL_CLOUD_DB`). SQL Server is not required.
 
 ## Operator
 

@@ -14,14 +14,29 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(os.environ.get("FENNSILL_ROOT") or Path(__file__).resolve().parents[1])
+_HERE = Path(__file__).resolve().parent
+_DEFAULT_ROOT = _HERE.parents[1] if _HERE.name == "runtime" else _HERE.parent
+ROOT = Path(os.environ.get("FENNSILL_ROOT") or _DEFAULT_ROOT)
 sys.path.insert(0, str(ROOT / "firmware"))
 sys.path.insert(0, str(ROOT / "connector"))
+sys.path.insert(0, str(ROOT / "connector" / "runtime"))
 
 from panel_ports import confirmed_panels, panel_absence_message, scan_panels  # noqa: E402
 from serial_guard import SerialGuard  # noqa: E402
 
 BIND_PATH = Path(os.environ.get("LOCALAPPDATA", str(ROOT))) / "Fennsill" / "device_bind.json"
+_LEGACY_BIND = Path(os.environ.get("LOCALAPPDATA", str(ROOT))) / "Artiphact" / "device_bind.json"
+
+
+def _migrate_legacy_bind() -> None:
+    """Copy pre-rename Artiphact bind into Fennsill if needed."""
+    if BIND_PATH.is_file() or not _LEGACY_BIND.is_file():
+        return
+    try:
+        BIND_PATH.parent.mkdir(parents=True, exist_ok=True)
+        BIND_PATH.write_text(_LEGACY_BIND.read_text(encoding="utf-8"), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def _open(port: str):
@@ -62,6 +77,7 @@ def _ask(ser, cmd: str) -> str:
 
 
 def bind(port: str | None = None) -> dict:
+    _migrate_legacy_bind()
     scan = scan_panels(timeout=2.0)
     msg = panel_absence_message(scan)
     if msg:
@@ -118,8 +134,10 @@ def main() -> int:
     print(" Your Fennsill panel")
     print(f"   Serial:    {info['serial']}")
     print(f"   Device ID: {info['device_id']}")
+    print(f"   Install key: {info['install_key']}")
     print(f"   Bound to:  {BIND_PATH}")
     print()
+    print(" Paste Device ID into the Fennsill website (Link your panel).")
     print(" This serial stays the same on every PC.")
     return 0
 
