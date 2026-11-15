@@ -84,13 +84,14 @@ def find_factory_exe() -> Path | None:
 
 
 def find_install_ps1() -> Path:
+    # Prefer Desk name — some PCs/AV block creating Install-Fennsill.ps1.
     for cand in (
-        ROOT / "installer" / "Install-Fennsill.ps1",
         ROOT / "installer" / "Install-FennsillDesk.ps1",
+        ROOT / "installer" / "Install-Fennsill.ps1",
     ):
         if cand.is_file():
             return cand
-    raise SystemExit("Install-Fennsill.ps1 missing.")
+    raise SystemExit("Install-FennsillDesk.ps1 missing.")
 
 
 def merge_connector(dst: Path) -> None:
@@ -152,7 +153,12 @@ def main():
         print("WARN: FennsillSetup.exe missing — bat/ps1 fallback only.")
 
     install_ps1 = find_install_ps1()
-    shutil.copy2(install_ps1, OUT / "Install-Fennsill.ps1")
+    # Ship both names when possible; Desk name is the reliable one under AV locks.
+    shutil.copy2(install_ps1, OUT / "Install-FennsillDesk.ps1")
+    try:
+        shutil.copy2(install_ps1, OUT / "Install-Fennsill.ps1")
+    except OSError as exc:
+        print(f"WARN: could not write Install-Fennsill.ps1 ({exc}) — bat will use Desk name.")
 
     merge_connector(OUT / "connector")
     copy_tree(ROOT / "templates", OUT / "templates")
@@ -174,7 +180,9 @@ def main():
                 '  start "" "%~dp0FennsillSetup.exe"',
                 "  exit /b 0",
                 ")",
-                'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-Fennsill.ps1"',
+                'set PS1=%~dp0Install-FennsillDesk.ps1',
+                'if not exist "%PS1%" set PS1=%~dp0Install-Fennsill.ps1',
+                'powershell -NoProfile -ExecutionPolicy Bypass -File "%PS1%"',
                 "if errorlevel 1 (",
                 "  echo Setup failed.",
                 "  pause",

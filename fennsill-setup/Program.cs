@@ -13,7 +13,7 @@ static class Program
 
         var dir = AppContext.BaseDirectory.TrimEnd('\\', '/');
         var exe = FirstExisting(dir, "Fennsill.exe", "FennsillDesk.exe");
-        var ps1 = FirstExisting(dir, "Install-Fennsill.ps1", "Install-FennsillDesk.ps1");
+        var ps1 = FirstExisting(dir, "Install-FennsillDesk.ps1", "Install-Fennsill.ps1");
 
         if (exe == null)
         {
