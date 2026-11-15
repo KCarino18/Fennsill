@@ -12,7 +12,7 @@ Cloud MCP uses **SQLite** — **no SQL Server** required.
 | **Fennsill Factory** (flasher — self-installs to LocalAppData) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillFactory.exe) |
 | **Full setup zip** (optional; same apps + extras) | [Fennsill-Setup.zip](https://github.com/KCarino18/Fennsill/releases/latest/download/Fennsill-Setup.zip) |
 
-Each `.exe` is a **full install**: first launch copies scripts/firmware into `%LOCALAPPDATA%\Fennsill\` and creates a desktop shortcut. No `C:\factory` folder required.
+Each `.exe` is a **full install**: first launch copies scripts/firmware into `%LOCALAPPDATA%\FennsillApp\` and creates a desktop shortcut. No `C:\factory` folder required.
 
 There is **no Fennsill Host** — use the cloud account MCP URL.
 
@@ -20,11 +20,11 @@ There is **no Fennsill Host** — use the cloud account MCP URL.
 
 - **Desk:** `Fennsill.exe` (release name). Local builds may produce `FennsillDesk.exe` if Windows blocks `Fennsill.exe`.
 - **Factory:** `FennsillFactory.exe` next to the `factory/` scripts folder
-- **Install root:** `%LOCALAPPDATA%\Fennsill\`
+- **Install root:** `%LOCALAPPDATA%\FennsillApp\`
 
 ### Quick use
 
-1. **Factory** (manufacturing PC) — keep the `factory/` folder from the zip (or copy it to `C:\factory`). Plug in the XIAO e-ink panel → open **FennsillFactory.exe** → Check → Flash.
+1. **Factory** (manufacturing PC) — download **FennsillFactory.exe** (self-installs). Plug in the XIAO e-ink panel → open Factory → Check → Flash.
 2. **Fennsill** — install/run on the buyer PC with the panel plugged in. Copy **Device ID / Serial / Install key** from the desk window.
 3. **Account site** — Link your panel with the **Device ID** from the desk app (not the MCP form).
 4. **Cloud MCP** (ChatGPT / Claude “Connect to a custom MCP”):

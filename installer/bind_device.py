@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT / "connector"))
 from panel_ports import confirmed_panels, panel_absence_message, scan_panels  # noqa: E402
 from serial_guard import SerialGuard  # noqa: E402
 
-BIND_PATH = Path(os.environ.get("LOCALAPPDATA", str(ROOT))) / "Fennsill" / "device_bind.json"
+BIND_PATH = Path(os.environ.get("LOCALAPPDATA", str(ROOT))) / "FennsillApp" / "device_bind.json"
 _LEGACY_BIND = Path(os.environ.get("LOCALAPPDATA", str(ROOT))) / "Artiphact" / "device_bind.json"
 
 

@@ -26,13 +26,9 @@ static class Program
         {
             DeskInstall.EnsureInstalled();
         }
-        catch (Exception ex)
+        catch
         {
-            MessageBox.Show(
-                "Could not finish local install:\n\n" + ex.Message,
-                "Fennsill Setup",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning);
+            // Still open the app — FindProjectRoot may use the project folder.
         }
 
         Application.Run(new MainForm());

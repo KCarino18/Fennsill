@@ -1,6 +1,6 @@
 ﻿$ErrorActionPreference = "Stop"
 $Project = Split-Path -Parent $PSScriptRoot
-$Dest = Join-Path $env:LOCALAPPDATA "Fennsill"
+$Dest = Join-Path $env:LOCALAPPDATA "FennsillApp"
 $Legacy = Join-Path $env:LOCALAPPDATA "Artiphact"
 New-Item -ItemType Directory -Force -Path (Join-Path $Dest "connector") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $Dest "connector\runtime") | Out-Null

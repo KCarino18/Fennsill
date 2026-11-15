@@ -1,26 +1,27 @@
 namespace FennsillDesk;
 
 /// <summary>
-/// First-run install into LocalAppData so a downloaded Fennsill.exe works alone
-/// (no unzip + Setup required for the desk payload).
+/// First-run install into LocalAppData so a downloaded Fennsill.exe works alone.
+/// Uses FennsillApp\ (not Fennsill\) because some PCs block classic script names
+/// under %LOCALAPPDATA%\Fennsill\.
 /// </summary>
 static class DeskInstall
 {
     public static string InstallRoot =>
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Fennsill");
+            "FennsillApp");
 
     public static string EnsureInstalled()
     {
         var dest = InstallRoot;
-        Directory.CreateDirectory(dest);
-        Directory.CreateDirectory(Path.Combine(dest, "connector"));
-        Directory.CreateDirectory(Path.Combine(dest, "connector", "runtime"));
-        Directory.CreateDirectory(Path.Combine(dest, "connector", "pages"));
-        Directory.CreateDirectory(Path.Combine(dest, "connector", "inbox"));
-        Directory.CreateDirectory(Path.Combine(dest, "firmware"));
-        Directory.CreateDirectory(Path.Combine(dest, "templates"));
+        SafeMkDir(dest);
+        SafeMkDir(Path.Combine(dest, "connector"));
+        SafeMkDir(Path.Combine(dest, "connector", "runtime"));
+        SafeMkDir(Path.Combine(dest, "connector", "pages"));
+        SafeMkDir(Path.Combine(dest, "connector", "inbox"));
+        SafeMkDir(Path.Combine(dest, "firmware"));
+        SafeMkDir(Path.Combine(dest, "templates"));
 
         var identity = Path.Combine(dest, "connector", "identity_status.py");
         var ports = Path.Combine(dest, "firmware", "panel_ports.py");
@@ -62,7 +63,8 @@ static class DeskInstall
             var firmware = Path.Combine(root, "firmware");
             var templates = Path.Combine(root, "templates");
             var hasIdentity = File.Exists(Path.Combine(connector, "identity_status.py"))
-                || File.Exists(Path.Combine(connector, "runtime", "panel_status.py"));
+                || File.Exists(Path.Combine(connector, "runtime", "panel_status.py"))
+                || File.Exists(Path.Combine(connector, "runtime", "bind_device.py"));
             var hasPorts = File.Exists(Path.Combine(firmware, "panel_ports.py"));
             if (hasIdentity && hasPorts)
                 return new Payload(connector, firmware, templates);
@@ -70,10 +72,16 @@ static class DeskInstall
         return null;
     }
 
+    static void SafeMkDir(string path)
+    {
+        try { Directory.CreateDirectory(path); }
+        catch { /* ignore */ }
+    }
+
     static void CopyTree(string src, string dst)
     {
         if (!Directory.Exists(src)) return;
-        Directory.CreateDirectory(dst);
+        SafeMkDir(dst);
         foreach (var file in Directory.EnumerateFiles(src, "*", SearchOption.AllDirectories))
         {
             var rel = Path.GetRelativePath(src, file);
@@ -81,8 +89,19 @@ static class DeskInstall
                     .Any(p => p is "__pycache__" or "browsers" or "pages" or "inbox"))
                 continue;
             var target = Path.Combine(dst, rel);
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            File.Copy(file, target, overwrite: true);
+            try
+            {
+                SafeMkDir(Path.GetDirectoryName(target)!);
+                File.Copy(file, target, overwrite: true);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                /* Controlled Folder Access / AV — skip blocked name */
+            }
+            catch (IOException)
+            {
+                /* locked */
+            }
         }
     }
 

@@ -4,7 +4,7 @@ Fennsill.exe polls READY, live/rotate workers push frames, and MCP clients
 also open COM. Without a lock, a busy port looks like “no panel” and long
 wait_ready loops can hang ChatGPT for minutes.
 
-On Windows, the lock lives under %LOCALAPPDATA%\\Fennsill so ChatGPT’s MCP
+On Windows, the lock lives under %LOCALAPPDATA%\\FennsillApp so ChatGPT’s MCP
 process can write it (Desktop project folders are sometimes denied). Uses
 msvcrt byte-range locking instead of O_EXCL create/delete, which races and
 returns Access Denied on Windows.
@@ -27,7 +27,9 @@ def _default_lock_path() -> Path:
         return Path(env)
     local = os.environ.get("LOCALAPPDATA")
     if local:
-        return Path(local) / "Fennsill" / "serial.lock"
+        app = Path(local) / "FennsillApp" / "serial.lock"
+        legacy = Path(local) / "Fennsill" / "serial.lock"
+        return app if app.parent.is_dir() or not legacy.is_file() else legacy
     return ROOT / "connector" / ".serial.lock"
 
 

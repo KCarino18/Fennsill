@@ -1,22 +1,22 @@
 namespace FennsillFactory;
 
 /// <summary>
-/// First-run install: copy bundled factory + firmware into LocalAppData so a
-/// lone FennsillFactory.exe download works without C:\factory or a zip layout.
+/// First-run install into LocalAppData\FennsillApp\factory (not Fennsill\),
+/// because some PCs block classic script names under %LOCALAPPDATA%\Fennsill\.
 /// </summary>
 static class FactoryInstall
 {
     public static string InstallRoot =>
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Fennsill");
+            "FennsillApp");
 
     public static string FactoryDir => Path.Combine(InstallRoot, "factory");
 
     public static string EnsureInstalled()
     {
         var dest = FactoryDir;
-        Directory.CreateDirectory(dest);
+        SafeMkDir(dest);
 
         var provision = Path.Combine(dest, "provision.py");
         var ports = Path.Combine(dest, "firmware", "panel_ports.py");
@@ -29,25 +29,26 @@ static class FactoryInstall
             {
                 throw new DirectoryNotFoundException(
                     "Factory files are missing from this download.\n\n" +
-                    "Use Fennsill-Setup.zip / Fennsill Factory from the latest release, " +
-                    "or rebuild with bundled payload.");
+                    "Re-download FennsillFactory.exe from the latest GitHub release.");
             }
 
             CopyTree(payload.FactorySrc, dest);
-            var fwDest = Path.Combine(dest, "firmware");
-            CopyTree(payload.FirmwareSrc, fwDest);
+            CopyTree(payload.FirmwareSrc, Path.Combine(dest, "firmware"));
         }
 
-        // Always refresh the installed exe next to the scripts.
+        if (!File.Exists(Path.Combine(dest, "provision.py"))
+            || !File.Exists(Path.Combine(dest, "firmware", "panel_ports.py")))
+        {
+            throw new IOException(
+                "Could not install factory scripts (Windows blocked some files).\n\n" +
+                "Allow FennsillFactory.exe in Controlled Folder Access / antivirus, then try again.");
+        }
+
         try
         {
-            var exeDest = Path.Combine(dest, "FennsillFactory.exe");
-            File.Copy(Application.ExecutablePath, exeDest, overwrite: true);
+            File.Copy(Application.ExecutablePath, Path.Combine(dest, "FennsillFactory.exe"), overwrite: true);
         }
-        catch
-        {
-            /* file locked / in use — ignore */
-        }
+        catch { /* locked */ }
 
         Environment.SetEnvironmentVariable("FENNSILL_ROOT", dest);
         TryDesktopShortcut(Path.Combine(dest, "FennsillFactory.exe"), dest);
@@ -88,9 +89,16 @@ static class FactoryInstall
         return null;
     }
 
+    static void SafeMkDir(string path)
+    {
+        try { Directory.CreateDirectory(path); }
+        catch { /* ignore */ }
+    }
+
     static void CopyTree(string src, string dst)
     {
-        Directory.CreateDirectory(dst);
+        if (!Directory.Exists(src)) return;
+        SafeMkDir(dst);
         foreach (var file in Directory.EnumerateFiles(src, "*", SearchOption.AllDirectories))
         {
             var name = Path.GetFileName(file);
@@ -98,7 +106,6 @@ static class FactoryInstall
             if (name.EndsWith(".csv", StringComparison.OrdinalIgnoreCase) &&
                 file.Contains($"{Path.DirectorySeparatorChar}ledger{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
                 continue;
-            if (name.Equals("__pycache__", StringComparison.OrdinalIgnoreCase)) continue;
 
             var rel = Path.GetRelativePath(src, file);
             if (rel.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
@@ -106,8 +113,13 @@ static class FactoryInstall
                 continue;
 
             var target = Path.Combine(dst, rel);
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            File.Copy(file, target, overwrite: true);
+            try
+            {
+                SafeMkDir(Path.GetDirectoryName(target)!);
+                File.Copy(file, target, overwrite: true);
+            }
+            catch (UnauthorizedAccessException) { /* AV block */ }
+            catch (IOException) { /* locked */ }
         }
     }
 
@@ -126,9 +138,6 @@ static class FactoryInstall
             sc.WorkingDirectory = workDir;
             sc.Save();
         }
-        catch
-        {
-            /* optional */
-        }
+        catch { /* optional */ }
     }
 }

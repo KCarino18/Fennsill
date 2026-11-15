@@ -20,7 +20,8 @@ function Find-PayloadRoot {
 }
 
 $Payload = Find-PayloadRoot
-$Dest = Join-Path $env:LOCALAPPDATA "Fennsill"
+# FennsillApp (not Fennsill) — some PCs block classic script names under Fennsill\
+$Dest = Join-Path $env:LOCALAPPDATA "FennsillApp"
 
 Write-Host ""
 Write-Host " FENNSILL SETUP"

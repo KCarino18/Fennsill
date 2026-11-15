@@ -24,19 +24,27 @@ sys.path.insert(0, str(ROOT / "connector" / "runtime"))
 from panel_ports import confirmed_panels, panel_absence_message, scan_panels  # noqa: E402
 from serial_guard import SerialGuard  # noqa: E402
 
-BIND_PATH = Path(os.environ.get("LOCALAPPDATA", str(ROOT))) / "Fennsill" / "device_bind.json"
-_LEGACY_BIND = Path(os.environ.get("LOCALAPPDATA", str(ROOT))) / "Artiphact" / "device_bind.json"
+_local = Path(os.environ.get("LOCALAPPDATA", str(ROOT)))
+BIND_PATH = _local / "FennsillApp" / "device_bind.json"
+_LEGACY_BINDS = (
+    _local / "Fennsill" / "device_bind.json",
+    _local / "Artiphact" / "device_bind.json",
+)
 
 
 def _migrate_legacy_bind() -> None:
-    """Copy pre-rename Artiphact bind into Fennsill if needed."""
-    if BIND_PATH.is_file() or not _LEGACY_BIND.is_file():
+    """Copy older Artiphact/Fennsill bind into FennsillApp if needed."""
+    if BIND_PATH.is_file():
         return
-    try:
-        BIND_PATH.parent.mkdir(parents=True, exist_ok=True)
-        BIND_PATH.write_text(_LEGACY_BIND.read_text(encoding="utf-8"), encoding="utf-8")
-    except Exception:
-        pass
+    for legacy in _LEGACY_BINDS:
+        if not legacy.is_file():
+            continue
+        try:
+            BIND_PATH.parent.mkdir(parents=True, exist_ok=True)
+            BIND_PATH.write_text(legacy.read_text(encoding="utf-8"), encoding="utf-8")
+            return
+        except Exception:
+            pass
 
 
 def _open(port: str):
