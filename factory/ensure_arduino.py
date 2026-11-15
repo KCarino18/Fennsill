@@ -23,7 +23,33 @@ FQBN = "esp32:esp32:XIAO_ESP32S3_Plus"
 ESP32_INDEX = "https://espressif.github.io/arduino-esp32/package_esp32_index.json"
 
 
+def writable_temp_dir() -> Path:
+    """Prefer LocalAppData — Bitdefender's virtual disk rejects writes like virtual_file.log."""
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        path = Path(local) / "FennsillApp" / "tmp"
+    else:
+        path = ROOT / "tmp"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def harden_process_paths() -> Path:
+    """Keep flash tools off AV sandbox / read-only volumes."""
+    tmp = writable_temp_dir()
+    os.environ["TEMP"] = str(tmp)
+    os.environ["TMP"] = str(tmp)
+    os.environ["TMPDIR"] = str(tmp)
+    try:
+        os.chdir(ROOT)
+    except OSError:
+        pass
+    return tmp
+
+
 def _run(cmd: list[str], **kwargs) -> None:
+    harden_process_paths()
+    kwargs.setdefault("cwd", str(ROOT))
     print("+", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True, **kwargs)
 
@@ -59,8 +85,12 @@ def download_arduino_cli() -> str:
 
 
 def cli_env() -> dict[str, str]:
+    tmp = harden_process_paths()
     env = os.environ.copy()
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    env["TEMP"] = str(tmp)
+    env["TMP"] = str(tmp)
+    env["TMPDIR"] = str(tmp)
     env["ARDUINO_DIRECTORIES_DATA"] = str(DATA_DIR)
     env["ARDUINO_DIRECTORIES_DOWNLOADS"] = str(DATA_DIR / "staging")
     env["ARDUINO_DIRECTORIES_USER"] = str(DATA_DIR / "user")

@@ -353,6 +353,14 @@ public sealed class MainForm : Form
 
         psi.Environment["PYTHONUNBUFFERED"] = "1";
         psi.Environment["FENNSILL_ROOT"] = _repoRoot;
+        // Keep tools off Bitdefender's virtual disk (virtual_file.log PermissionError).
+        var tmp = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "FennsillApp", "tmp");
+        try { Directory.CreateDirectory(tmp); } catch { /* best effort */ }
+        psi.Environment["TEMP"] = tmp;
+        psi.Environment["TMP"] = tmp;
+        psi.Environment["TMPDIR"] = tmp;
 
         using var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
         var stdout = new StringBuilder();

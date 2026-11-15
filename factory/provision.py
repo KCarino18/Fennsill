@@ -177,6 +177,10 @@ def key_is_locked(key_line: str) -> bool:
 
 def erase_chip(port: str) -> None:
     """Full flash wipe — removes stock TRMNL (or any) firmware + NVS before Fennsill."""
+    from ensure_arduino import cli_env, harden_process_paths
+
+    harden_process_paths()
+    env = cli_env()
     cmd = [
         sys.executable,
         "-m",
@@ -188,13 +192,14 @@ def erase_chip(port: str) -> None:
         "erase-flash",
     ]
     print("Wiping chip (TRMNL/stock firmware + NVS):", " ".join(cmd))
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, cwd=str(ROOT), env=env)
     time.sleep(1.5)
 
 
 def flash_firmware(port: str, sketch: Path = SKETCH, fqbn: str = FQBN, *, erase: bool = True) -> None:
-    from ensure_arduino import cli_env, ensure_arduino
+    from ensure_arduino import cli_env, ensure_arduino, harden_process_paths
 
+    harden_process_paths()
     target = assert_factory_flash_port(port)
     print(f"Target OK: {target.get('kind')} — {target.get('reason')}")
     print("Preparing arduino-cli (downloads automatically if missing)…", flush=True)
@@ -215,7 +220,7 @@ def flash_firmware(port: str, sketch: Path = SKETCH, fqbn: str = FQBN, *, erase:
         str(sketch.parent),
     ]
     print("Installing Fennsill firmware:", " ".join(cmd), flush=True)
-    subprocess.run(cmd, check=True, env=env)
+    subprocess.run(cmd, check=True, cwd=str(ROOT), env=env)
 
 
 def lock_serial(ser, box_serial: str) -> None:
@@ -389,9 +394,25 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def _format_exc(exc: BaseException) -> str:
+    text = str(exc)
+    low = text.lower()
+    if "virtual_file.log" in low or "bitdefender virtual disk" in low:
+        return (
+            f"{text}\n\n"
+            "Bitdefender (or similar AV) is blocking Factory file writes on its virtual disk.\n"
+            "Allow/exclude: this Factory folder, python.exe, arduino-cli.exe, and "
+            "%LOCALAPPDATA%\\FennsillApp — then Flash again."
+        )
+    return text
+
+
 if __name__ == "__main__":
     try:
+        from ensure_arduino import harden_process_paths
+
+        harden_process_paths()
         raise SystemExit(main())
     except Exception as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
+        print(f"ERROR: {_format_exc(exc)}", file=sys.stderr)
         raise SystemExit(1)

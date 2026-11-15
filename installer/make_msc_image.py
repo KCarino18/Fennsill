@@ -72,6 +72,7 @@ $here=Split-Path -Parent $MyInvocation.MyCommand.Path
 # If this PC already has the Fennsill project next to a cloned tree, use full installer.
 $candidates=@(
   (Join-Path $env:USERPROFILE 'Desktop\This Is A Test For The Tablet\installer\Install-Fennsill.ps1'),
+  (Join-Path $env:LOCALAPPDATA 'FennsillApp\Install-Fennsill.ps1'),
   (Join-Path $env:LOCALAPPDATA 'Fennsill\Install-Fennsill.ps1')
 )
 foreach($c in $candidates){ if(Test-Path $c){ & $c; exit $LASTEXITCODE } }

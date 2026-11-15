@@ -52,7 +52,18 @@ try {
 function Sync-Tree([string]$src, [string]$dst) {
     if (-not (Test-Path $src)) { return }
     New-Item -ItemType Directory -Force -Path $dst | Out-Null
-    & robocopy $src $dst /E /XD __pycache__ pages inbox /NFL /NDL /NJH /NJS /R:1 /W:1 | Out-Null
+    # Soft-copy: some PCs/AV block classic names (panel_ports.py under Fennsill\).
+    Get-ChildItem -LiteralPath $src -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+        $rel = $_.FullName.Substring($src.Length).TrimStart('\', '/')
+        if ($rel -match '(^|\\|/)(__pycache__|pages|inbox|browsers)(\\|/|$)') { return }
+        $target = Join-Path $dst $rel
+        try {
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
+            Copy-Item -LiteralPath $_.FullName -Destination $target -Force -ErrorAction Stop
+        } catch {
+            Write-Host " Skip (blocked): $rel"
+        }
+    }
 }
 
 # Prefer packaged payload folders; fall back to project layout.
