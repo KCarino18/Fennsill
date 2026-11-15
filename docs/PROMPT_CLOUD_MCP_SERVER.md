@@ -1,6 +1,8 @@
 # Prompt: build Artiphact cloud MCP server (SQLite)
 
-Point Claude / Cursor at **this file**. Build only what is below.
+**Implemented in-repo:** see [`cloud/`](../cloud/) (`main.py`, `store.py`, Dockerfile, README, tests).
+
+Point Claude / Cursor at **this file** to extend or redeploy. Build only what is below.
 
 SQL Server is **out**. Do not connect to MSSQL. Use SQLite. Comment out or omit any `ARTIPHACT_SQL_CONNECTION` / pyodbc path.
 
