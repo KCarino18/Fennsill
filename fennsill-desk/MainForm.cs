@@ -51,9 +51,6 @@ public class MainForm : Form
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var installed = Path.Combine(local, "Fennsill");
         if (HasConnector(installed)) return installed;
-        // Prefer Fennsill; fall back to leftover Artiphact tree only if not migrated yet.
-        var legacy = Path.Combine(local, "Artiphact");
-        if (HasConnector(legacy)) return legacy;
 
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir != null)
