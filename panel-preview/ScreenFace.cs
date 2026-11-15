@@ -1,6 +1,6 @@
 using System.Drawing.Imaging;
 
-namespace ArtiphactPreview;
+namespace FennsillPreview;
 
 static class ScreenFace
 {

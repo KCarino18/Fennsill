@@ -1,5 +1,5 @@
 /*
-  Artiphact panel firmware for the Seeed TRMNL 7.5" DIY kit (XIAO ESP32-S3 Plus + EE04).
+  Fennsill panel firmware for the Seeed TRMNL 7.5" DIY kit (XIAO ESP32-S3 Plus + EE04).
 
   Board: esp32:esp32:XIAO_ESP32S3_Plus
   USB Mode: Hardware CDC and JTAG
@@ -7,8 +7,8 @@
   PSRAM: OPI PSRAM
   Library: Seeed_GFX with driver.h beside this sketch
 
-  Boot turns on panel power (GPIO 43), then draws the Artiphact splash.
-  Dashboards arrive over USB from the Artiphact desktop app (frames only).
+  Boot turns on panel power (GPIO 43), then draws the Fennsill splash.
+  Dashboards arrive over USB from the Fennsill desktop app (frames only).
   Cloud MCP / account auth is not on this device — USB is the trust boundary.
 
   Privacy: Wi-Fi SSID/PSK stay in NVS. Never print them on Serial.
@@ -28,7 +28,7 @@
 #include "update_key.h"
 #include "splash_frame.h"
 // Optional USB SETUP drive (TinyUSB only). Keep off for Hardware CDC builds.
-// #define ARTIPHACT_USB_INSTALLER
+// #define FENNSILL_USB_INSTALLER
 #include "usb_installer.h"
 
 #ifdef EPAPER_ENABLE
@@ -36,7 +36,7 @@ EPaper epaper;
 #endif
 
 static const char *FW_VERSION = "1.2.0";
-static const char *DEFAULT_MANIFEST = "https://updates.artiphact.com/manifest.json";
+static const char *DEFAULT_MANIFEST = "https://updates.fennsill.com/manifest.json";
 static const int FRAME_W = 800;
 static const int FRAME_H = 480;
 static const int ROW_BYTES = 100;
@@ -118,8 +118,8 @@ static void reportDisplayError() {
 
 static void initDeviceId() {
   uint64_t mac = ESP.getEfuseMac();
-  // Stable USB pairing id (not a cloud secret). Format: AP + 12 hex (MAC).
-  snprintf(deviceId, sizeof(deviceId), "AP%02X%02X%02X%02X%02X%02X",
+  // Stable USB pairing id (not a cloud secret). Format: FS + 12 hex (MAC).
+  snprintf(deviceId, sizeof(deviceId), "FS%02X%02X%02X%02X%02X%02X",
            (unsigned)(mac & 0xFF),
            (unsigned)((mac >> 8) & 0xFF),
            (unsigned)((mac >> 16) & 0xFF),
@@ -534,7 +534,7 @@ static void handleLine(char *line) {
     return;
   }
   if (strncmp(line, "KEYSET ", 7) == 0) {
-    // Write-once device secret (64 hex). Used to bind Artiphact installs / cloud claim.
+    // Write-once device secret (64 hex). Used to bind Fennsill installs / cloud claim.
     if (prefs.getString("dkey", "").length() == 64) {
       Serial.println("ERR key locked");
       return;
@@ -725,8 +725,8 @@ static void maybeSleep() {
 }
 
 void setup() {
-  // Optional: show ARTIPHACT USB drive with SETUP.BAT for first-time PC install.
-  artiphactMscStart();
+  // Optional: show FENNSILL USB drive with SETUP.BAT for first-time PC install.
+  fennsillMscStart();
 
   Serial.setRxBufferSize(65536);
   Serial.begin(115200);
@@ -734,7 +734,7 @@ void setup() {
   // Do not announce READY until after splash. E-ink paint blocks USB handling,
   // and an early READY makes the host start pushing while setup() is still busy.
 
-  prefs.begin("artiphact", false);
+  prefs.begin("fennsill", false);
   initDeviceId();
   pinMode(PIN_YES, INPUT_PULLUP);
   pinMode(PIN_NO, INPUT_PULLUP);

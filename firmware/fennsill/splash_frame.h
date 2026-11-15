@@ -1,5 +1,5 @@
 #pragma once
-// Monochrome Artiphact startup splash. 800x480, bit 1 white, MSB left.
+// Monochrome Fennsill startup splash. 800x480, bit 1 white, MSB left.
 static const uint16_t SPLASH_FRAME_LEN = 48000;
 static const uint8_t SPLASH_FRAME[48000] PROGMEM = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

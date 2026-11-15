@@ -1,4 +1,4 @@
-"""Build website zip + USB folder: dist/Artiphact + dist/Artiphact-Setup.zip"""
+"""Build website zip + USB folder: dist/Fennsill + dist/Fennsill-Setup.zip"""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "dist" / "Artiphact"
-ZIP = ROOT / "dist" / "Artiphact-Setup.zip"
+OUT = ROOT / "dist" / "Fennsill"
+ZIP = ROOT / "dist" / "Fennsill-Setup.zip"
 SKIP_DIRS = {"__pycache__", "pages", "inbox", "browsers", "bin"}
 
 
@@ -32,45 +32,45 @@ def main():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
 
-    exe = ROOT / "Artiphact.exe"
+    exe = ROOT / "Fennsill.exe"
     if not exe.is_file():
-        exe = ROOT / "artiphact-desk" / "out" / "Artiphact.exe"
+        exe = ROOT / "fennsill-desk" / "out" / "Fennsill.exe"
     if not exe.is_file():
-        raise SystemExit("Artiphact.exe missing — publish the desk app first.")
-    shutil.copy2(exe, OUT / "Artiphact.exe")
+        raise SystemExit("Fennsill.exe missing — publish the desk app first.")
+    shutil.copy2(exe, OUT / "Fennsill.exe")
 
-    host = ROOT / "ArtiphactHost.exe"
+    host = ROOT / "FennsillHost.exe"
     if not host.is_file():
-        host = ROOT / "artiphact-host" / "out" / "ArtiphactHost.exe"
+        host = ROOT / "fennsill-host" / "out" / "FennsillHost.exe"
     if not host.is_file():
-        raise SystemExit("ArtiphactHost.exe missing — publish artiphact-host first.")
-    shutil.copy2(host, OUT / "ArtiphactHost.exe")
+        raise SystemExit("FennsillHost.exe missing — publish fennsill-host first.")
+    shutil.copy2(host, OUT / "FennsillHost.exe")
 
-    setup_exe = ROOT / "artiphact-setup" / "out" / "ArtiphactSetup.exe"
+    setup_exe = ROOT / "fennsill-setup" / "out" / "FennsillSetup.exe"
     if not setup_exe.is_file():
-        raise SystemExit("ArtiphactSetup.exe missing — publish artiphact-setup first.")
-    shutil.copy2(setup_exe, OUT / "ArtiphactSetup.exe")
+        raise SystemExit("FennsillSetup.exe missing — publish fennsill-setup first.")
+    shutil.copy2(setup_exe, OUT / "FennsillSetup.exe")
 
-    shutil.copy2(ROOT / "installer" / "Install-Artiphact.ps1", OUT / "Install-Artiphact.ps1")
+    shutil.copy2(ROOT / "installer" / "Install-Fennsill.ps1", OUT / "Install-Fennsill.ps1")
     copy_tree(ROOT / "connector", OUT / "connector")
     copy_tree(ROOT / "templates", OUT / "templates")
     copy_tree(ROOT / "firmware", OUT / "firmware")
 
-    (OUT / "ArtiphactSetup.bat").write_text(
+    (OUT / "FennsillSetup.bat").write_text(
         "\r\n".join(
             [
                 "@echo off",
-                "title Artiphact Setup",
+                "title Fennsill Setup",
                 'cd /d "%~dp0"',
                 "echo.",
-                "echo  ARTIPHACT SETUP",
-                "echo  Prefer ArtiphactSetup.exe - this .bat is a fallback.",
+                "echo  FENNSILL SETUP",
+                "echo  Prefer FennsillSetup.exe - this .bat is a fallback.",
                 "echo.",
-                'if exist "%~dp0ArtiphactSetup.exe" (',
-                '  start "" "%~dp0ArtiphactSetup.exe"',
+                'if exist "%~dp0FennsillSetup.exe" (',
+                '  start "" "%~dp0FennsillSetup.exe"',
                 "  exit /b 0",
                 ")",
-                'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-Artiphact.ps1"',
+                'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-Fennsill.ps1"',
                 "if errorlevel 1 (",
                 "  echo Setup failed.",
                 "  pause",
@@ -87,16 +87,16 @@ def main():
     (OUT / "README.txt").write_text(
         "\r\n".join(
             [
-                "ARTIPHACT",
+                "FENNSILL",
                 "",
                 "1. Unzip this folder (website) or open it on the USB stick.",
-                "2. Double-click ArtiphactSetup.exe",
-                "3. Open Artiphact.exe (panel desk).",
-                "4. Open ArtiphactHost.exe: Start server, Start public link, Copy MCP URL",
+                "2. Double-click FennsillSetup.exe",
+                "3. Open Fennsill.exe (panel desk).",
+                "4. Open FennsillHost.exe: Start server, Start public link, Copy MCP URL",
                 "   into Claude Connectors or ChatGPT custom MCP (No sign-in).",
-                "5. Copy panel prompt from Host and paste in a new chat with Artiphact enabled.",
+                "5. Copy panel prompt from Host and paste in a new chat with Fennsill enabled.",
                 "",
-                "ArtiphactSetup.bat is only a fallback if the .exe is blocked.",
+                "FennsillSetup.bat is only a fallback if the .exe is blocked.",
                 "",
             ]
         ),
@@ -110,15 +110,15 @@ def main():
             if path.is_file():
                 zf.write(path, arcname=path.relative_to(OUT).as_posix())
 
-    desktop = Path.home() / "Desktop" / "ArtiphactSetup.bat"
-    shutil.copy2(OUT / "ArtiphactSetup.bat", desktop)
+    desktop = Path.home() / "Desktop" / "FennsillSetup.bat"
+    shutil.copy2(OUT / "FennsillSetup.bat", desktop)
     # Desktop bat won't find payload — also copy a desktop helper that points at dist
     desktop.write_text(
         "\r\n".join(
             [
                 "@echo off",
                 f'cd /d "{OUT}"',
-                "call ArtiphactSetup.bat",
+                "call FennsillSetup.bat",
             ]
         ),
         encoding="ascii",

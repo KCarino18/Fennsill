@@ -1,4 +1,4 @@
-"""Kill leftover Artiphact worker processes before desk starts fresh ones."""
+"""Kill leftover Fennsill worker processes before desk starts fresh ones."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ MARKERS = (
 
 
 def main() -> int:
-    root = os.environ.get("ARTIPHACT_ROOT") or str(__import__("pathlib").Path(__file__).resolve().parents[1])
+    root = os.environ.get("FENNSILL_ROOT") or str(__import__("pathlib").Path(__file__).resolve().parents[1])
     root_l = root.lower()
     me = os.getpid()
     killed = 0

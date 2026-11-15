@@ -18,7 +18,7 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
-DB_PATH = Path(__import__("os").environ.get("ARTIPHACT_DB", Path(__file__).resolve().parent / "artiphact.db"))
+DB_PATH = Path(__import__("os").environ.get("FENNSILL_DB", Path(__file__).resolve().parent / "fennsill.db"))
 PBKDF2_ROUNDS = 120_000
 MAX_HTML_CHARS = 512_000
 

@@ -1,4 +1,4 @@
-# Artiphact shipping checklist (MVP)
+# Fennsill shipping checklist (MVP)
 
 This is an engineering checklist, not legal advice. Have counsel review before
 public sale / app-store distribution.
@@ -7,8 +7,8 @@ public sale / app-store distribution.
 
 | Binary | Role | Network |
 |--------|------|---------|
-| `Artiphact.exe` | Desk: gallery, USB panel, local workers | Localhost bridge only — **no** public tunnel |
-| `ArtiphactHost.exe` | Opt-in MCP for AI apps | Local `127.0.0.1:8766`; public Cloudflare **only** after explicit confirm |
+| `Fennsill.exe` | Desk: gallery, USB panel, local workers | Localhost bridge only — **no** public tunnel |
+| `FennsillHost.exe` | Opt-in MCP for AI apps | Local `127.0.0.1:8766`; public Cloudflare **only** after explicit confirm |
 
 ## Security (already enforced or required before ship)
 
@@ -22,24 +22,24 @@ public sale / app-store distribution.
 ## Privacy
 
 - Pages and Wi‑Fi credentials stay on the buyer’s PC / panel NVS unless they opt into a public tunnel or OTA update URL.
-- Gallery lives under `%LOCALAPPDATA%\Artiphact\connector\pages`.
-- Disclose: AI providers (Claude/ChatGPT) process prompts/HTML under **their** policies; Artiphact does not host buyer chat content.
+- Gallery lives under `%LOCALAPPDATA%\Fennsill\connector\pages`.
+- Disclose: AI providers (Claude/ChatGPT) process prompts/HTML under **their** policies; Fennsill does not host buyer chat content.
 
 ## Firmware
 
-- USB CDC frame protocol; OTA only via signed manifest path ([`firmware/artiphact/artiphact.ino`](../firmware/artiphact/artiphact.ino)).
+- USB CDC frame protocol; OTA only via signed manifest path ([`firmware/fennsill/fennsill.ino`](../firmware/fennsill/fennsill.ino)).
 - Wi‑Fi secrets in Preferences (device flash) — disclose in privacy note; never log passwords.
 - Regulatory: shipping a radio product requires the usual FCC/CE path for the module + host; keep manufacturer docs with the kit.
 
 ## Claims
 
 - Do not claim “certified secure,” “hack-proof,” or that any AI is “connected” unless that connector is actually enabled in the AI app.
-- Marketing: Artiphact displays pages the buyer’s AI generates; Artiphact is not the AI.
+- Marketing: Fennsill displays pages the buyer’s AI generates; Fennsill is not the AI.
 
 ## Before release build
 
-1. Publish `Artiphact.exe` + `ArtiphactHost.exe`; run Setup into LocalAppData.
-2. Verify gallery updates on MCP push (same `ARTIPHACT_ROOT`).
+1. Publish `Fennsill.exe` + `FennsillHost.exe`; run Setup into LocalAppData.
+2. Verify gallery updates on MCP push (same `FENNSILL_ROOT`).
 3. Verify ChatGPT Desktop works with `http://127.0.0.1:8766/mcp` (no bearer).
 4. Verify public tunnel shows the Host warning dialog.
 5. Attach Privacy Policy + EULA URLs in Setup/README (counsel-provided).

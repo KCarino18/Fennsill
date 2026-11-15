@@ -1,1 +1,1 @@
-"""Artiphact cloud MCP service (SQLite)."""
+"""Fennsill cloud MCP service (SQLite)."""

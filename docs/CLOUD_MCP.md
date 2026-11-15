@@ -1,19 +1,19 @@
-# Artiphact cloud MCP (product architecture)
+# Fennsill cloud MCP (product architecture)
 
-Buyers **never host** the MCP server. Artiphact hosts it.  
-`Artiphact.exe` is a **local agent** that drives USB and pulls jobs for **that buyer’s devices only**.
+Buyers **never host** the MCP server. Fennsill hosts it.  
+`Fennsill.exe` is a **local agent** that drives USB and pulls jobs for **that buyer’s devices only**.
 
 ```text
 Claude / ChatGPT / …
         |  HTTPS + auth  (your MCP URL)
         v
-Artiphact cloud
+Fennsill cloud
   - MCP tools (scoped to caller’s devices)
   - job queue (html → device_id)
   - OTA manifests (read-only to clients)
         |  device token
         v
-Artiphact.exe (agent on buyer PC)
+Fennsill.exe (agent on buyer PC)
         |  USB
         v
 Their panel only
@@ -37,7 +37,7 @@ Their panel only
 |-------|--------|--------|
 | Cloud MCP | Job row for caller’s device | Tool list, job status for caller |
 | Agent | Local USB + local gallery | Jobs for its device token; update manifests |
-| Buyer AI | Nothing on disk of Artiphact cloud except via tools | Tools |
+| Buyer AI | Nothing on disk of Fennsill cloud except via tools | Tools |
 
 ## Local Host / Cloudflare
 

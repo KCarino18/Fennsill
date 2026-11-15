@@ -1,8 +1,8 @@
 """Local agent stub: heartbeat, claim jobs, print them, complete.
 
 Usage:
-  set ARTIPHACT_CLOUD_URL=http://127.0.0.1:8080
-  set ARTIPHACT_DEVICE_TOKEN=<token from POST /api/device/token>
+  set FENNSILL_CLOUD_URL=http://127.0.0.1:8080
+  set FENNSILL_DEVICE_TOKEN=<token from POST /api/device/token>
   python scripts/agent_stub.py
 """
 
@@ -15,8 +15,8 @@ import time
 import urllib.error
 import urllib.request
 
-BASE = os.environ.get("ARTIPHACT_CLOUD_URL", "http://127.0.0.1:8080").rstrip("/")
-TOKEN = os.environ.get("ARTIPHACT_DEVICE_TOKEN", "")
+BASE = os.environ.get("FENNSILL_CLOUD_URL", "http://127.0.0.1:8080").rstrip("/")
+TOKEN = os.environ.get("FENNSILL_DEVICE_TOKEN", "")
 
 
 def call(method: str, path: str, body: dict | None = None):
@@ -40,7 +40,7 @@ def call(method: str, path: str, body: dict | None = None):
 
 def main():
     if not TOKEN:
-        print("Set ARTIPHACT_DEVICE_TOKEN", file=sys.stderr)
+        print("Set FENNSILL_DEVICE_TOKEN", file=sys.stderr)
         sys.exit(1)
     print(f"agent stub -> {BASE}", flush=True)
     while True:
@@ -56,7 +56,7 @@ def main():
             continue
         print("claimed", json.dumps(job, indent=2), flush=True)
         job_id = job["job_id"]
-        # Real Artiphact.exe would call intake_page(..., push=True) here.
+        # Real Fennsill.exe would call intake_page(..., push=True) here.
         st, done = call("POST", f"/api/agent/jobs/{job_id}/complete", {"ok": True})
         print("complete", st, done, flush=True)
         time.sleep(1)

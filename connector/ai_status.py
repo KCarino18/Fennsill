@@ -1,4 +1,4 @@
-"""Report which AI desktop apps Artiphact has wired up."""
+"""Report which AI desktop apps Fennsill has wired up."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MCP_MARKER = "artiphact"
+MCP_MARKER = "fennsill"
 
 
 def _read_text(path: Path) -> str:
@@ -18,7 +18,7 @@ def _read_text(path: Path) -> str:
         return ""
 
 
-def _json_has_artiphact(path: Path) -> bool:
+def _json_has_fennsill(path: Path) -> bool:
     if not path.is_file():
         return False
     try:
@@ -34,11 +34,11 @@ def _json_has_artiphact(path: Path) -> bool:
     return False
 
 
-def _toml_has_artiphact(path: Path) -> bool:
+def _toml_has_fennsill(path: Path) -> bool:
     if not path.is_file():
         return False
     text = _read_text(path)
-    return bool(re.search(r"\[mcp_servers\.artiphact\]", text))
+    return bool(re.search(r"\[mcp_servers\.fennsill\]", text))
 
 
 def _exists_any(paths: list[Path]) -> bool:
@@ -82,7 +82,7 @@ def detect() -> list[dict]:
             "id": "claude",
             "name": "Claude Desktop",
             "installed": claude_installed,
-            "connected": any(_json_has_artiphact(p) for p in claude_cfgs),
+            "connected": any(_json_has_fennsill(p) for p in claude_cfgs),
         }
     )
 
@@ -103,8 +103,8 @@ def detect() -> list[dict]:
         {
             "id": "chatgpt",
             "name": "ChatGPT Desktop",
-            "installed": _exists_any(chatgpt_bins) or _toml_has_artiphact(codex) or any(p.is_file() for p in chatgpt_json),
-            "connected": _toml_has_artiphact(codex) or any(_json_has_artiphact(p) for p in chatgpt_json),
+            "installed": _exists_any(chatgpt_bins) or _toml_has_fennsill(codex) or any(p.is_file() for p in chatgpt_json),
+            "connected": _toml_has_fennsill(codex) or any(_json_has_fennsill(p) for p in chatgpt_json),
         }
     )
 
@@ -115,7 +115,7 @@ def detect() -> list[dict]:
             "id": "cursor",
             "name": "Cursor",
             "installed": _exists_any(cursor_bins) or any(p.is_file() for p in cursor_cfgs),
-            "connected": any(_json_has_artiphact(p) for p in cursor_cfgs),
+            "connected": any(_json_has_fennsill(p) for p in cursor_cfgs),
         }
     )
 
@@ -125,7 +125,7 @@ def detect() -> list[dict]:
             "id": "gemini",
             "name": "Gemini",
             "installed": gemini_cfg.is_file() or _local("Programs", "Google", "Gemini").exists(),
-            "connected": _json_has_artiphact(gemini_cfg),
+            "connected": _json_has_fennsill(gemini_cfg),
         }
     )
 
@@ -134,7 +134,7 @@ def detect() -> list[dict]:
         "name": "Grok",
         "installed": False,
         "connected": False,
-        "note": "Use ChatGPT/Claude/Cursor desktop, or paste via AI that has Artiphact tools.",
+        "note": "Use ChatGPT/Claude/Cursor desktop, or paste via AI that has Fennsill tools.",
     }
     apps.append(grok_note)
 
@@ -144,7 +144,7 @@ def detect() -> list[dict]:
             "id": "copilot",
             "name": "Copilot",
             "installed": copilot_cfg.is_file(),
-            "connected": _json_has_artiphact(copilot_cfg),
+            "connected": _json_has_fennsill(copilot_cfg),
         }
     )
 
@@ -152,7 +152,7 @@ def detect() -> list[dict]:
         if app["connected"]:
             app["status"] = "Connected"
         elif app["installed"]:
-            app["status"] = "Installed — reopen Artiphact with panel plugged in to connect"
+            app["status"] = "Installed — reopen Fennsill with panel plugged in to connect"
         else:
             app["status"] = "Not installed"
     return apps

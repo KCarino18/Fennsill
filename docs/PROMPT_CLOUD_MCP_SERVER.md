@@ -1,18 +1,18 @@
-# Prompt: build Artiphact cloud MCP server (SQLite)
+# Prompt: build Fennsill cloud MCP server (SQLite)
 
 **Implemented in-repo:** see [`cloud/`](../cloud/) (`main.py`, `store.py`, Dockerfile, README, tests).
 
 Point Claude / Cursor at **this file** to extend or redeploy. Build only what is below.
 
-SQL Server is **out**. Do not connect to MSSQL. Use SQLite. Comment out or omit any `ARTIPHACT_SQL_CONNECTION` / pyodbc path.
+SQL Server is **out**. Do not connect to MSSQL. Use SQLite. Comment out or omit any `FENNSILL_SQL_CONNECTION` / pyodbc path.
 
 ---
 
 ## Mission
 
-Build the **Artiphact hosted MCP server** that buyers’ AIs call. Artiphact runs it (Linux / Unraid Docker). Buyers never host MCP and never open ports.
+Build the **Fennsill hosted MCP server** that buyers’ AIs call. Fennsill runs it (Linux / Unraid Docker). Buyers never host MCP and never open ports.
 
-Claude / ChatGPT call `https://mcp.<domain>/mcp`. Push jobs go to that buyer’s device only. A Windows `Artiphact.exe` agent (stub OK) polls jobs with a device key. This process **never** opens USB/COM.
+Claude / ChatGPT call `https://mcp.<domain>/mcp`. Push jobs go to that buyer’s device only. A Windows `Fennsill.exe` agent (stub OK) polls jobs with a device key. This process **never** opens USB/COM.
 
 ```text
 AI apps  --HTTPS+user bearer-->  THIS SERVICE (/mcp + /api)
@@ -27,11 +27,11 @@ Agent  --device key HTTPS---------/
 - `connector/mcp_http_server.py` — **local USB Host only** (reference for Streamable HTTP + tool names)
 - `connector/mcp_server.py` — local USB push
 - `server/app.py` — local setup UI; do not merge
-- `server/artiphact.db` — wrong database
+- `server/fennsill.db` — wrong database
 
 ## Reuse as reference
 
-- `docs/Artiphact-Cloud-Server-Brief.md` — full product rules
+- `docs/Fennsill-Cloud-Server-Brief.md` — full product rules
 - `docs/DEVICE.md` — `device_id = AP` + 12 hex from panel USB
 - `connector/tools.json` — tool names
 - `connector/security.py` — 512KB + reject `http/https/file/javascript` URIs (copy or import; no USB)
@@ -41,16 +41,16 @@ Agent  --device key HTTPS---------/
 
 - One Python process
 - Official `mcp` SDK Streamable HTTP (`MCPServer`), mount so `/mcp` and `/api/*` share one port (Starlette/ASGI)
-- SQLite: `ARTIPHACT_CLOUD_DB` (default `/data/cloud.db` in Docker)
+- SQLite: `FENNSILL_CLOUD_DB` (default `/data/cloud.db` in Docker)
 - Dockerfile for Unraid / Linux. TLS reverse proxy in front → public `https://mcp.<domain>/mcp`
 - Mount a volume on `/data` so SQLite survives restarts
 
 ```text
-ARTIPHACT_CLOUD_DB=/data/cloud.db
-ARTIPHACT_PUBLIC_URL=https://mcp.<domain>
-ARTIPHACT_CLOUD_HOST=0.0.0.0
-ARTIPHACT_CLOUD_PORT=8080
-# ARTIPHACT_SQL_CONNECTION=...   # unused — SQL Server later
+FENNSILL_CLOUD_DB=/data/cloud.db
+FENNSILL_PUBLIC_URL=https://mcp.<domain>
+FENNSILL_CLOUD_HOST=0.0.0.0
+FENNSILL_CLOUD_PORT=8080
+# FENNSILL_SQL_CONNECTION=...   # unused — SQL Server later
 ```
 
 ## Auth
@@ -77,7 +77,7 @@ Operator CLI only (not buyer MCP): renew/revoke; publish update manifests. Buyer
 
 ## Device id
 
-- Pattern: `^AP[0-9A-F]{12}$` (from panel `ID?` / `READY`)
+- Pattern: `^FS[0-9A-F]{12}$` (from panel `ID?` / `READY`)
 - Globally unique. Link does not transfer ownership → 409 if another user owns it.
 - Id is not a secret. The **device key** is the secret.
 
@@ -111,7 +111,7 @@ Rate-limit pushes (~30 / 10 min per account+device) → 429.
 - `POST /api/device/token` — mint device key (OK while pending or active-unexpired)
 - `GET /api/me/devices`
 
-**Health:** `GET /health` → `{ ok: true, service: "artiphact-cloud" }`
+**Health:** `GET /health` → `{ ok: true, service: "fennsill-cloud" }`
 
 Job statuses: `queued` → `claimed` → `done` | `failed`. Claim must be atomic.
 
@@ -125,7 +125,7 @@ Job statuses: `queued` → `claimed` → `done` | `failed`. Claim must be atomic
 ## Acceptance
 
 1. Signup → `pending`, end null
-2. Link `APA1B2C3D4E5F6`, mint key; MCP before heartbeat → `device_not_activated`
+2. Link `FSA1B2C3D4E5F6`, mint key; MCP before heartbeat → `device_not_activated`
 3. Heartbeat; first `list_panels` starts 30-day access
 4. `push_artifact` queues; that device key claims; other key cannot
 5. Other user cannot push to that device

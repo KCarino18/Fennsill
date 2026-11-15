@@ -1,4 +1,4 @@
-"""Find the Artiphact panel on USB.
+"""Find the Fennsill panel on USB.
 
 Matches the XIAO ESP32-S3 (Espressif/Seeed native USB) and classic DevKit
 UART bridges (CP2102/CH340). A port counts as ready only after it answers
@@ -17,11 +17,11 @@ SEEED_VID = 0x2886
 # Factory flash: only native USB on the XIAO ESP32-S3 panel — never CH340/CP2102 dongles.
 FACTORY_VIDS = (ESPRESSIF_VID, SEEED_VID)
 READY_RE = re.compile(rb"READY\s+\S+")
-ARTIPHACT_READY_RE = re.compile(
-    rb"READY\s+\d+\.\d+(?:\.\d+)?(?:\s+id=AP[0-9A-Fa-f]+)?(?:\s+serial=\S+)?"
+FENNSILL_READY_RE = re.compile(
+    rb"READY\s+\d+\.\d+(?:\.\d+)?(?:\s+id=FS[0-9A-Fa-f]+)?(?:\s+serial=\S+)?"
 )
 XIAO_HINT_RE = re.compile(
-    r"(xiao|seeed|esp32|esp32s3|usb.?jtag|serial debug unit|trmnl|artiphact)",
+    r"(xiao|seeed|esp32|esp32s3|usb.?jtag|serial debug unit|trmnl|fennsill)",
     re.I,
 )
 REJECT_HINT_RE = re.compile(
@@ -35,7 +35,7 @@ def adapter_vid(vid):
 
 
 def factory_vid(vid):
-    """True only for XIAO ESP32-S3 native USB (Artiphact e-ink panel board)."""
+    """True only for XIAO ESP32-S3 native USB (Fennsill e-ink panel board)."""
     return vid in FACTORY_VIDS
 
 
@@ -112,12 +112,12 @@ def _looks_like_xiao_panel(info) -> bool:
     return True if XIAO_HINT_RE.search(blob) else factory_vid(info.get("vid"))
 
 
-def artiphact_ready_line(buffer: bytes) -> bool:
-    return ARTIPHACT_READY_RE.search(buffer) is not None
+def fennsill_ready_line(buffer: bytes) -> bool:
+    return FENNSILL_READY_RE.search(buffer) is not None
 
 
-def probe_artiphact(ser, timeout=2.0) -> dict | None:
-    """Return READY fields if this COM speaks Artiphact e-ink firmware; else None."""
+def probe_fennsill(ser, timeout=2.0) -> dict | None:
+    """Return READY fields if this COM speaks Fennsill e-ink firmware; else None."""
     waiting = getattr(ser, "in_waiting", 0) or 0
     buffer = ser.read(waiting) if waiting else b""
     ser.write(b"HELLO\n")
@@ -128,7 +128,7 @@ def probe_artiphact(ser, timeout=2.0) -> dict | None:
         chunk = ser.read(waiting or 1)
         if chunk:
             buffer += chunk
-            if b"\n" in buffer and artiphact_ready_line(buffer):
+            if b"\n" in buffer and fennsill_ready_line(buffer):
                 text = buffer.decode("ascii", "replace")
                 for line in text.splitlines():
                     if line.startswith("READY"):
@@ -143,8 +143,8 @@ def probe_artiphact(ser, timeout=2.0) -> dict | None:
                         return info
         else:
             time.sleep(0.02)
-    # Non-Artiphact chatter on the wire → not our panel.
-    if buffer and not artiphact_ready_line(buffer):
+    # Non-Fennsill chatter on the wire → not our panel.
+    if buffer and not fennsill_ready_line(buffer):
         return None
     return None
 
@@ -166,14 +166,14 @@ def list_candidate_ports(comports=None):
 
 
 def list_factory_flash_targets(comports=None, open_port=None, timeout=2.0):
-    """Ports safe to FLASH from Artiphact Factory.
+    """Ports safe to FLASH from Fennsill Factory.
 
     Accepts only:
       - XIAO ESP32-S3 native USB (Espressif/Seeed VID), and
-      - either Artiphact READY (id=AP…) already on the panel, or a silent
+      - either Fennsill READY (id=FS…) already on the panel, or a silent
         blank/bootloader board that still looks like that XIAO (first flash).
 
-    Rejects CH340/CP2102 bridges and anything that talks non-Artiphact serial.
+    Rejects CH340/CP2102 bridges and anything that talks non-Fennsill serial.
     """
     if comports is None:
         try:
@@ -196,38 +196,38 @@ def list_factory_flash_targets(comports=None, open_port=None, timeout=2.0):
             info["reason"] = "port open failed (in use?)"
             continue
         try:
-            ready = probe_artiphact(ser, timeout=timeout)
+            ready = probe_fennsill(ser, timeout=timeout)
         finally:
             close = getattr(ser, "close", None)
             if close:
                 close()
         if ready:
-            info["kind"] = "artiphact"
-            info["reason"] = "Artiphact e-ink panel (READY)"
+            info["kind"] = "fennsill"
+            info["reason"] = "Fennsill e-ink panel (READY)"
             info.update(ready)
             targets.append(info)
             continue
-        # No Artiphact READY — still OK if this is the XIAO on the TRMNL/Artiphact kit
+        # No Fennsill READY — still OK if this is the XIAO on the TRMNL/Fennsill kit
         # (stock TRMNL firmware, blank flash, or bootloader). FLASH will erase + replace.
         info["kind"] = "xiao_replace"
-        info["reason"] = "XIAO ESP32-S3 panel (TRMNL/other firmware or blank — will wipe + install Artiphact)"
+        info["reason"] = "XIAO ESP32-S3 panel (TRMNL/other firmware or blank — will wipe + install Fennsill)"
         targets.append(info)
     return targets
 
 
 def assert_factory_flash_port(port_name: str, targets=None) -> dict:
-    """Raise if port is not an Artiphact e-ink / XIAO panel flash target."""
+    """Raise if port is not a Fennsill e-ink / XIAO panel flash target."""
     if targets is None:
         targets = list_factory_flash_targets()
     for row in targets:
         if row.get("port") == port_name and row.get("kind") in (
-            "artiphact",
+            "fennsill",
             "xiao_replace",
             "xiao_blank",  # legacy name
         ):
             return row
     raise RuntimeError(
-        f"{port_name} is not an Artiphact e-ink panel. "
+        f"{port_name} is not a Fennsill e-ink panel. "
         "Factory only flashes the XIAO ESP32-S3 panel (Espressif/Seeed USB), "
         "never random COM adapters. Plug in the panel alone and retry."
     )
@@ -316,7 +316,7 @@ def panel_absence_message(scan=None, timeout=1.2) -> str:
         names = ", ".join(p["port"] for p in scan["busy"])
         return (
             f"Panel port {names} is briefly in use. "
-            "Retry in a few seconds — you can leave Artiphact open."
+            "Retry in a few seconds — you can leave Fennsill open."
         )
     if scan["silent"]:
         names = ", ".join(p["port"] for p in scan["silent"])
@@ -324,4 +324,4 @@ def panel_absence_message(scan=None, timeout=1.2) -> str:
             f"USB device on {names} did not answer READY. "
             "Wait for the splash to finish, then retry."
         )
-    return "No USB-connected Artiphact panel detected. Plug the panel in over USB and retry."
+    return "No USB-connected Fennsill panel detected. Plug the panel in over USB and retry."

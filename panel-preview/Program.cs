@@ -1,4 +1,4 @@
-namespace ArtiphactPreview;
+namespace FennsillPreview;
 
 static class Program
 {

@@ -1,4 +1,4 @@
-﻿namespace ArtiphactPreview;
+﻿namespace FennsillPreview;
 
 partial class Form1
 {

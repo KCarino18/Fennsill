@@ -1,4 +1,4 @@
-# Prompt: build Artiphact cloud MCP + agent API
+# Prompt: build Fennsill cloud MCP + agent API
 
 Copy everything below the line into another chat / contractor brief.
 
@@ -6,9 +6,9 @@ Copy everything below the line into another chat / contractor brief.
 
 ## Mission
 
-Build the **Artiphact cloud backend** that buyers connect to. Artiphact (the company) hosts everything. Buyers **never** host MCP, never run Cloudflare tunnels, never expose ports.
+Build the **Fennsill cloud backend** that buyers connect to. Fennsill (the company) hosts everything. Buyers **never** host MCP, never run Cloudflare tunnels, never expose ports.
 
-Buyers only run **Artiphact.exe** as a thin **local agent** on the PC with the USB e-ink panel. Claude / ChatGPT / Gemini / etc. call **our** hosted MCP URL to get tools. Push jobs are delivered only to **that buyer’s paired device**. Clients can also **GET firmware/app updates**. They must **not** get general write access to the server or other people’s boards.
+Buyers only run **Fennsill.exe** as a thin **local agent** on the PC with the USB e-ink panel. Claude / ChatGPT / Gemini / etc. call **our** hosted MCP URL to get tools. Push jobs are delivered only to **that buyer’s paired device**. Clients can also **GET firmware/app updates**. They must **not** get general write access to the server or other people’s boards.
 
 Reference product notes already in-repo (if available): `docs/CLOUD_MCP.md`, `docs/SHIPPING.md`, local tool shapes in `connector/tools.json`, local USB push behavior in `connector/mcp_server.py` + `connector/intake.py`.
 
@@ -18,14 +18,14 @@ Reference product notes already in-repo (if available): `docs/CLOUD_MCP.md`, `do
 Claude / ChatGPT / Gemini / Grok / …
         |  HTTPS Streamable HTTP MCP + OAuth or bearer
         v
-Artiphact cloud (YOU build this)
+Fennsill cloud (YOU build this)
   - MCP server (tools)
   - Auth + device ownership
   - Push job queue (scoped to device)
   - OTA / app update manifests (read-only to clients)
         |  device bearer token over HTTPS
         v
-Artiphact.exe agent on buyer PC (separate; stub OK)
+Fennsill.exe agent on buyer PC (separate; stub OK)
         |  USB
         v
 Their panel only (800×480 e-ink)
@@ -60,7 +60,7 @@ MCP transport: **Streamable HTTP** at `/mcp` (MCP Python SDK `MCPServer` / FastM
 
 Server instructions string should tell models: build 800×480 self-contained B/W HTML; call tools; do not substitute a web Artifact for a panel push.
 
-## Agent HTTP API (for Artiphact.exe)
+## Agent HTTP API (for Fennsill.exe)
 
 Device bearer token auth on all routes:
 
@@ -73,7 +73,7 @@ Account routes (session/OAuth):
 
 - signup/login  
 - link device (`device_id` unique, owned by user)  
-- mint **device token** for Artiphact.exe  
+- mint **device token** for Fennsill.exe  
 - list **own** devices only  
 
 Operator-only (not buyer MCP): publish update manifests.
@@ -90,7 +90,7 @@ Statuses: `queued` → `claimed` → `done` | `failed`.
 
 ## Non-goals for this cloud build
 
-- Buyers running `ArtiphactHost` / trycloudflare tunnels  
+- Buyers running `FennsillHost` / trycloudflare tunnels  
 - Cloud process opening USB/COM  
 - Storing dashboards long-term as a CMS (jobs can be ephemeral)  
 - Accepting Wi‑Fi passwords in cloud  
@@ -114,4 +114,4 @@ Statuses: `queued` → `claimed` → `done` | `failed`.
 
 ## Stack preference
 
-Use whatever is fastest to ship correctly (Node or Python OK). If Python: official `mcp` SDK Streamable HTTP. Postgres preferred for prod; SQLite OK for MVP. Keep interfaces stable so the existing Windows `Artiphact.exe` can later poll jobs and call existing local `intake_page(..., push=True)`.
+Use whatever is fastest to ship correctly (Node or Python OK). If Python: official `mcp` SDK Streamable HTTP. Postgres preferred for prod; SQLite OK for MVP. Keep interfaces stable so the existing Windows `Fennsill.exe` can later poll jobs and call existing local `intake_page(..., push=True)`.

@@ -1,4 +1,4 @@
-"""Flash + provision one Artiphact panel. Separate from Artiphact.exe."""
+"""Flash + provision one Fennsill panel. Separate from Fennsill.exe."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from panel_ports import (  # noqa: E402
 )
 
 FQBN = "esp32:esp32:XIAO_ESP32S3_Plus"
-SKETCH = REPO / "firmware" / "artiphact" / "artiphact.ino"
+SKETCH = REPO / "firmware" / "fennsill" / "fennsill.ino"
 
 
 def _read_line(ser, timeout=8.0) -> str:
@@ -44,15 +44,15 @@ def _read_line(ser, timeout=8.0) -> str:
                 # Keep leftover bytes for the next read (multi-line bursts).
                 if rest:
                     try:
-                        ser._artiphact_buf = getattr(ser, "_artiphact_buf", b"") + rest
+                        ser._fennsill_buf = getattr(ser, "_fennsill_buf", b"") + rest
                     except Exception:
                         pass
                 return line.decode("ascii", "replace").strip()
         else:
-            pending = getattr(ser, "_artiphact_buf", b"")
+            pending = getattr(ser, "_fennsill_buf", b"")
             if pending and b"\n" in pending:
                 line, _, rest = pending.partition(b"\n")
-                ser._artiphact_buf = rest
+                ser._fennsill_buf = rest
                 return line.decode("ascii", "replace").strip()
             time.sleep(0.02)
     return buf.decode("ascii", "replace").strip()
@@ -64,7 +64,7 @@ def _exchange(ser, command: str, timeout=8.0, expect: str | None = None) -> str:
         ser.reset_input_buffer()
     except Exception:
         pass
-    ser._artiphact_buf = b""
+    ser._fennsill_buf = b""
     ser.write((command.rstrip() + "\n").encode("ascii"))
     ser.flush()
     deadline = time.time() + timeout
@@ -144,7 +144,7 @@ def key_is_locked(key_line: str) -> bool:
 
 
 def erase_chip(port: str) -> None:
-    """Full flash wipe — removes stock TRMNL (or any) firmware + NVS before Artiphact."""
+    """Full flash wipe — removes stock TRMNL (or any) firmware + NVS before Fennsill."""
     cmd = [
         sys.executable,
         "-m",
@@ -182,7 +182,7 @@ def flash_firmware(port: str, sketch: Path = SKETCH, fqbn: str = FQBN, *, erase:
         port,
         str(sketch.parent),
     ]
-    print("Installing Artiphact firmware:", " ".join(cmd), flush=True)
+    print("Installing Fennsill firmware:", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True, env=env)
 
 
@@ -242,7 +242,7 @@ def provision(
     try:
         ident = read_identity(ser)
         device_id = ident["device_id"]
-        if not device_id.startswith("AP") or len(device_id) < 10:
+        if not device_id.startswith("FS") or len(device_id) < 10:
             raise RuntimeError(f"Bad device id from panel: {device_id!r}")
 
         if box_serial is None:
@@ -254,7 +254,7 @@ def provision(
 
         # After erase/flash, NVS is empty — always try to lock. Write-once if already set.
         serial_now = ident["serial"]
-        if serial_now == device_id or not serial_now.startswith("AP-"):
+        if serial_now == device_id or not serial_now.startswith("FS-"):
             lock_serial(ser, box_serial)
         else:
             box_serial = serial_now
@@ -302,13 +302,13 @@ def provision(
 def main(argv: list[str] | None = None) -> int:
     import json
 
-    parser = argparse.ArgumentParser(description="Artiphact Factory — flash & serialize a panel")
+    parser = argparse.ArgumentParser(description="Fennsill Factory — flash & serialize a panel")
     parser.add_argument("--port", help="COM port (e.g. COM7). Omit to list candidates.")
     parser.add_argument("--no-flash", action="store_true", help="Only lock serial/key (firmware already on panel)")
-    parser.add_argument("--serial", help="Force box serial AP-YYMM-NNNNNN")
+    parser.add_argument("--serial", help="Force box serial FS-YYMM-NNNNNN")
     parser.add_argument("--list", action="store_true", help="List USB panel candidates")
     parser.add_argument("--check", action="store_true", help="Verify --port is an e-ink XIAO target")
-    parser.add_argument("--json", action="store_true", help="Machine-readable output for ArtiphactFactory.exe")
+    parser.add_argument("--json", action="store_true", help="Machine-readable output for FennsillFactory.exe")
     args = parser.parse_args(argv)
 
     if args.check:
@@ -326,7 +326,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.json:
             print(json.dumps({"ok": True, "targets": rows}, default=str))
             return 0 if rows else 2
-        print("Artiphact e-ink flash targets (XIAO ESP32-S3 only):")
+        print("Fennsill e-ink flash targets (XIAO ESP32-S3 only):")
         if not rows:
             print("  (none — plug in the panel, not a random USB-UART)")
         for row in rows:
@@ -353,7 +353,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  fw:         {result['fw_version']}")
     print(f"  ledger:     {result['ledger']}")
     print()
-    print("This serial never changes across PCs. Buyer first-plug installs Artiphact and binds to it.")
+    print("This serial never changes across PCs. Buyer first-plug installs Fennsill and binds to it.")
     return 0
 
 

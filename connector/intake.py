@@ -1,4 +1,4 @@
-"""Shared page intake for MCP, HTTP bridge, and Artiphact.exe paste/import.
+"""Shared page intake for MCP, HTTP bridge, and Fennsill.exe paste/import.
 
 Any AI can produce HTML/SVG. This module turns it into a gallery page and
 optionally pushes it to the USB panel.
@@ -22,7 +22,7 @@ from security import SecurityError, validate_artifact_args  # noqa: E402
 from serial_guard import SerialBusy, SerialGuard  # noqa: E402
 from usb_protocol import encode_show, split_frame  # noqa: E402
 
-# Probe is short; lock wait is longer so ChatGPT can push while Artiphact.exe
+# Probe is short; lock wait is longer so ChatGPT can push while Fennsill.exe
 # is open (desk status / rotate may briefly hold the lock).
 PROBE_TIMEOUT = 1.2
 # Scheduled ChatGPT/Cursor tasks need time to win the COM lock (tool timeout ~120s).
@@ -62,7 +62,7 @@ def push_frame_to_panel(frame: bytes) -> list[str]:
             {
                 "root": str(ROOT),
                 "cwd": os.getcwd(),
-                "artiphact_root": os.environ.get("ARTIPHACT_ROOT"),
+                "fennsill_root": os.environ.get("FENNSILL_ROOT"),
                 "lock_path": str(_LOCK),
                 "frame_bytes": len(frame),
                 "runId_tag": "post-fix",
@@ -253,7 +253,7 @@ def intake_page(
         "pushed": False,
     }
     if not push:
-        result["note"] = "Saved to Artiphact. Use Send to panel when you want it on the screen."
+        result["note"] = "Saved to Fennsill. Use Send to panel when you want it on the screen."
         return result
 
     try:
@@ -261,9 +261,9 @@ def intake_page(
         result["pushed"] = True
         result["note"] = "Saved and sent to the panel."
     except SecurityError as exc:
-        result["note"] = f"Saved to Artiphact, but panel push failed: {exc}"
+        result["note"] = f"Saved to Fennsill, but panel push failed: {exc}"
         result["panel_error"] = str(exc)
     except TimeoutError as exc:
-        result["note"] = f"Saved to Artiphact, but panel push failed: {exc}"
+        result["note"] = f"Saved to Fennsill, but panel push failed: {exc}"
         result["panel_error"] = str(exc)
     return result

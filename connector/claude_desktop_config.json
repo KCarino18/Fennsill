@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "artiphact": {
+    "fennsill": {
       "command": "C:\\Users\\Kyle\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
       "args": [
         "C:\\Users\\Kyle\\Desktop\\This Is A Test For The Tablet\\connector\\mcp_server.py"
@@ -8,7 +8,7 @@
       "cwd": "C:\\Users\\Kyle\\Desktop\\This Is A Test For The Tablet\\connector",
       "env": {
         "PLAYWRIGHT_BROWSERS_PATH": "C:\\Users\\Kyle\\Desktop\\This Is A Test For The Tablet\\connector\\browsers",
-        "ARTIPHACT_ROOT": "C:\\Users\\Kyle\\Desktop\\This Is A Test For The Tablet"
+        "FENNSILL_ROOT": "C:\\Users\\Kyle\\Desktop\\This Is A Test For The Tablet"
       }
     }
   }

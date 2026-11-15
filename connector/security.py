@@ -1,4 +1,4 @@
-"""Security controls for the Artiphact MCP connector.
+"""Security controls for the Fennsill MCP connector.
 
 Aligned with OWASP ASVS input validation, secret handling, and least-privilege
 rendering. This module is not a certification; it encodes the concrete checks
@@ -126,7 +126,7 @@ def validate_wifi_args(arguments):
 
 
 def validate_linked_file(path: Path, root: Path):
-    """Resolve the link file and keep it inside the project unless ARTIPHACT_LINK is absolute."""
+    """Resolve the link file and keep it inside the project unless FENNSILL_LINK is absolute."""
     try:
         resolved = path.expanduser().resolve(strict=False)
     except OSError as exc:
@@ -134,7 +134,7 @@ def validate_linked_file(path: Path, root: Path):
     root_resolved = root.resolve()
     if not str(resolved).startswith(str(root_resolved)):
         # Absolute override from the environment is allowed for tests and installs.
-        if not path.is_absolute() and "ARTIPHACT_LINK" not in __import__("os").environ:
+        if not path.is_absolute() and "FENNSILL_LINK" not in __import__("os").environ:
             raise SecurityError("Linked subscription path escapes the project.")
     if resolved.exists() and not resolved.is_file():
         raise SecurityError("Linked subscription path must be a file.")

@@ -1,4 +1,4 @@
-namespace ArtiphactFactory;
+namespace FennsillFactory;
 
 static class Program
 {

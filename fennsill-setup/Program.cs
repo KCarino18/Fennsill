@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace ArtiphactSetup;
+namespace FennsillSetup;
 
 static class Program
 {
@@ -12,14 +12,14 @@ static class Program
         Application.SetCompatibleTextRenderingDefault(false);
 
         var dir = AppContext.BaseDirectory.TrimEnd('\\', '/');
-        var exe = Path.Combine(dir, "Artiphact.exe");
-        var ps1 = Path.Combine(dir, "Install-Artiphact.ps1");
+        var exe = Path.Combine(dir, "Fennsill.exe");
+        var ps1 = Path.Combine(dir, "Install-Fennsill.ps1");
 
         if (!File.Exists(exe))
         {
             MessageBox.Show(
-                "Artiphact.exe was not found next to this installer.\n\nUnzip the full Artiphact folder (or copy the USB folder), then run ArtiphactSetup.exe again.",
-                "Artiphact Setup",
+                "Fennsill.exe was not found next to this installer.\n\nUnzip the full Fennsill folder (or copy the USB folder), then run FennsillSetup.exe again.",
+                "Fennsill Setup",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
             return;
@@ -28,16 +28,16 @@ static class Program
         if (!File.Exists(ps1))
         {
             MessageBox.Show(
-                "Install-Artiphact.ps1 was not found next to this installer.",
-                "Artiphact Setup",
+                "Install-Fennsill.ps1 was not found next to this installer.",
+                "Fennsill Setup",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
             return;
         }
 
         var result = MessageBox.Show(
-            "Install Artiphact on this PC?\n\nIt will copy files, set up Claude / ChatGPT / Cursor, and open Artiphact.",
-            "Artiphact Setup",
+            "Install Fennsill on this PC?\n\nIt will copy files, set up Claude / ChatGPT / Cursor, and open Fennsill.",
+            "Fennsill Setup",
             MessageBoxButtons.OKCancel,
             MessageBoxIcon.Information);
         if (result != DialogResult.OK) return;
@@ -55,22 +55,22 @@ static class Program
             using var proc = Process.Start(psi);
             if (proc == null)
             {
-                MessageBox.Show("Could not start PowerShell install.", "Artiphact Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Could not start PowerShell install.", "Fennsill Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             proc.WaitForExit(120_000);
             if (proc.ExitCode != 0)
             {
                 MessageBox.Show(
-                    "Setup reported an error. You can still try opening Artiphact.exe from this folder.",
-                    "Artiphact Setup",
+                    "Setup reported an error. You can still try opening Fennsill.exe from this folder.",
+                    "Fennsill Setup",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show(ex.Message, "Artiphact Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(ex.Message, "Fennsill Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 }

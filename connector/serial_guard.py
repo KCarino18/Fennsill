@@ -1,10 +1,10 @@
 """Exclusive access to the panel USB serial port.
 
-Artiphact.exe polls READY, live/rotate workers push frames, and MCP clients
+Fennsill.exe polls READY, live/rotate workers push frames, and MCP clients
 also open COM. Without a lock, a busy port looks like “no panel” and long
 wait_ready loops can hang ChatGPT for minutes.
 
-On Windows, the lock lives under %LOCALAPPDATA%\\Artiphact so ChatGPT’s MCP
+On Windows, the lock lives under %LOCALAPPDATA%\\Fennsill so ChatGPT’s MCP
 process can write it (Desktop project folders are sometimes denied). Uses
 msvcrt byte-range locking instead of O_EXCL create/delete, which races and
 returns Access Denied on Windows.
@@ -22,12 +22,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _default_lock_path() -> Path:
-    env = os.environ.get("ARTIPHACT_SERIAL_LOCK")
+    env = os.environ.get("FENNSILL_SERIAL_LOCK")
     if env:
         return Path(env)
     local = os.environ.get("LOCALAPPDATA")
     if local:
-        return Path(local) / "Artiphact" / "serial.lock"
+        return Path(local) / "Fennsill" / "serial.lock"
     return ROOT / "connector" / ".serial.lock"
 
 
@@ -41,7 +41,7 @@ LOCK_PATH = _default_lock_path()
 
 
 class SerialBusy(TimeoutError):
-    """Raised when another Artiphact process holds the panel serial lock."""
+    """Raised when another Fennsill process holds the panel serial lock."""
 
 
 class SerialGuard:

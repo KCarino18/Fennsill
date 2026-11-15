@@ -12,11 +12,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 UPDATES = Path(__file__).resolve().parent
 KEY_PATH = UPDATES / "update_key.hex"
-HEADER_PATH = ROOT / "firmware" / "artiphact" / "update_key.h"
+HEADER_PATH = ROOT / "firmware" / "fennsill" / "update_key.h"
 MANIFEST_PATH = UPDATES / "manifest.json"
-DEFAULT_BIN = UPDATES / "artiphact-1.1.0.bin"
+DEFAULT_BIN = UPDATES / "fennsill-1.1.0.bin"
 VERSION = "1.1.0"
-FILE_URL = "https://updates.artiphact.com/artiphact-1.1.0.bin"
+FILE_URL = "https://updates.fennsill.com/fennsill-1.1.0.bin"
 
 
 def load_key():
@@ -47,7 +47,7 @@ def write_header(key):
 def main():
     key = load_key()
     if not DEFAULT_BIN.exists():
-        DEFAULT_BIN.write_bytes(b"ARTIPHACT-FIRMWARE-1.1.0\n" * 16)
+        DEFAULT_BIN.write_bytes(b"FENNSILL-FIRMWARE-1.1.0\n" * 16)
     digest = hashlib.sha256(DEFAULT_BIN.read_bytes()).hexdigest()
     manifest = {
         "version": VERSION,

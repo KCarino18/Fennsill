@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "list_panels",
-      "description": "List Artiphact e-ink panels plugged in over USB.",
+      "description": "List Fennsill e-ink panels plugged in over USB.",
       "inputSchema": {
         "type": "object",
         "properties": {},
@@ -13,7 +13,7 @@
     },
     {
       "name": "push_artifact",
-      "description": "Push a finished 800x480 black/white HTML or SVG page to the Artiphact panel now. Use this after you build charts/dashboards from the user's data (including SQL results they pasted). Self-contained HTML only — no external URLs inside the page. You may look up live data first, then bake the numbers into the HTML.",
+      "description": "Push a finished 800x480 black/white HTML or SVG page to the Fennsill panel now. Use this after you build charts/dashboards from the user's data (including SQL results they pasted). Self-contained HTML only — no external URLs inside the page. You may look up live data first, then bake the numbers into the HTML.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -33,7 +33,7 @@
     },
     {
       "name": "start_live_update",
-      "description": "Start a recurring live feed on the Artiphact panel so it stays up to date without the user pasting anything. Use when the user asks to keep scores or similar data current. kind=nfl_scores refreshes NFL scoreboard HTML on an interval.",
+      "description": "Start a recurring live feed on the Fennsill panel so it stays up to date without the user pasting anything. Use when the user asks to keep scores or similar data current. kind=nfl_scores refreshes NFL scoreboard HTML on an interval.",
       "inputSchema": {
         "type": "object",
         "properties": {

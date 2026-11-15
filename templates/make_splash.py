@@ -1,4 +1,4 @@
-"""Build the monochrome Artiphact startup splash as a C header for the panel."""
+"""Build the monochrome Fennsill startup splash as a C header for the panel."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / ".cursor" / ".."  # placeholder; real path set below
 LOGO = Path(r"C:\Users\Kyle\.cursor\projects\c-Users-Kyle-Desktop-This-Is-A-Test-For-The-Tablet\assets\ChatGPT_Image_Sep_19__2025__05_16_56_PM-47e1839c-5a51-4d33-9279-17b1962b7f10.png")
 OUT_PNG = ROOT / "templates" / "splash.png"
-OUT_H = ROOT / "firmware" / "artiphact" / "splash_frame.h"
+OUT_H = ROOT / "firmware" / "fennsill" / "splash_frame.h"
 WIDTH = 800
 HEIGHT = 480
 ROW_BYTES = WIDTH // 8
@@ -52,7 +52,7 @@ def compose() -> Image.Image:
     canvas.paste(mark, (mx, my))
 
     draw = ImageDraw.Draw(canvas)
-    label = "ARTIPHACT"
+    label = "FENNSILL"
     font = None
     for name in ("arialbd.ttf", "segoeuib.ttf", "calibrib.ttf", "arial.ttf"):
         path = Path(r"C:\Windows\Fonts") / name
@@ -75,7 +75,7 @@ def compose() -> Image.Image:
 def write_header(frame: bytes):
     lines = [
         "#pragma once",
-        "// Monochrome Artiphact startup splash. 800x480, bit 1 white, MSB left.",
+        "// Monochrome Fennsill startup splash. 800x480, bit 1 white, MSB left.",
         f"static const uint16_t SPLASH_FRAME_LEN = {FRAME_BYTES};",
         "static const uint8_t SPLASH_FRAME[48000] PROGMEM = {",
     ]

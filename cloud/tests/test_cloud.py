@@ -57,13 +57,13 @@ class CloudStoreTests(unittest.TestCase):
         a = store.signup("a@example.com", "password1")
         user = store.user_from_session(a["token"])
         uid = int(user["id"])
-        store.link_device(uid, "APA1B2C3D4E5F6", "desk")
+        store.link_device(uid, "FSA1B2C3D4E5F6", "desk")
         try:
             store.require_mcp_access(uid)
             raise AssertionError("should need heartbeat")
         except store.StoreError as exc:
             expect(exc.code == "device_not_activated", exc)
-        key = store.issue_device_token(uid, "APA1B2C3D4E5F6")
+        key = store.issue_device_token(uid, "FSA1B2C3D4E5F6")
         auth = store.auth_device_token(key)
         store.heartbeat(auth)
         sub = store.require_mcp_access(uid)
@@ -78,15 +78,15 @@ class CloudStoreTests(unittest.TestCase):
         b = store.signup("b@example.com", "password2")
         ua = store.user_from_session(a["token"])
         ub = store.user_from_session(b["token"])
-        store.link_device(int(ua["id"]), "APA1B2C3D4E5F6")
-        store.link_device(int(ub["id"]), "APB1B2C3D4E5F6")
-        ka = store.issue_device_token(int(ua["id"]), "APA1B2C3D4E5F6")
-        kb = store.issue_device_token(int(ub["id"]), "APB1B2C3D4E5F6")
+        store.link_device(int(ua["id"]), "FSA1B2C3D4E5F6")
+        store.link_device(int(ub["id"]), "FSB1B2C3D4E5F6")
+        ka = store.issue_device_token(int(ua["id"]), "FSA1B2C3D4E5F6")
+        kb = store.issue_device_token(int(ub["id"]), "FSB1B2C3D4E5F6")
         store.heartbeat(store.auth_device_token(ka))
         store.heartbeat(store.auth_device_token(kb))
         job = store.enqueue_job(
             user_id=int(ua["id"]),
-            device_id="APA1B2C3D4E5F6",
+            device_id="FSA1B2C3D4E5F6",
             html="<html><body>hi</body></html>",
         )
         claimed = store.claim_next_job(store.auth_device_token(ka))
@@ -96,7 +96,7 @@ class CloudStoreTests(unittest.TestCase):
         try:
             store.enqueue_job(
                 user_id=int(ub["id"]),
-                device_id="APA1B2C3D4E5F6",
+                device_id="FSA1B2C3D4E5F6",
                 html="<html><body>x</body></html>",
             )
             raise AssertionError("B must not push to A device")
@@ -107,8 +107,8 @@ class CloudStoreTests(unittest.TestCase):
         a = store.signup("a@example.com", "password1")
         user = store.user_from_session(a["token"])
         uid = int(user["id"])
-        store.link_device(uid, "APA1B2C3D4E5F6")
-        key = store.issue_device_token(uid, "APA1B2C3D4E5F6")
+        store.link_device(uid, "FSA1B2C3D4E5F6")
+        key = store.issue_device_token(uid, "FSA1B2C3D4E5F6")
         store.heartbeat(store.auth_device_token(key))
         store.require_mcp_access(uid)
         past = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -128,8 +128,8 @@ class CloudStoreTests(unittest.TestCase):
         a = store.signup("a@example.com", "password1")
         user = store.user_from_session(a["token"])
         uid = int(user["id"])
-        store.link_device(uid, "APA1B2C3D4E5F6")
-        key = store.issue_device_token(uid, "APA1B2C3D4E5F6")
+        store.link_device(uid, "FSA1B2C3D4E5F6")
+        key = store.issue_device_token(uid, "FSA1B2C3D4E5F6")
         store.heartbeat(store.auth_device_token(key))
         store.require_mcp_access(uid)
         store.set_access_subscription("a@example.com", "inactive", None)
@@ -150,7 +150,7 @@ class CloudStoreTests(unittest.TestCase):
         expect(body_has_wifi_keys({"ssid": "x"}) is True, "ssid")
         try:
             validate_artifact_args(
-                device_id="APA1B2C3D4E5F6",
+                device_id="FSA1B2C3D4E5F6",
                 html='<html><img src="https://evil"></html>',
             )
             raise AssertionError("external url")
@@ -171,15 +171,15 @@ class CloudStoreTests(unittest.TestCase):
         b = store.signup("b@example.com", "password2")
         ua = store.user_from_session(a["token"])
         ub = store.user_from_session(b["token"])
-        store.link_device(int(ua["id"]), "APA1B2C3D4E5F6")
-        store.link_device(int(ub["id"]), "APB1B2C3D4E5F6")
-        ka = store.issue_device_token(int(ua["id"]), "APA1B2C3D4E5F6")
-        kb = store.issue_device_token(int(ub["id"]), "APB1B2C3D4E5F6")
+        store.link_device(int(ua["id"]), "FSA1B2C3D4E5F6")
+        store.link_device(int(ub["id"]), "FSB1B2C3D4E5F6")
+        ka = store.issue_device_token(int(ua["id"]), "FSA1B2C3D4E5F6")
+        kb = store.issue_device_token(int(ub["id"]), "FSB1B2C3D4E5F6")
         store.heartbeat(store.auth_device_token(ka))
         store.heartbeat(store.auth_device_token(kb))
         job = store.enqueue_job(
             user_id=int(ua["id"]),
-            device_id="APA1B2C3D4E5F6",
+            device_id="FSA1B2C3D4E5F6",
             html="<html><body>hi</body></html>",
         )
         store.claim_next_job(store.auth_device_token(ka))

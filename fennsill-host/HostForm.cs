@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace ArtiphactHost;
+namespace FennsillHost;
 
 public sealed class HostForm : Form
 {
@@ -32,7 +32,7 @@ public sealed class HostForm : Form
         _python = FindPython();
         _publicUrlFile = Path.Combine(_root, "connector", "host_public_url.txt");
 
-        Text = "Artiphact Host";
+        Text = "Fennsill Host";
         Width = 680;
         Height = 460;
         MinimumSize = new Size(560, 380);
@@ -139,13 +139,13 @@ public sealed class HostForm : Form
 
     static string FindProjectRoot()
     {
-        var env = Environment.GetEnvironmentVariable("ARTIPHACT_ROOT");
+        var env = Environment.GetEnvironmentVariable("FENNSILL_ROOT");
         if (!string.IsNullOrWhiteSpace(env) && HasConnector(env)) return env;
 
-        // Same canonical root as Artiphact.exe — gallery + MCP share pages.
+        // Same canonical root as Fennsill.exe — gallery + MCP share pages.
         var installed = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Artiphact");
+            "Fennsill");
         if (HasConnector(installed)) return installed;
 
         foreach (var start in new[]
@@ -240,11 +240,11 @@ public sealed class HostForm : Form
             RedirectStandardError = true,
             CreateNoWindow = true,
         };
-        psi.Environment["ARTIPHACT_ROOT"] = _root;
-        psi.Environment["ARTIPHACT_MCP_HOST"] = "127.0.0.1";
-        psi.Environment["ARTIPHACT_MCP_PORT"] = McpPort.ToString();
+        psi.Environment["FENNSILL_ROOT"] = _root;
+        psi.Environment["FENNSILL_MCP_HOST"] = "127.0.0.1";
+        psi.Environment["FENNSILL_MCP_PORT"] = McpPort.ToString();
         psi.Environment["PLAYWRIGHT_BROWSERS_PATH"] = Path.Combine(_root, "connector", "browsers");
-        psi.Environment["ARTIPHACT_PAGES"] = Path.Combine(_root, "connector", "pages");
+        psi.Environment["FENNSILL_PAGES"] = Path.Combine(_root, "connector", "pages");
         psi.Environment["PYTHONUNBUFFERED"] = "1";
 
         try
@@ -300,18 +300,18 @@ public sealed class HostForm : Form
     {
         if (_server is null || _server.HasExited)
         {
-            MessageBox.Show(this, "Start the server first.", "Artiphact Host");
+            MessageBox.Show(this, "Start the server first.", "Fennsill Host");
             return;
         }
         if (_tunnel is { HasExited: false }) return;
 
         var warn = MessageBox.Show(
             this,
-            "Public link exposes your local Artiphact MCP on the internet via Cloudflare.\n\n"
+            "Public link exposes your local Fennsill MCP on the internet via Cloudflare.\n\n"
             + "Anyone with the URL can list panels and push pages while Host is running.\n"
             + "For ChatGPT Desktop prefer http://127.0.0.1:8766/mcp (no public link).\n\n"
             + "Continue?",
-            "Artiphact Host — public link",
+            "Fennsill Host — public link",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Warning);
         if (warn != DialogResult.Yes) return;
@@ -334,8 +334,8 @@ public sealed class HostForm : Form
             RedirectStandardError = true,
             CreateNoWindow = true,
         };
-        psi.Environment["ARTIPHACT_BRIDGE_PORT"] = McpPort.ToString();
-        psi.Environment["ARTIPHACT_PUBLIC_URL_FILE"] = _publicUrlFile;
+        psi.Environment["FENNSILL_BRIDGE_PORT"] = McpPort.ToString();
+        psi.Environment["FENNSILL_PUBLIC_URL_FILE"] = _publicUrlFile;
 
         try
         {
@@ -406,7 +406,7 @@ public sealed class HostForm : Form
         var url = PublicMcpUrl();
         if (string.IsNullOrEmpty(url))
         {
-            MessageBox.Show(this, "Start the public link first.", "Artiphact Host");
+            MessageBox.Show(this, "Start the public link first.", "Fennsill Host");
             return;
         }
         CopyText(url);
@@ -427,7 +427,7 @@ public sealed class HostForm : Form
         text = text.Trim();
         if (string.IsNullOrEmpty(text) || text.StartsWith('('))
         {
-            MessageBox.Show(this, "Nothing to copy yet.", "Artiphact Host");
+            MessageBox.Show(this, "Nothing to copy yet.", "Fennsill Host");
             return;
         }
         Clipboard.SetText(text);

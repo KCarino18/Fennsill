@@ -1,4 +1,4 @@
-"""Artiphact cloud HTTP API for the local agent + read-only updates.
+"""Fennsill cloud HTTP API for the local agent + read-only updates.
 
 Agent (device bearer):
   GET  /api/agent/jobs/next   — claim next job for THIS device only
@@ -22,8 +22,8 @@ sys.path.insert(0, str(ROOT / "server"))
 
 import tenant_store as store  # noqa: E402
 
-HOST = __import__("os").environ.get("ARTIPHACT_CLOUD_HOST", "127.0.0.1")
-PORT = int(__import__("os").environ.get("ARTIPHACT_CLOUD_PORT", "8090"))
+HOST = __import__("os").environ.get("FENNSILL_CLOUD_HOST", "127.0.0.1")
+PORT = int(__import__("os").environ.get("FENNSILL_CLOUD_PORT", "8090"))
 
 
 def bearer(headers) -> str | None:
@@ -34,7 +34,7 @@ def bearer(headers) -> str | None:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "ArtiphactCloud/0.1"
+    server_version = "FennsillCloud/0.1"
 
     def log_message(self, fmt, *args):
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
@@ -42,7 +42,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/health":
-            return self._json(200, {"ok": True, "service": "artiphact-cloud"})
+            return self._json(200, {"ok": True, "service": "fennsill-cloud"})
         if path.startswith("/api/updates/"):
             channel = path.split("/api/updates/", 1)[1].strip("/") or "stable"
             if "/" in channel or ".." in channel:
@@ -108,7 +108,7 @@ class Handler(BaseHTTPRequestHandler):
         raw = self.headers.get("Cookie") or ""
         for part in raw.split(";"):
             part = part.strip()
-            if part.startswith("artiphact="):
+            if part.startswith("fennsill="):
                 return part.split("=", 1)[1].strip() or None
         return None
 
@@ -151,7 +151,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     store.init_db()
     httpd = ThreadingHTTPServer((HOST, PORT), Handler)
-    print(f"ARTIPHACT_CLOUD http://{HOST}:{PORT}", flush=True)
+    print(f"FENNSILL_CLOUD http://{HOST}:{PORT}", flush=True)
     httpd.serve_forever()
 
 

@@ -1,4 +1,4 @@
-"""First-plug bind: read panel serial / id, prove device key, write local Artiphact bind file.
+"""First-plug bind: read panel serial / id, prove device key, write local Fennsill bind file.
 
 Runs after install so the buyer's PC shows the permanent serial and gets a
 device-bound install key. Does not change the panel serial.
@@ -14,14 +14,14 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(os.environ.get("ARTIPHACT_ROOT") or Path(__file__).resolve().parents[1])
+ROOT = Path(os.environ.get("FENNSILL_ROOT") or Path(__file__).resolve().parents[1])
 sys.path.insert(0, str(ROOT / "firmware"))
 sys.path.insert(0, str(ROOT / "connector"))
 
 from panel_ports import confirmed_panels, panel_absence_message, scan_panels  # noqa: E402
 from serial_guard import SerialGuard  # noqa: E402
 
-BIND_PATH = Path(os.environ.get("LOCALAPPDATA", str(ROOT))) / "Artiphact" / "device_bind.json"
+BIND_PATH = Path(os.environ.get("LOCALAPPDATA", str(ROOT))) / "Fennsill" / "device_bind.json"
 
 
 def _open(port: str):
@@ -86,10 +86,10 @@ def bind(port: str | None = None) -> dict:
             if not proof:
                 raise RuntimeError(
                     f"Panel has no factory key yet (got {proof_line!r}). "
-                    "Provision it with Artiphact Factory before shipping."
+                    "Provision it with Fennsill Factory before shipping."
                 )
             install_key = hashlib.sha256(
-                f"artiphact-install-v1|{device_id}|{serial}|{proof}".encode("utf-8")
+                f"fennsill-install-v1|{device_id}|{serial}|{proof}".encode("utf-8")
             ).hexdigest()
             payload = {
                 "device_id": device_id,
@@ -115,7 +115,7 @@ def main() -> int:
         print(f"Bind skipped: {exc}")
         return 1
     print()
-    print(" Your Artiphact panel")
+    print(" Your Fennsill panel")
     print(f"   Serial:    {info['serial']}")
     print(f"   Device ID: {info['device_id']}")
     print(f"   Bound to:  {BIND_PATH}")

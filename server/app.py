@@ -1,4 +1,4 @@
-"""Thin Artiphact login.
+"""Thin Fennsill login.
 
 The account stores an email, the subscription the buyer already pays for,
 and the panel id. It does not store dashboards or Wi-Fi passwords.
@@ -21,9 +21,9 @@ from panel_ports import confirmed_panels  # noqa: E402
 
 WEB = ROOT / "web"
 LINKED = ROOT / "connector" / "linked.json"
-DB_PATH = Path(__import__("os").environ.get("ARTIPHACT_DB", ROOT / "server" / "artiphact.db"))
-HOST = __import__("os").environ.get("ARTIPHACT_HOST", "0.0.0.0")
-PORT = int(__import__("os").environ.get("ARTIPHACT_PORT", "8080"))
+DB_PATH = Path(__import__("os").environ.get("FENNSILL_DB", ROOT / "server" / "fennsill.db"))
+HOST = __import__("os").environ.get("FENNSILL_HOST", "0.0.0.0")
+PORT = int(__import__("os").environ.get("FENNSILL_PORT", "8080"))
 PBKDF2_ROUNDS = 120_000
 
 WIFI_FIELDS = {
@@ -127,7 +127,7 @@ def matching_ports():
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "Artiphact/1.0"
+    server_version = "Fennsill/1.0"
 
     def log_message(self, fmt, *args):
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
@@ -339,7 +339,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     init_db()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
-    print(f"Artiphact account at http://{HOST}:{PORT}/setup")
+    print(f"Fennsill account at http://{HOST}:{PORT}/setup")
     server.serve_forever()
 
 

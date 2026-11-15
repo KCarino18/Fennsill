@@ -29,7 +29,7 @@ function showAccount(me) {
     ? "Connected to the " + me.subscription + " subscription you pay for."
     : "No subscription connected yet. Pick the AI you use.";
   statusLine.textContent = me.devices && me.devices.length
-    ? "Panel linked. Open Artiphact.exe — MCP for Claude/Cursor, Paste/Import for ChatGPT/Gemini/Grok."
+    ? "Panel linked. Open Fennsill.exe — MCP for Claude/Cursor, Paste/Import for ChatGPT/Gemini/Grok."
     : "Plug in the panel with the data cable, then press the button below.";
 }
 

@@ -1,6 +1,6 @@
 """Download arduino-cli into factory/tools and install the ESP32 core + libs.
 
-Used by Artiphact Factory so Flash works without a manual PATH install.
+Used by Fennsill Factory so Flash works without a manual PATH install.
 """
 
 from __future__ import annotations
@@ -106,7 +106,7 @@ def ensure_arduino() -> str:
     arduino = find_arduino_cli()
     if not arduino:
         arduino = download_arduino_cli()
-    marker = DATA_DIR / ".artiphact_core_ready_v2"
+    marker = DATA_DIR / ".fennsill_core_ready_v2"
     if not marker.is_file():
         print("Installing ESP32 board support + Seeed_GFX (one-time)…", flush=True)
         ensure_core_and_libs(arduino)

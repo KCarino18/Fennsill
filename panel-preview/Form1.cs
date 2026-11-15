@@ -1,4 +1,4 @@
-namespace ArtiphactPreview;
+namespace FennsillPreview;
 
 public partial class Form1 : Form
 {
@@ -16,7 +16,7 @@ public partial class Form1 : Form
 
     void Build()
     {
-        Text = "Artiphact panel";
+        Text = "Fennsill panel";
         BackColor = Color.FromArgb(216, 212, 204);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;

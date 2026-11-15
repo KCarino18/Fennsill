@@ -1,4 +1,4 @@
-"""CLI intake for Artiphact.exe paste/import and any AI that can write a file."""
+"""CLI intake for Fennsill.exe paste/import and any AI that can write a file."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from security import SecurityError  # noqa: E402
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Ingest HTML/SVG into Artiphact.")
+    parser = argparse.ArgumentParser(description="Ingest HTML/SVG into Fennsill.")
     parser.add_argument("--html-file", help="Path to an HTML file")
     parser.add_argument("--svg-file", help="Path to an SVG file")
     parser.add_argument("--html", help="Raw HTML string")
@@ -36,7 +36,7 @@ def main():
         raise SystemExit("Pass --html-file, --svg-file, --html, or --svg.")
 
     push = bool(args.push) and not args.no_push
-    # Default: save only. Artiphact gallery → Send to panel.
+    # Default: save only. Fennsill gallery → Send to panel.
     if not args.push:
         push = False
 

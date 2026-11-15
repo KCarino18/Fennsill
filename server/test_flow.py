@@ -72,7 +72,7 @@ def test_frame_and_usb():
 def test_signature():
     key = sign_update.load_key()
     manifest = json.loads((ROOT / "updates" / "manifest.json").read_text(encoding="utf-8"))
-    body = (ROOT / "updates" / "artiphact-1.1.0.bin").read_bytes()
+    body = (ROOT / "updates" / "fennsill-1.1.0.bin").read_bytes()
     expect(hashlib.sha256(body).hexdigest() == manifest["sha256"], "firmware hash")
     message = f"{manifest['version']}\n{manifest['sha256']}".encode("utf-8")
     expect(hmac.new(key, message, hashlib.sha256).hexdigest() == manifest["signature"], "signature")
@@ -100,7 +100,7 @@ def _error(fn):
 
 
 def test_connector(link_path):
-    os.environ["ARTIPHACT_LINK"] = str(link_path)
+    os.environ["FENNSILL_LINK"] = str(link_path)
     mcp_server.LINKED = link_path
     link_path.write_text("", encoding="utf-8")
     missing = mcp_server.handle(
@@ -152,13 +152,13 @@ def test_connector(link_path):
 
 def test_account():
     tmp = tempfile.TemporaryDirectory()
-    os.environ["ARTIPHACT_DB"] = str(Path(tmp.name) / "artiphact.db")
-    os.environ["ARTIPHACT_HOST"] = "127.0.0.1"
-    os.environ["ARTIPHACT_PORT"] = "8766"
+    os.environ["FENNSILL_DB"] = str(Path(tmp.name) / "fennsill.db")
+    os.environ["FENNSILL_HOST"] = "127.0.0.1"
+    os.environ["FENNSILL_PORT"] = "8766"
     link_path = Path(tmp.name) / "linked.json"
     import app
 
-    app.DB_PATH = Path(os.environ["ARTIPHACT_DB"])
+    app.DB_PATH = Path(os.environ["FENNSILL_DB"])
     app.LINKED = link_path
     app.init_db()
     server = app.ThreadingHTTPServer(("127.0.0.1", 8766), app.Handler)

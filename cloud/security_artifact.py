@@ -9,7 +9,7 @@ FORBIDDEN_URI = re.compile(
     r"(?i)\b(?:https?|file|ftp|ws|wss|chrome|chrome-extension|javascript)\s*:",
 )
 CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
-DEVICE_ID_RE = re.compile(r"^AP[0-9A-F]{12}$")
+DEVICE_ID_RE = re.compile(r"^FS[0-9A-F]{12}$")
 WIFI_KEYS = frozenset(
     {"ssid", "wifi", "wifi_ssid", "wifi_password", "psk", "passphrase", "password_wifi", "network"}
 )
@@ -46,7 +46,7 @@ def validate_artifact_args(*, html=None, svg=None, device_id=None):
     """Validate push_artifact inputs. device_id is required on cloud."""
     device_id = require_string(device_id, "device_id", max_chars=14).upper()
     if not DEVICE_ID_RE.match(device_id):
-        raise SecurityError("device_id must be AP plus 12 hex digits.")
+        raise SecurityError("device_id must be FS plus 12 hex digits.")
     has_html = isinstance(html, str) and bool(html.strip())
     has_svg = isinstance(svg, str) and bool(svg.strip())
     if has_html and has_svg:
@@ -65,7 +65,7 @@ def validate_artifact_args(*, html=None, svg=None, device_id=None):
 def validate_device_id(device_id: str) -> str:
     device_id = require_string(device_id, "device_id", max_chars=14).upper()
     if not DEVICE_ID_RE.match(device_id):
-        raise SecurityError("device_id must be AP plus 12 hex digits.")
+        raise SecurityError("device_id must be FS plus 12 hex digits.")
     return device_id
 
 

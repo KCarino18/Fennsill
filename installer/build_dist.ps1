@@ -1,18 +1,18 @@
 ﻿# Builds a folder you can ZIP for the website or copy to a USB stick.
 $ErrorActionPreference = "Stop"
 $Project = Split-Path -Parent $PSScriptRoot
-$Out = Join-Path $Project "dist\Artiphact"
-$Exe = Join-Path $Project "Artiphact.exe"
+$Out = Join-Path $Project "dist\Fennsill"
+$Exe = Join-Path $Project "Fennsill.exe"
 if (-not (Test-Path $Exe)) {
-    $Exe = Join-Path $Project "artiphact-desk\out\Artiphact.exe"
+    $Exe = Join-Path $Project "fennsill-desk\out\Fennsill.exe"
 }
-if (-not (Test-Path $Exe)) { throw "Publish Artiphact.exe first." }
+if (-not (Test-Path $Exe)) { throw "Publish Fennsill.exe first." }
 
 if (Test-Path $Out) { Remove-Item -Recurse -Force $Out }
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
 
-Copy-Item -Force $Exe (Join-Path $Out "Artiphact.exe")
-Copy-Item -Force (Join-Path $PSScriptRoot "Install-Artiphact.ps1") (Join-Path $Out "Install-Artiphact.ps1")
+Copy-Item -Force $Exe (Join-Path $Out "Fennsill.exe")
+Copy-Item -Force (Join-Path $PSScriptRoot "Install-Fennsill.ps1") (Join-Path $Out "Install-Fennsill.ps1")
 
 function Sync-Tree($src, $dst) {
     if (-not (Test-Path $src)) { return }
@@ -36,13 +36,13 @@ if (Test-Path (Join-Path $Project "connector\bin\cloudflared.exe")) {
 
 @(
     "@echo off"
-    "title Artiphact Setup"
+    "title Fennsill Setup"
     "cd /d `"%~dp0`""
     "echo."
-    "echo  ARTIPHACT SETUP"
+    "echo  FENNSILL SETUP"
     "echo  Website download or USB stick — same installer."
     "echo."
-    "powershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0Install-Artiphact.ps1`""
+    "powershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0Install-Fennsill.ps1`""
     "if errorlevel 1 ("
     "  echo Setup failed."
     "  pause"
@@ -51,24 +51,24 @@ if (Test-Path (Join-Path $Project "connector\bin\cloudflared.exe")) {
     "echo."
     "echo Installed. You can close this window."
     "timeout /t 4 >nul"
-) | Set-Content -Encoding ASCII (Join-Path $Out "ArtiphactSetup.bat")
+) | Set-Content -Encoding ASCII (Join-Path $Out "FennsillSetup.bat")
 
 @(
-    "Artiphact"
+    "Fennsill"
     "========"
     ""
     "Install from this folder (USB stick or unzipped website download):"
-    "  Double-click  ArtiphactSetup.bat"
+    "  Double-click  FennsillSetup.bat"
     ""
     "Then:"
     "  1. Plug in the panel"
-    "  2. Leave Artiphact open"
+    "  2. Leave Fennsill open"
     "  3. Restart Claude or ChatGPT once"
     "  4. Talk to your AI"
 ) | Set-Content -Encoding ASCII (Join-Path $Out "README.txt")
 
 # Zip for website
-$Zip = Join-Path $Project "dist\Artiphact-Setup.zip"
+$Zip = Join-Path $Project "dist\Fennsill-Setup.zip"
 if (Test-Path $Zip) { Remove-Item -Force $Zip }
 Compress-Archive -Path (Join-Path $Out "*") -DestinationPath $Zip -Force
 

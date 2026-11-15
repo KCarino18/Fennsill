@@ -255,7 +255,7 @@ def _shot_png(page_html):
 
     browsers = _browser_root()
     if browsers:
-        # Always prefer the Artiphact-bundled Chromium (ChatGPT MCP often
+        # Always prefer the Fennsill-bundled Chromium (ChatGPT MCP often
         # starts without PLAYWRIGHT_BROWSERS_PATH and then hangs/times out).
         os.environ["PLAYWRIGHT_BROWSERS_PATH"] = browsers
         shell = (
@@ -266,7 +266,7 @@ def _shot_png(page_html):
         )
         if not shell.is_file():
             raise RuntimeError(
-                f"Artiphact Chromium missing at {shell}. Reinstall Artiphact browsers."
+                f"Fennsill Chromium missing at {shell}. Reinstall Fennsill browsers."
             )
 
     with sync_playwright() as playwright:

@@ -39,10 +39,10 @@ pages/
 Thumbs.db
 
 # Local exes at repo root (build artifacts)
-/Artiphact.exe
-/ArtiphactHost.exe
-/Artiphact Panel.exe
-factory/ArtiphactFactory.exe
+/Fennsill.exe
+/FennsillHost.exe
+/Fennsill Panel.exe
+factory/FennsillFactory.exe
 factory/*.pdb
 factory/*.dll
 
@@ -56,9 +56,9 @@ connector/_exe_check.txt
 connector/_debug_*.py
 updates/*.bin
 updates/update_key.hex
-artiphact-*/bin/
-artiphact-*/obj/
-artiphact-*/out/
+fennsill-*/bin/
+fennsill-*/obj/
+fennsill-*/out/
 
 
 server/*.db

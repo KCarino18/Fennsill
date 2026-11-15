@@ -1,4 +1,4 @@
-"""Artiphact cloud MCP + agent API (SQLite). No USB. No SQL Server."""
+"""Fennsill cloud MCP + agent API (SQLite). No USB. No SQL Server."""
 
 from __future__ import annotations
 
@@ -26,17 +26,17 @@ from security_artifact import (  # noqa: E402
     validate_device_id,
 )
 
-HOST = os.environ.get("ARTIPHACT_CLOUD_HOST", "0.0.0.0")
-PORT = int(os.environ.get("ARTIPHACT_CLOUD_PORT", "8080"))
-PUBLIC_URL = os.environ.get("ARTIPHACT_PUBLIC_URL", f"http://{HOST}:{PORT}")
+HOST = os.environ.get("FENNSILL_CLOUD_HOST", "0.0.0.0")
+PORT = int(os.environ.get("FENNSILL_CLOUD_PORT", "8080"))
+PUBLIC_URL = os.environ.get("FENNSILL_PUBLIC_URL", f"http://{HOST}:{PORT}")
 
 # SQL Server later — do not enable:
-# ARTIPHACT_SQL_CONNECTION = os.environ.get("ARTIPHACT_SQL_CONNECTION")
+# FENNSILL_SQL_CONNECTION = os.environ.get("FENNSILL_SQL_CONNECTION")
 
 server = MCPServer(
-    "artiphact-cloud",
+    "fennsill-cloud",
     instructions=(
-        "Artiphact cloud pushes finished 800x480 black/white self-contained HTML/SVG "
+        "Fennsill cloud pushes finished 800x480 black/white self-contained HTML/SVG "
         "to the buyer's e-ink panel via a queued job. Call list_panels, then push_artifact "
         "with that device_id. Do not create a web Artifact preview as a substitute. "
         "Do not send Wi-Fi credentials — Wi-Fi stays on the panel via the local USB agent."
@@ -98,7 +98,7 @@ async def _read_json(request: Request) -> dict | Response:
 
 @server.custom_route("/health", methods=["GET"])
 async def health(_request: Request) -> Response:
-    return _json(200, {"ok": True, "service": "artiphact-cloud"})
+    return _json(200, {"ok": True, "service": "fennsill-cloud"})
 
 
 @server.custom_route("/api/session", methods=["POST"])
@@ -245,7 +245,7 @@ def _tool_result(payload: Any) -> str:
     return json.dumps(payload, indent=2)
 
 
-@server.tool(description="List Artiphact e-ink panels linked to this account.")
+@server.tool(description="List Fennsill e-ink panels linked to this account.")
 def list_panels(ctx: Context) -> str:
     try:
         user = _mcp_user(ctx)
@@ -257,7 +257,7 @@ def list_panels(ctx: Context) -> str:
 
 @server.tool(
     description=(
-        "Push a finished 800x480 black/white HTML or SVG page to a linked Artiphact panel. "
+        "Push a finished 800x480 black/white HTML or SVG page to a linked Fennsill panel. "
         "Requires device_id from list_panels. Self-contained only — no external URLs."
     )
 )
@@ -340,8 +340,8 @@ def stop_live_update(ctx: Context, device_id: str, kind: str | None = None) -> s
 
 def main() -> None:
     store.init_db()
-    print(f"ARTIPHACT_CLOUD http://{HOST}:{PORT}/mcp", flush=True)
-    print(f"ARTIPHACT_PUBLIC_URL {PUBLIC_URL}", flush=True)
+    print(f"FENNSILL_CLOUD http://{HOST}:{PORT}/mcp", flush=True)
+    print(f"FENNSILL_PUBLIC_URL {PUBLIC_URL}", flush=True)
     server.run(
         transport="streamable-http",
         host=HOST,

@@ -1,6 +1,6 @@
-"""Artiphact MCP — the AI talks, the panel updates.
+"""Fennsill MCP — the AI talks, the panel updates.
 
-Buyer flow: plug in panel, open Artiphact.exe, talk to Claude Desktop / Cursor
+Buyer flow: plug in panel, open Fennsill.exe, talk to Claude Desktop / Cursor
 (or any MCP client). Natural language like "push NFL scores" or "graph this
 SQL and send it to the device" becomes tool calls: push_artifact /
 start_live_update. No paste page required.
@@ -21,12 +21,12 @@ sys.path.insert(0, str(ROOT / "connector"))
 # paths so Playwright/serial never hang looking in the wrong place.
 import os as _os
 
-_os.environ.setdefault("ARTIPHACT_ROOT", str(ROOT))
+_os.environ.setdefault("FENNSILL_ROOT", str(ROOT))
 _os.environ.setdefault(
     "PLAYWRIGHT_BROWSERS_PATH",
     str(ROOT / "connector" / "browsers"),
 )
-_os.environ.setdefault("ARTIPHACT_PAGES", str(ROOT / "connector" / "pages"))
+_os.environ.setdefault("FENNSILL_PAGES", str(ROOT / "connector" / "pages"))
 
 from intake import intake_page  # noqa: E402
 from panel_ports import (  # noqa: E402
@@ -51,7 +51,7 @@ from security import (  # noqa: E402
 )
 from usb_protocol import wifi_line  # noqa: E402
 
-LINKED = Path(__import__("os").environ.get("ARTIPHACT_LINK", ROOT / "connector" / "linked.json"))
+LINKED = Path(__import__("os").environ.get("FENNSILL_LINK", ROOT / "connector" / "linked.json"))
 CHUNK_RETRIES = 2
 # Keep panel discovery short so ChatGPT fails in seconds when USB is missing/busy.
 PANEL_PROBE_TIMEOUT = 1.2
@@ -223,7 +223,7 @@ def call_tool(name, arguments, link=None):
             "panels": [],
             "busy": [],
             "silent": [],
-            "note": "No USB-connected Artiphact panel detected. Plug the panel in over USB and retry.",
+            "note": "No USB-connected Fennsill panel detected. Plug the panel in over USB and retry.",
         }
 
     if name == "push_artifact":
@@ -239,7 +239,7 @@ def call_tool(name, arguments, link=None):
                 "push_artifact_enter",
                 {
                     "cwd": _os.getcwd(),
-                    "artiphact_root": _os.environ.get("ARTIPHACT_ROOT"),
+                    "fennsill_root": _os.environ.get("FENNSILL_ROOT"),
                     "has_html": bool(arguments.get("html")),
                     "has_svg": bool(arguments.get("svg")),
                     "injected_link": link is not None,
@@ -332,7 +332,7 @@ def handle(message, link=None):
         result = {
             "protocolVersion": "2024-11-05",
             "capabilities": {"tools": {}},
-            "serverInfo": {"name": "artiphact", "version": "1.1.0"},
+            "serverInfo": {"name": "fennsill", "version": "1.1.0"},
         }
     elif method == "tools/list":
         result = {"tools": tool_list()}
@@ -472,7 +472,7 @@ def main():
             "MCP_SERVER_START build=2026-11-13c",
             {
                 "lock_path": str(_LOCK),
-                "artiphact_root": _os.environ.get("ARTIPHACT_ROOT"),
+                "fennsill_root": _os.environ.get("FENNSILL_ROOT"),
                 "cwd": _os.getcwd(),
                 "pid": _os.getpid(),
             },

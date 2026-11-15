@@ -13,7 +13,7 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PAGES = Path(__import__("os").environ.get("ARTIPHACT_PAGES", ROOT / "connector" / "pages"))
+PAGES = Path(__import__("os").environ.get("FENNSILL_PAGES", ROOT / "connector" / "pages"))
 FRAME_BYTES = 48000
 # Keep current + one previous for rotate/debug — prune the rest.
 KEEP_PAGES = 2

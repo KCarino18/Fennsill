@@ -1,4 +1,4 @@
-"""Security checks for the Artiphact MCP connector."""
+"""Security checks for the Fennsill MCP connector."""
 
 import json
 import os
@@ -88,7 +88,7 @@ def test_message_limits():
 def test_linked_provider_allowlist():
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "linked.json"
-        os.environ["ARTIPHACT_LINK"] = str(path)
+        os.environ["FENNSILL_LINK"] = str(path)
         mcp_server.LINKED = path
         path.write_text(json.dumps({"email": "a@b.c", "provider": "not-a-real-ai"}), encoding="utf-8")
         try:
@@ -114,7 +114,7 @@ def test_mcp_refuses_hostile_calls():
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "linked.json"
         path.write_text(json.dumps({"email": "owner@example.com", "provider": "claude"}), encoding="utf-8")
-        os.environ["ARTIPHACT_LINK"] = str(path)
+        os.environ["FENNSILL_LINK"] = str(path)
         mcp_server.LINKED = path
 
         listed = mcp_server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})

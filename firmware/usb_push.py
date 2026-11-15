@@ -50,7 +50,7 @@ def push(ser, frame):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Push a 1-bit frame to an Artiphact panel over USB.")
+    parser = argparse.ArgumentParser(description="Push a 1-bit frame to a Fennsill panel over USB.")
     parser.add_argument("--port", help="Serial port. Omit to use the only matching panel.")
     parser.add_argument("--list", action="store_true", help="Show matching USB serial ports.")
     parser.add_argument("--frame", required=True, help="Path to a 48000-byte frame of the buyer's own content.")

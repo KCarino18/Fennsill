@@ -1,15 +1,15 @@
 @echo off
 cd /d "%~dp0"
-title Artiphact Factory
-if exist "ArtiphactFactory.exe" (
-  start "" "%~dp0ArtiphactFactory.exe"
+title Fennsill Factory
+if exist "FennsillFactory.exe" (
+  start "" "%~dp0FennsillFactory.exe"
   exit /b 0
 )
-echo ArtiphactFactory.exe not built yet.
+echo FennsillFactory.exe not built yet.
 echo Building it now...
 call "%~dp0Build-Factory-Exe.bat"
-if exist "ArtiphactFactory.exe" (
-  start "" "%~dp0ArtiphactFactory.exe"
+if exist "FennsillFactory.exe" (
+  start "" "%~dp0FennsillFactory.exe"
   exit /b 0
 )
 echo Build failed.

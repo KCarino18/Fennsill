@@ -1,4 +1,4 @@
-"""SQLite store for Artiphact cloud MCP (no SQL Server)."""
+"""SQLite store for Fennsill cloud MCP (no SQL Server)."""
 
 from __future__ import annotations
 
@@ -12,10 +12,10 @@ from pathlib import Path
 
 from security_artifact import DEVICE_ID_RE, MAX_ARTIFACT_CHARS
 
-# ARTIPHACT_SQL_CONNECTION is intentionally unused — SQL Server later.
-# _SQL_CONNECTION = os.environ.get("ARTIPHACT_SQL_CONNECTION")
+# FENNSILL_SQL_CONNECTION is intentionally unused — SQL Server later.
+# _SQL_CONNECTION = os.environ.get("FENNSILL_SQL_CONNECTION")
 
-DB_PATH = Path(os.environ.get("ARTIPHACT_CLOUD_DB", Path(__file__).resolve().parent / "cloud.db"))
+DB_PATH = Path(os.environ.get("FENNSILL_CLOUD_DB", Path(__file__).resolve().parent / "cloud.db"))
 PBKDF2_ROUNDS = 120_000
 ONLINE_SEC = 60
 RATE_WINDOW_SEC = 600
@@ -338,7 +338,7 @@ def auth_device_token(token: str | None) -> dict | None:
 def link_device(user_id: int, device_id: str, label: str = "") -> dict:
     device_id = device_id.strip().upper()
     if not DEVICE_ID_RE.match(device_id):
-        raise StoreError("bad_request", "device_id must be AP plus 12 hex digits.")
+        raise StoreError("bad_request", "device_id must be FS plus 12 hex digits.")
     label = (label or "")[:80]
     now = stamp()
     with connect() as conn:

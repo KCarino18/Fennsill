@@ -1,4 +1,4 @@
-# Artiphact device software (this chat’s scope)
+# Fennsill device software (this chat’s scope)
 
 Firmware on the XIAO ESP32-S3 + EE04 7.5" panel. **No cloud auth here** — that lives in another chat / `docs/PROMPT_CLOUD_MCP_BUILDER.md`.
 
@@ -14,8 +14,8 @@ Firmware on the XIAO ESP32-S3 + EE04 7.5" panel. **No cloud auth here** — that
 
 ## USB lines (host ↔ panel)
 
-- `HELLO` / `READY?` → `READY 1.1.0 id=APxxxxxxxxxxxx`
-- `ID?` / `WHOAMI` → `ID APxxxxxxxxxxxx`
+- `HELLO` / `READY?` → `READY 1.1.0 id=FSxxxxxxxxxxxx`
+- `ID?` / `WHOAMI` → `ID FSxxxxxxxxxxxx`
 - `STATUS` → `STATUS version=… id=… wifi=0|1` (never SSID/PSK)
 - `WIFI <b64ssid> <b64psk>` → `OK` (secrets stay in flash)
 - `FORGET` → clear Wi-Fi
@@ -33,7 +33,7 @@ Firmware on the XIAO ESP32-S3 + EE04 7.5" panel. **No cloud auth here** — that
 
 ## Flash
 
-Board `esp32:esp32:XIAO_ESP32S3_Plus`, Hardware CDC, OPI PSRAM, Seeed_GFX + `driver.h` beside the sketch. Keep `ARTIPHACT_USB_INSTALLER` off for Hardware CDC builds.
+Board `esp32:esp32:XIAO_ESP32S3_Plus`, Hardware CDC, OPI PSRAM, Seeed_GFX + `driver.h` beside the sketch. Keep `FENNSILL_USB_INSTALLER` off for Hardware CDC builds.
 
 ## Host pairing stub
 
@@ -41,12 +41,12 @@ Desk/agent can read `id=` from READY or send `ID?` and store that string for lat
 
 ## How each device is serialized
 
-Use **Artiphact Factory** (`factory/`) — a separate program from Artiphact.exe. See [`factory/README.md`](../factory/README.md).
+Use **Fennsill Factory** (`factory/`) — a separate program from Fennsill.exe. See [`factory/README.md`](../factory/README.md).
 
 | Field | Source | Changes across PCs? |
 |-------|--------|---------------------|
 | `device_id` | ESP32 eFuse MAC → `APxxxxxxxxxxxx` | **Never** |
-| `serial` | Factory `SERIALSET` → `AP-YYMM-NNNNNN` (write-once NVS) | **Never** |
+| `serial` | Factory `SERIALSET` → `FS-YYMM-NNNNNN` (write-once NVS) | **Never** |
 | `dkey` | `HMAC(master, device_id)` locked via `KEYSET` (write-once) | **Never** (secret stays on MCU; PC only sees `PROOF`) |
 | `install_key` | Buyer PC: SHA256 of id+serial+challenge proof → `device_bind.json` | Per PC bind file; panel identity unchanged |
 

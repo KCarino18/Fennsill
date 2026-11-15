@@ -1,6 +1,6 @@
 """Watch connector/inbox for new HTML/SVG and push live to the panel.
 
-Any AI or automation can drop a finished 800x480 page here. Artiphact.exe
+Any AI or automation can drop a finished 800x480 page here. Fennsill.exe
 (or this script alone) picks it up, saves a gallery preview, and sends it
 to the USB panel so live data stays current.
 """
@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT / "connector"))
 from intake import intake_page  # noqa: E402
 from security import SecurityError  # noqa: E402
 
-INBOX = Path(__import__("os").environ.get("ARTIPHACT_INBOX", ROOT / "connector" / "inbox"))
+INBOX = Path(__import__("os").environ.get("FENNSILL_INBOX", ROOT / "connector" / "inbox"))
 DONE = INBOX / "done"
 FAILED = INBOX / "failed"
 EXTS = {".html", ".htm", ".svg"}
@@ -98,7 +98,7 @@ def scan_once() -> int:
 
 def watch_loop(interval: float = 1.0):
     ensure_dirs()
-    print(f"Artiphact live inbox: {INBOX}", flush=True)
+    print(f"Fennsill live inbox: {INBOX}", flush=True)
     while True:
         try:
             scan_once()
@@ -108,7 +108,7 @@ def watch_loop(interval: float = 1.0):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Live-push pages dropped into the Artiphact inbox.")
+    parser = argparse.ArgumentParser(description="Live-push pages dropped into the Fennsill inbox.")
     parser.add_argument("--once", action="store_true", help="Process current inbox files and exit.")
     parser.add_argument("--interval", type=float, default=1.0, help="Poll seconds when watching.")
     args = parser.parse_args()

@@ -1,4 +1,4 @@
-"""Quick panel presence check for Artiphact.exe (plug-and-play status).
+"""Quick panel presence check for Fennsill.exe (plug-and-play status).
 
 Uses USB VID listing only — never opens COM — so ChatGPT/MCP can push while
 the desk app stays open and polls status.

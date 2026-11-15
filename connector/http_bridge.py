@@ -1,7 +1,7 @@
-"""Local + public HTTP bridge for Artiphact.
+"""Local + public HTTP bridge for Fennsill.
 
 Local:  http://127.0.0.1:8765
-Public: Cloudflare quick tunnel (https://….trycloudflare.com) while Artiphact
+Public: Cloudflare quick tunnel (https://….trycloudflare.com) while Fennsill
         is open — phones and cloud AIs can reach /drop and /v1/pages.
 """
 
@@ -25,12 +25,12 @@ from panel_ports import list_candidate_ports  # noqa: E402
 from security import SecurityError, load_json_object  # noqa: E402
 
 HOST = "127.0.0.1"
-PORT = int(os.environ.get("ARTIPHACT_BRIDGE_PORT", "8765"))
-TOKEN_PATH = Path(os.environ.get("ARTIPHACT_BRIDGE_TOKEN", ROOT / "connector" / "bridge_token.txt"))
-PROMPT_PATH = ROOT / "connector" / "prompts" / "send_to_artiphact.md"
+PORT = int(os.environ.get("FENNSILL_BRIDGE_PORT", "8765"))
+TOKEN_PATH = Path(os.environ.get("FENNSILL_BRIDGE_TOKEN", ROOT / "connector" / "bridge_token.txt"))
+PROMPT_PATH = ROOT / "connector" / "prompts" / "send_to_fennsill.md"
 SETUP_PATH = ROOT / "connector" / "prompts" / "setup_for_any_ai.md"
 DROP_PATH = ROOT / "connector" / "drop.html"
-PUBLIC_URL_PATH = Path(os.environ.get("ARTIPHACT_PUBLIC_URL_FILE", ROOT / "connector" / "public_url.txt"))
+PUBLIC_URL_PATH = Path(os.environ.get("FENNSILL_PUBLIC_URL_FILE", ROOT / "connector" / "public_url.txt"))
 BASE_URL = f"http://{HOST}:{PORT}"
 
 
@@ -48,7 +48,7 @@ def setup_text(token: str) -> str:
         body = SETUP_PATH.read_text(encoding="utf-8")
     else:
         body = (
-            "Artiphact bridge\n"
+            "Fennsill bridge\n"
             f"Base URL: {base}\n"
             f"Phone page: {base}/drop\n"
             f"OpenAPI: {base}/openapi.json\n"
@@ -77,10 +77,10 @@ def openapi_doc():
     return {
         "openapi": "3.0.3",
         "info": {
-            "title": "Artiphact bridge",
+            "title": "Fennsill bridge",
             "version": "1.1.0",
             "description": (
-                "Deliver a finished 800x480 HTML/SVG page to Artiphact. "
+                "Deliver a finished 800x480 HTML/SVG page to Fennsill. "
                 "Works from this PC, phones, and cloud AI actions via the public https URL."
             ),
         },
@@ -89,7 +89,7 @@ def openapi_doc():
             "/v1/panels": {
                 "get": {
                     "operationId": "listPanels",
-                    "summary": "List plugged-in Artiphact panels",
+                    "summary": "List plugged-in Fennsill panels",
                     "responses": {"200": {"description": "OK"}},
                 }
             },
@@ -124,14 +124,14 @@ def openapi_doc():
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "ArtiphactBridge/1.1"
+    server_version = "FennsillBridge/1.1"
 
     def log_message(self, fmt, *args):
         sys.stderr.write("bridge: " + (fmt % args) + "\n")
 
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Artiphact-Token")
+        self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Fennsill-Token")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 
     def _json(self, code: int, payload: dict):
@@ -165,7 +165,7 @@ class Handler(BaseHTTPRequestHandler):
         auth = self.headers.get("Authorization", "")
         if auth.lower().startswith("bearer "):
             return auth[7:].strip() == expected
-        if self.headers.get("X-Artiphact-Token", "").strip() == expected:
+        if self.headers.get("X-Fennsill-Token", "").strip() == expected:
             return True
         # Allow token in query for simple phone bookmarks.
         query = parse_qs(urlparse(self.path).query)
@@ -185,8 +185,8 @@ class Handler(BaseHTTPRequestHandler):
                 200,
                 {
                     "ok": True,
-                    "service": "artiphact",
-                    "message": "Talk to your AI (Claude Desktop / Cursor). It calls Artiphact tools directly.",
+                    "service": "fennsill",
+                    "message": "Talk to your AI (Claude Desktop / Cursor). It calls Fennsill tools directly.",
                     "mcp": f"{base}/mcp",
                     "base_url": base,
                 },
@@ -209,7 +209,7 @@ class Handler(BaseHTTPRequestHandler):
                 200,
                 {
                     "ok": True,
-                    "service": "artiphact-bridge",
+                    "service": "fennsill-bridge",
                     "base_url": base,
                     "local_url": BASE_URL,
                     "mcp": f"{base}/mcp",
@@ -300,7 +300,7 @@ def serve_forever(port: int = PORT):
     token = ensure_token()
     server = ThreadingHTTPServer((HOST, port), Handler)
     server.bridge_token = token
-    print(f"Artiphact bridge {BASE_URL} (token in {TOKEN_PATH})", flush=True)
+    print(f"Fennsill bridge {BASE_URL} (token in {TOKEN_PATH})", flush=True)
     server.serve_forever()
 
 
@@ -308,7 +308,7 @@ def start_background(port: int = PORT):
     token = ensure_token()
     server = ThreadingHTTPServer((HOST, port), Handler)
     server.bridge_token = token
-    thread = threading.Thread(target=server.serve_forever, name="artiphact-bridge", daemon=True)
+    thread = threading.Thread(target=server.serve_forever, name="fennsill-bridge", daemon=True)
     thread.start()
     return {"host": HOST, "port": port, "token": token, "server": server, "thread": thread}
 

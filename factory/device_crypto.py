@@ -1,4 +1,4 @@
-"""Device serial + secret derivation for Artiphact Factory (not Artiphact.exe)."""
+"""Device serial + secret derivation for Fennsill Factory (not Fennsill.exe)."""
 
 from __future__ import annotations
 
@@ -13,14 +13,14 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_MASTER_PATH = ROOT / "master.key"
 LEDGER_PATH = ROOT / "ledger" / "devices.csv"
 
-SERIAL_RE = re.compile(r"^AP-\d{4}-\d{6}$")
+SERIAL_RE = re.compile(r"^FS-\d{4}-\d{6}$")
 
 
 def ensure_master(path: Path | None = None) -> Path:
     """Create factory/master.key on first use (offline secret — never ship to buyers)."""
     import secrets
 
-    path = path or Path(os.environ.get("ARTIPHACT_FACTORY_MASTER", DEFAULT_MASTER_PATH))
+    path = path or Path(os.environ.get("FENNSILL_FACTORY_MASTER", DEFAULT_MASTER_PATH))
     if not path.is_file():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(secrets.token_bytes(32))
@@ -40,7 +40,7 @@ def load_master(path: Path | None = None) -> bytes:
 
 def device_secret(master: bytes, device_id: str) -> str:
     """64-hex HMAC locked into the panel at factory. Same device_id → same secret forever."""
-    msg = f"artiphact-device-v1|{device_id.strip().upper()}".encode("ascii")
+    msg = f"fennsill-device-v1|{device_id.strip().upper()}".encode("ascii")
     return hmac.new(master, msg, hashlib.sha256).hexdigest()
 
 
@@ -49,15 +49,15 @@ def key_fingerprint(secret_hex: str) -> str:
 
 
 def install_bind_key(device_id: str, serial: str, proof_hex: str) -> str:
-    """PC-side key for this panel's Artiphact bind file (not the raw device secret)."""
-    msg = f"artiphact-install-v1|{device_id}|{serial}|{proof_hex}".encode("utf-8")
+    """PC-side key for this panel's Fennsill bind file (not the raw device secret)."""
+    msg = f"fennsill-install-v1|{device_id}|{serial}|{proof_hex}".encode("utf-8")
     return hashlib.sha256(msg).hexdigest()
 
 
 def next_box_serial(ledger: Path | None = None, when: datetime | None = None) -> str:
     when = when or datetime.now(timezone.utc)
     yymm = when.strftime("%y%m")
-    prefix = f"AP-{yymm}-"
+    prefix = f"FS-{yymm}-"
     seq = 1
     path = ledger or LEDGER_PATH
     if path.is_file():

@@ -1,7 +1,7 @@
 """
-Artiphact Factory — SEPARATE from Artiphact.exe.
+Fennsill Factory — SEPARATE from Fennsill.exe.
 
-Window flow: select device → Check → Flash (wipe TRMNL + install Artiphact + lock IDs).
+Window flow: select device → Check → Flash (wipe TRMNL + install Fennsill + lock IDs).
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ def ensure_master_key() -> Path:
 class FactoryApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Artiphact Factory")
+        self.title("Fennsill Factory")
         self.geometry("640x520")
         self.minsize(560, 440)
         self.configure(bg="#1c1c1c")
@@ -65,10 +65,10 @@ class FactoryApp(tk.Tk):
     def _build_ui(self):
         pad = {"padx": 18, "pady": 6}
 
-        ttk.Label(self, text="Artiphact Factory", style="Title.TLabel").pack(anchor="w", padx=18, pady=(18, 2))
+        ttk.Label(self, text="Fennsill Factory", style="Title.TLabel").pack(anchor="w", padx=18, pady=(18, 2))
         ttk.Label(
             self,
-            text="Separate from Artiphact.exe — wipe TRMNL, install Artiphact, lock serial + key.",
+            text="Separate from Fennsill.exe — wipe TRMNL, install Fennsill, lock serial + key.",
             style="Body.TLabel",
             wraplength=580,
         ).pack(anchor="w", padx=18, pady=(0, 12))
@@ -97,7 +97,7 @@ class FactoryApp(tk.Tk):
         step3.pack(fill="x", padx=18, pady=6)
         self.flash_btn = ttk.Button(
             step3,
-            text="Flash Artiphact (erase TRMNL + install)",
+            text="Flash Fennsill (erase TRMNL + install)",
             style="Flash.TButton",
             command=self.start_flash,
             state="disabled",
@@ -105,7 +105,7 @@ class FactoryApp(tk.Tk):
         self.flash_btn.pack(fill="x")
         ttk.Label(
             step3,
-            text="Enabled only after Check passes. Erases chip, uploads Artiphact, locks serial + key.",
+            text="Enabled only after Check passes. Erases chip, uploads Fennsill, locks serial + key.",
             style="Body.TLabel",
             wraplength=560,
         ).pack(anchor="w", pady=(8, 0))
@@ -169,7 +169,7 @@ class FactoryApp(tk.Tk):
             return
         port = self._selected_port()
         if not port:
-            messagebox.showerror("Artiphact Factory", "Select a device first.")
+            messagebox.showerror("Fennsill Factory", "Select a device first.")
             return
         self._busy = True
         self.check_btn.configure(state="disabled")
@@ -190,18 +190,18 @@ class FactoryApp(tk.Tk):
         if self._busy:
             return
         if not self._checked:
-            messagebox.showerror("Artiphact Factory", "Run Check first.")
+            messagebox.showerror("Fennsill Factory", "Run Check first.")
             return
         port = self._checked.get("port")
         if port != self._selected_port():
-            messagebox.showerror("Artiphact Factory", "Selection changed — run Check again.")
+            messagebox.showerror("Fennsill Factory", "Selection changed — run Check again.")
             self.flash_btn.configure(state="disabled")
             return
         if not messagebox.askokcancel(
             "Flash panel?",
             f"Port: {port}\n"
             f"Kind: {self._checked.get('kind')}\n\n"
-            "This will ERASE the chip (wipe TRMNL), install Artiphact, and lock serial + key.\n"
+            "This will ERASE the chip (wipe TRMNL), install Fennsill, and lock serial + key.\n"
             "Continue?",
         ):
             return
@@ -210,7 +210,7 @@ class FactoryApp(tk.Tk):
         self._busy = True
         self.check_btn.configure(state="disabled")
         self.flash_btn.configure(state="disabled", text="Flashing…")
-        self._write(f"FLASH {port} (erase + Artiphact)")
+        self._write(f"FLASH {port} (erase + Fennsill)")
 
         def work():
             try:
@@ -227,14 +227,14 @@ class FactoryApp(tk.Tk):
                 kind, payload = self._q.get_nowait()
                 self._busy = False
                 self.check_btn.configure(state="normal")
-                self.flash_btn.configure(text="Flash Artiphact (erase TRMNL + install)")
+                self.flash_btn.configure(text="Flash Fennsill (erase TRMNL + install)")
 
                 if kind == "check_ok":
                     self._checked = payload
                     kind_name = payload.get("kind")
                     reason = payload.get("reason", "")
                     detail = (
-                        f"OK — {payload.get('port')} is an Artiphact e-ink / XIAO panel.\n"
+                        f"OK — {payload.get('port')} is a Fennsill e-ink / XIAO panel.\n"
                         f"{kind_name}: {reason}"
                     )
                     if payload.get("id"):

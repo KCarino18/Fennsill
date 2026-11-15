@@ -6,8 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>Artiphact</AssemblyName>
-    <ApplicationIcon>artiphact.ico</ApplicationIcon>
+    <AssemblyName>Fennsill Panel</AssemblyName>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

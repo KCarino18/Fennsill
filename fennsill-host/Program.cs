@@ -1,4 +1,4 @@
-namespace ArtiphactHost;
+namespace FennsillHost;
 
 static class Program
 {

@@ -1,6 +1,6 @@
 """Build a tiny FAT12 disk image the panel can serve over USB MSC.
 
-Contains README + SETUP.BAT + a bootstrap Install-Artiphact.ps1 that pulls
+Contains README + SETUP.BAT + a bootstrap Install-Fennsill.ps1 that pulls
 from the PC if the full project is present, or tells the user to run the
 desktop installer. The image stays small enough for flash/PROGMEM.
 """
@@ -12,8 +12,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PAYLOAD = Path(__file__).resolve().parent / "msc_payload"
-OUT_BIN = Path(__file__).resolve().parent / "artiphact_msc.img"
-OUT_H = ROOT / "firmware" / "artiphact" / "msc_disk.h"
+OUT_BIN = Path(__file__).resolve().parent / "fennsill_msc.img"
+OUT_H = ROOT / "firmware" / "fennsill" / "msc_disk.h"
 
 # 128 sectors * 512 = 64 KiB FAT12 image
 SECTOR = 512
@@ -57,10 +57,10 @@ def file_to_83(path: Path) -> tuple[str, str]:
 def build() -> bytes:
     files = []
     for path in sorted(PAYLOAD.iterdir()):
-        if path.is_file() and path.name.upper() != "ARTIPHACT.IMG":
+        if path.is_file() and path.name.upper() != "FENNSILL.IMG":
             files.append(path)
     # Bootstrap PS1 copied into payload as INSTALL.PS1 (8.3)
-    install_src = Path(__file__).resolve().parent / "Install-Artiphact.ps1"
+    install_src = Path(__file__).resolve().parent / "Install-Fennsill.ps1"
     raw_files: list[tuple[str, str, bytes]] = []
     for path in files:
         name, ext = file_to_83(path)
@@ -69,14 +69,14 @@ def build() -> bytes:
         # Short offline bootstrap for the drive (download-free when project nearby)
         bootstrap = r"""$ErrorActionPreference='Stop'
 $here=Split-Path -Parent $MyInvocation.MyCommand.Path
-# If this PC already has the Artiphact project next to a cloned tree, use full installer.
+# If this PC already has the Fennsill project next to a cloned tree, use full installer.
 $candidates=@(
-  (Join-Path $env:USERPROFILE 'Desktop\This Is A Test For The Tablet\installer\Install-Artiphact.ps1'),
-  (Join-Path $env:LOCALAPPDATA 'Artiphact\Install-Artiphact.ps1')
+  (Join-Path $env:USERPROFILE 'Desktop\This Is A Test For The Tablet\installer\Install-Fennsill.ps1'),
+  (Join-Path $env:LOCALAPPDATA 'Fennsill\Install-Fennsill.ps1')
 )
 foreach($c in $candidates){ if(Test-Path $c){ & $c; exit $LASTEXITCODE } }
-Write-Host 'Artiphact full installer not found on this PC yet.'
-Write-Host 'Copy ArtiphactSetup from the product site, or keep the project folder on the Desktop.'
+Write-Host 'Fennsill full installer not found on this PC yet.'
+Write-Host 'Copy FennsillSetup from the product site, or keep the project folder on the Desktop.'
 pause
 """
         raw_files.append(("INSTALL", "PS1", bootstrap.encode("utf-8")))
@@ -87,7 +87,7 @@ pause
     # BPB / boot sector
     bpb = bytearray(SECTOR)
     bpb[0:3] = b"\xEB\x3C\x90"
-    bpb[3:11] = b"ARTIPHACT"
+    bpb[3:11] = b"FENNSILL"
     struct.pack_into("<H", bpb, 11, SECTOR)
     bpb[13] = 1  # sectors per cluster
     struct.pack_into("<H", bpb, 14, RESERVED)
@@ -135,10 +135,10 @@ def write_header(img: bytes):
     lines = [
         "#pragma once",
         "// Auto-generated USB MSC installer disk. Do not edit.",
-        f"static const uint32_t ARTIPHACT_MSC_SECTORS = {SECTOR_COUNT};",
-        f"static const uint32_t ARTIPHACT_MSC_SECTOR_SIZE = {SECTOR};",
-        f"static const uint32_t ARTIPHACT_MSC_BYTES = {len(img)};",
-        "static const uint8_t ARTIPHACT_MSC_DISK[] PROGMEM = {",
+        f"static const uint32_t FENNSILL_MSC_SECTORS = {SECTOR_COUNT};",
+        f"static const uint32_t FENNSILL_MSC_SECTOR_SIZE = {SECTOR};",
+        f"static const uint32_t FENNSILL_MSC_BYTES = {len(img)};",
+        "static const uint8_t FENNSILL_MSC_DISK[] PROGMEM = {",
     ]
     row = []
     for i, b in enumerate(img):
@@ -159,9 +159,9 @@ def main():
     setup = PAYLOAD / "SETUP.BAT"
     setup.write_text(
         "@echo off\r\n"
-        "title Artiphact Setup\r\n"
+        "title Fennsill Setup\r\n"
         "cd /d \"%~dp0\"\r\n"
-        "echo Installing Artiphact from the panel...\r\n"
+        "echo Installing Fennsill from the panel...\r\n"
         "powershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0INSTALL.PS1\"\r\n"
         "if errorlevel 1 pause\r\n",
         encoding="ascii",

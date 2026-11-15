@@ -2,10 +2,10 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
-namespace ArtiphactFactory;
+namespace FennsillFactory;
 
 /// <summary>
-/// Standalone factory window (not Artiphact.exe). Select → Check → Flash.
+/// Standalone factory window (not Fennsill.exe). Select → Check → Flash.
 /// </summary>
 public sealed class MainForm : Form
 {
@@ -27,7 +27,7 @@ public sealed class MainForm : Form
         _repoRoot = FindRepoRoot();
         _factoryDir = Path.Combine(_repoRoot, "factory");
 
-        Text = "Artiphact Factory";
+        Text = "Fennsill Factory";
         Width = 720;
         Height = 560;
         MinimumSize = new Size(640, 480);
@@ -38,7 +38,7 @@ public sealed class MainForm : Form
 
         var title = new Label
         {
-            Text = "Artiphact Factory",
+            Text = "Fennsill Factory",
             Font = new Font("Segoe UI", 18f, FontStyle.Bold),
             AutoSize = true,
             Location = new Point(24, 20),
@@ -47,7 +47,7 @@ public sealed class MainForm : Form
         };
         var subtitle = new Label
         {
-            Text = "Select the e-ink panel → Check → Flash. Wipes TRMNL, installs Artiphact.",
+            Text = "Select the e-ink panel → Check → Flash. Wipes TRMNL, installs Fennsill.",
             AutoSize = true,
             MaximumSize = new Size(650, 0),
             Location = new Point(24, 58),
@@ -82,7 +82,7 @@ public sealed class MainForm : Form
         checkBox.Controls.Add(_checkStatus);
 
         var flashBox = MakeGroup("3. Flash", 24, 314, 656, 88);
-        _flashBtn.Text = "Flash Artiphact";
+        _flashBtn.Text = "Flash Fennsill";
         _flashBtn.Width = 624;
         _flashBtn.Height = 48;
         _flashBtn.Location = new Point(16, 26);
@@ -202,7 +202,7 @@ public sealed class MainForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Artiphact Factory", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, ex.Message, "Fennsill Factory", MessageBoxButtons.OK, MessageBoxIcon.Error);
             Log("ERROR: " + ex.Message);
         }
         finally
@@ -217,7 +217,7 @@ public sealed class MainForm : Form
         var port = SelectedPort();
         if (string.IsNullOrEmpty(port))
         {
-            MessageBox.Show(this, "Select a device first.", "Artiphact Factory", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, "Select a device first.", "Fennsill Factory", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
@@ -237,7 +237,7 @@ public sealed class MainForm : Form
             var reason = target.TryGetProperty("reason", out var r) ? r.GetString() : "";
             _checkedPort = port;
             _flashBtn.Enabled = true;
-            _checkStatus.Text = $"OK — {port} is an Artiphact e-ink / XIAO panel.\n{kind}: {reason}";
+            _checkStatus.Text = $"OK — {port} is a Fennsill e-ink / XIAO panel.\n{kind}: {reason}";
             _checkStatus.ForeColor = Color.FromArgb(120, 200, 140);
             Log($"CHECK OK [{kind}] {reason}");
         }
@@ -262,14 +262,14 @@ public sealed class MainForm : Form
         var port = SelectedPort();
         if (string.IsNullOrEmpty(port) || !string.Equals(port, _checkedPort, StringComparison.OrdinalIgnoreCase))
         {
-            MessageBox.Show(this, "Run Check on the selected device first.", "Artiphact Factory", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, "Run Check on the selected device first.", "Fennsill Factory", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             _flashBtn.Enabled = false;
             return;
         }
 
         var confirm = MessageBox.Show(
             this,
-            $"Erase chip on {port} and install Artiphact?\n\nThis wipes TRMNL / stock firmware.",
+            $"Erase chip on {port} and install Fennsill?\n\nThis wipes TRMNL / stock firmware.",
             "Flash panel?",
             MessageBoxButtons.OKCancel,
             MessageBoxIcon.Warning);
@@ -277,7 +277,7 @@ public sealed class MainForm : Form
 
         SetBusy(true, "Flashing…");
         _flashBtn.Text = "Flashing…";
-        Log($"FLASH {port} (erase + Artiphact)");
+        Log($"FLASH {port} (erase + Fennsill)");
         try
         {
             var (code, stdout, stderr) = await RunPythonAsync(new[] { "provision.py", "--port", port, "--json" }, longTimeout: true);
@@ -314,7 +314,7 @@ public sealed class MainForm : Form
         }
         finally
         {
-            _flashBtn.Text = "Flash Artiphact";
+            _flashBtn.Text = "Flash Fennsill";
             SetBusy(false);
         }
     }
@@ -352,7 +352,7 @@ public sealed class MainForm : Form
             psi.ArgumentList.Add(a);
 
         psi.Environment["PYTHONUNBUFFERED"] = "1";
-        psi.Environment["ARTIPHACT_ROOT"] = _repoRoot;
+        psi.Environment["FENNSILL_ROOT"] = _repoRoot;
 
         using var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
         var stdout = new StringBuilder();
@@ -445,7 +445,7 @@ public sealed class MainForm : Form
 
     static string FindRepoRoot()
     {
-        var env = Environment.GetEnvironmentVariable("ARTIPHACT_ROOT");
+        var env = Environment.GetEnvironmentVariable("FENNSILL_ROOT");
         if (!string.IsNullOrWhiteSpace(env) && Directory.Exists(Path.Combine(env, "factory")))
             return Path.GetFullPath(env);
 

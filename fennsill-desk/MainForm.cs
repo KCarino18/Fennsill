@@ -2,10 +2,10 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
-namespace ArtiphactDesk;
+namespace FennsillDesk;
 
 /// <summary>
-/// Artiphact desk: panel status + local workers. AI pushes go straight to the
+/// Fennsill desk: panel status + local workers. AI pushes go straight to the
 /// panel via Host MCP — no accumulating gallery of every AI page.
 /// </summary>
 public class MainForm : Form
@@ -39,12 +39,12 @@ public class MainForm : Form
 
     static string FindProjectRoot()
     {
-        var env = Environment.GetEnvironmentVariable("ARTIPHACT_ROOT");
+        var env = Environment.GetEnvironmentVariable("FENNSILL_ROOT");
         if (!string.IsNullOrWhiteSpace(env) && HasConnector(env)) return env;
 
         var installed = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Artiphact");
+            "Fennsill");
         if (HasConnector(installed)) return installed;
 
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
@@ -73,7 +73,7 @@ public class MainForm : Form
         var text = Color.FromArgb(242, 240, 235);
         var muted = Color.FromArgb(154, 149, 140);
 
-        Text = "Artiphact";
+        Text = "Fennsill";
         Width = 720;
         Height = 420;
         MinimumSize = new Size(560, 360);
@@ -92,7 +92,7 @@ public class MainForm : Form
 
         var title = new Label
         {
-            Text = "Artiphact",
+            Text = "Fennsill",
             Font = new Font("Segoe UI Semibold", 22F),
             ForeColor = text,
             AutoSize = true,
@@ -109,14 +109,14 @@ public class MainForm : Form
         _status.AutoSize = true;
         _status.MaximumSize = new Size(640, 0);
         _status.ForeColor = muted;
-        _status.Text = "Panel updates come from ChatGPT / Claude through Artiphact Host.";
+        _status.Text = "Panel updates come from ChatGPT / Claude through Fennsill Host.";
 
         _hint.Location = new Point(28, 160);
         _hint.Size = new Size(640, 80);
         _hint.ForeColor = muted;
         _hint.Text =
             "Keep this app open while the panel is plugged in.\n" +
-            "Run Artiphact Host for MCP / scheduled tasks.\n" +
+            "Run Fennsill Host for MCP / scheduled tasks.\n" +
             "AI pushes go to the panel — nothing piles up in a gallery here.";
 
         var actions = new FlowLayoutPanel
@@ -185,8 +185,8 @@ public class MainForm : Form
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
-            psi.Environment["ARTIPHACT_ROOT"] = _root;
-            psi.Environment["ARTIPHACT_PAGES"] = _pagesDir;
+            psi.Environment["FENNSILL_ROOT"] = _root;
+            psi.Environment["FENNSILL_PAGES"] = _pagesDir;
             psi.Environment["PLAYWRIGHT_BROWSERS_PATH"] = Path.Combine(_root, "connector", "browsers");
             psi.Environment["PYTHONUNBUFFERED"] = "1";
             return Process.Start(psi);
@@ -214,7 +214,7 @@ public class MainForm : Form
                 RedirectStandardError = true,
                 CreateNoWindow = true,
             };
-            psi.Environment["ARTIPHACT_ROOT"] = _root;
+            psi.Environment["FENNSILL_ROOT"] = _root;
             using var proc = Process.Start(psi);
             if (proc == null) return;
             var stdout = await proc.StandardOutput.ReadToEndAsync();
@@ -240,7 +240,7 @@ public class MainForm : Form
         if (_panelReady)
         {
             _readyBanner.ForeColor = Color.FromArgb(120, 200, 140);
-            _readyBanner.Text = "Artiphact panel connected";
+            _readyBanner.Text = "Fennsill panel connected";
             _status.Text = string.IsNullOrEmpty(_panelPorts) ? "Panel connected." : $"Panel {_panelPorts}";
         }
         else
@@ -267,7 +267,7 @@ public class MainForm : Form
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
-            psi.Environment["ARTIPHACT_ROOT"] = _root;
+            psi.Environment["FENNSILL_ROOT"] = _root;
             using var proc = Process.Start(psi);
             proc?.WaitForExit(60000);
         }
@@ -281,7 +281,7 @@ public class MainForm : Form
         catch { html = ""; }
         if (string.IsNullOrWhiteSpace(html))
         {
-            MessageBox.Show(this, "Clipboard is empty.", "Artiphact");
+            MessageBox.Show(this, "Clipboard is empty.", "Fennsill");
             return;
         }
         await IngestHtml(html, "clipboard");
@@ -311,7 +311,7 @@ public class MainForm : Form
         var script = Path.Combine(_root, "connector", "ingest_page.py");
         if (!File.Exists(script))
         {
-            MessageBox.Show(this, "ingest_page.py missing.", "Artiphact");
+            MessageBox.Show(this, "ingest_page.py missing.", "Fennsill");
             return;
         }
         _status.Text = "Sending to panel…";
@@ -328,8 +328,8 @@ public class MainForm : Form
                 RedirectStandardError = true,
                 CreateNoWindow = true,
             };
-            psi.Environment["ARTIPHACT_ROOT"] = _root;
-            psi.Environment["ARTIPHACT_PAGES"] = _pagesDir;
+            psi.Environment["FENNSILL_ROOT"] = _root;
+            psi.Environment["FENNSILL_PAGES"] = _pagesDir;
             psi.Environment["PLAYWRIGHT_BROWSERS_PATH"] = Path.Combine(_root, "connector", "browsers");
             using var proc = Process.Start(psi);
             if (proc == null)

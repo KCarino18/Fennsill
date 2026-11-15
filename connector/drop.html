@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Artiphact — Send page</title>
+  <title>Fennsill — Send page</title>
   <style>
     :root { color-scheme: light; }
     body { margin: 0; font-family: Georgia, serif; background: #f3efe6; color: #111; }
@@ -27,10 +27,10 @@
 </head>
 <body>
   <main>
-    <h1>ARTIPHACT</h1>
+    <h1>FENNSILL</h1>
     <p>Paste an 800×480 black/white HTML page from <strong>any</strong> AI (phone or computer), then send it to the panel.</p>
     <label for="token">Access token</label>
-    <input id="token" type="password" autocomplete="off" placeholder="From Artiphact → Copy full setup">
+    <input id="token" type="password" autocomplete="off" placeholder="From Fennsill → Copy full setup">
     <label for="title">Title (optional)</label>
     <input id="title" type="text" placeholder="Today">
     <label for="html">HTML from your AI</label>
@@ -41,7 +41,7 @@
   <script>
     const params = new URLSearchParams(location.search);
     const hash = new URLSearchParams((location.hash || "").replace(/^#/, ""));
-    const saved = localStorage.getItem("artiphact_token") || "";
+    const saved = localStorage.getItem("fennsill_token") || "";
     const tokenEl = document.querySelector("#token");
     tokenEl.value = params.get("token") || hash.get("token") || saved;
     document.querySelector("#send").onclick = async () => {
@@ -62,7 +62,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "Send failed");
-        localStorage.setItem("artiphact_token", token);
+        localStorage.setItem("fennsill_token", token);
         status.className = "ok";
         status.textContent = data.note || ("Sent. Page " + (data.page_id || ""));
       } catch (err) {

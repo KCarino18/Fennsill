@@ -1,6 +1,6 @@
-# Artiphact cloud MCP server
+# Fennsill cloud MCP server
 
-Hosted MCP + agent API for Artiphact. Buyers’ AIs call `/mcp`. Agents poll jobs with a device key. **SQLite** for now — SQL Server is commented out / unused.
+Hosted MCP + agent API for Fennsill. Buyers’ AIs call `/mcp`. Agents poll jobs with a device key. **SQLite** for now — SQL Server is commented out / unused.
 
 This is **not** `connector/mcp_http_server.py` (local USB Host).
 
@@ -9,9 +9,9 @@ This is **not** `connector/mcp_http_server.py` (local USB Host).
 ```bash
 cd cloud
 pip install -r requirements.txt
-set ARTIPHACT_CLOUD_DB=%CD%\cloud.db
-set ARTIPHACT_CLOUD_HOST=127.0.0.1
-set ARTIPHACT_CLOUD_PORT=8080
+set FENNSILL_CLOUD_DB=%CD%\cloud.db
+set FENNSILL_CLOUD_HOST=127.0.0.1
+set FENNSILL_CLOUD_PORT=8080
 python main.py
 ```
 
@@ -21,12 +21,12 @@ Service: `http://127.0.0.1:8080/mcp` and `/api/...`
 
 ```bash
 cd cloud
-docker build -t artiphact-cloud .
-docker run -d --name artiphact-cloud \
+docker build -t fennsill-cloud .
+docker run -d --name fennsill-cloud \
   -p 8080:8080 \
-  -v artiphact_cloud_data:/data \
-  -e ARTIPHACT_PUBLIC_URL=https://mcp.yourdomain.com \
-  artiphact-cloud
+  -v fennsill_cloud_data:/data \
+  -e FENNSILL_PUBLIC_URL=https://mcp.yourdomain.com \
+  fennsill-cloud
 ```
 
 Put TLS (Swag / NPM / reverse proxy) in front. Public URL should be `https://mcp.yourdomain.com/mcp`.
@@ -41,12 +41,12 @@ Put TLS (Swag / NPM / reverse proxy) in front. Public URL should be `https://mcp
    ```
    Save `token`. Status is `pending`; the 30-day clock has not started.
 
-2. **Link device** (id from panel `ID?` → `APA1B2C3D4E5F6`)
+2. **Link device** (id from panel `ID?` → `FSA1B2C3D4E5F6`)
    ```bash
    curl -s -X POST http://127.0.0.1:8080/api/devices \
      -H "Authorization: Bearer USER_TOKEN" \
      -H "Content-Type: application/json" \
-     -d "{\"device_id\":\"APA1B2C3D4E5F6\",\"label\":\"desk\"}"
+     -d "{\"device_id\":\"FSA1B2C3D4E5F6\",\"label\":\"desk\"}"
    ```
 
 3. **Mint device key**
@@ -54,13 +54,13 @@ Put TLS (Swag / NPM / reverse proxy) in front. Public URL should be `https://mcp
    curl -s -X POST http://127.0.0.1:8080/api/device/token \
      -H "Authorization: Bearer USER_TOKEN" \
      -H "Content-Type: application/json" \
-     -d "{\"device_id\":\"APA1B2C3D4E5F6\"}"
+     -d "{\"device_id\":\"FSA1B2C3D4E5F6\"}"
    ```
 
 4. **Agent heartbeat** (starts activation, not the month)
    ```bash
-   set ARTIPHACT_CLOUD_URL=http://127.0.0.1:8080
-   set ARTIPHACT_DEVICE_TOKEN=DEVICE_TOKEN
+   set FENNSILL_CLOUD_URL=http://127.0.0.1:8080
+   set FENNSILL_DEVICE_TOKEN=DEVICE_TOKEN
    python scripts/agent_stub.py
    ```
 
@@ -82,11 +82,11 @@ python scripts/operator_cli.py set-subscription you@example.com active 2027-01-0
 
 | Variable | Meaning |
 |----------|---------|
-| `ARTIPHACT_CLOUD_DB` | SQLite path (default `./cloud.db` or `/data/cloud.db` in Docker) |
-| `ARTIPHACT_CLOUD_HOST` | Bind host |
-| `ARTIPHACT_CLOUD_PORT` | Bind port |
-| `ARTIPHACT_PUBLIC_URL` | Public base URL for docs |
-| `ARTIPHACT_SQL_CONNECTION` | **Unused** — SQL Server later |
+| `FENNSILL_CLOUD_DB` | SQLite path (default `./cloud.db` or `/data/cloud.db` in Docker) |
+| `FENNSILL_CLOUD_HOST` | Bind host |
+| `FENNSILL_CLOUD_PORT` | Bind port |
+| `FENNSILL_PUBLIC_URL` | Public base URL for docs |
+| `FENNSILL_SQL_CONNECTION` | **Unused** — SQL Server later |
 
 ## Tests
 

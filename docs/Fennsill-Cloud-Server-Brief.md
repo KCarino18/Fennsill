@@ -1,8 +1,8 @@
-# Artiphact cloud server brief
+# Fennsill cloud server brief
 
 Build spec for the hosted MCP, device key, and subscription service. November 14, 2026.
 
-Artiphact hosts this service. Buyers never host MCP, never run Cloudflare tunnels, and never expose ports. Buyers run `Artiphact.exe` on the PC that has the USB e-ink panel. Claude, ChatGPT, Gemini, and the rest call the hosted MCP URL. Push jobs go only to that buyer’s paired device, and only while the account’s Artiphact access period is open.
+Fennsill hosts this service. Buyers never host MCP, never run Cloudflare tunnels, and never expose ports. Buyers run `Fennsill.exe` on the PC that has the USB e-ink panel. Claude, ChatGPT, Gemini, and the rest call the hosted MCP URL. Push jobs go only to that buyer’s paired device, and only while the account’s Fennsill access period is open.
 
 ## 1. Architecture
 
@@ -10,7 +10,7 @@ Artiphact hosts this service. Buyers never host MCP, never run Cloudflare tunnel
 Claude / ChatGPT / Gemini / Grok
         |  HTTPS Streamable HTTP MCP + user bearer
         v
-Artiphact cloud (this build)
+Fennsill cloud (this build)
   - subscription clock (one row per account)
   - MCP tools at /mcp
   - device key check (key bound to the panel id)
@@ -18,8 +18,8 @@ Artiphact cloud (this build)
   - OTA manifests (read-only to clients)
         |  device key over HTTPS
         v
-Artiphact.exe agent
-  reads USB id=APxxxxxxxxxxxx, heartbeats, polls jobs
+Fennsill.exe agent
+  reads USB id=FSxxxxxxxxxxxx, heartbeats, polls jobs
         |  USB (not this build)
         v
 Their panel only (800×480 e-ink)
@@ -32,23 +32,23 @@ The cloud process never opens USB or a COM port. “Plugged in” on the server 
 The panel id is defined in `docs/DEVICE.md`:
 
 ```text
-device_id = "AP" + 12 uppercase hex digits of ESP.getEfuseMac()
-example:   APA1B2C3D4E5F6
-USB:       READY … id=APxxxxxxxxxxxx
-           ID? → ID APxxxxxxxxxxxx
+device_id = "FS" + 12 uppercase hex digits of ESP.getEfuseMac()
+example:   FSA1B2C3D4E5F6
+USB:       READY … id=FSxxxxxxxxxxxx
+           ID? → ID FSxxxxxxxxxxxx
 ```
 
 That id is the lookup identity. It is printed on USB and is not a password. The Windows COM serial number is not the device id.
 
 1. During link, the signed-in user submits the `device_id` the agent just read from the panel.
 2. The server links that id to the account when this user already owns it, or when it is still unclaimed. An id owned by someone else returns 409. Ownership never moves to a second account.
-3. The server mints a device key (bearer token) bound to that exact `device_id` and user. Return it once to `Artiphact.exe`. The panel does not store this key. Mint works while the access period has not started, so the agent can heartbeat.
+3. The server mints a device key (bearer token) bound to that exact `device_id` and user. Return it once to `Fennsill.exe`. The panel does not store this key. Mint works while the access period has not started, so the agent can heartbeat.
 4. The agent heartbeats with that key. The server sets `devices.last_seen_at`. That write is the activation signal. A heartbeat does not start the 30-day clock.
 5. On every later agent call the server loads the key, checks it is unrevoked, and checks `token.device_id` is the linked device. A key for one panel cannot act as another panel. A device key does not authorize `/mcp`. A user session does not claim or complete jobs.
 
 ## 3. Subscription clock
 
-This is Artiphact access to this server. It is separate from the local setup screen’s “which AI you already pay for” provider (Claude, ChatGPT, Gemini). Leave `server/app.py` and that provider table alone.
+This is Fennsill access to this server. It is separate from the local setup screen’s “which AI you already pay for” provider (Claude, ChatGPT, Gemini). Leave `server/app.py` and that provider table alone.
 
 There is one clock per account. The first linked device that heartbeats, followed by the first MCP call, starts it. Later devices on that account share the same `current_period_end`.
 
@@ -145,15 +145,15 @@ Extend the Python cloud pieces. Do not rewrite from scratch. Do not import USB, 
 - `connector/security.py` — `reject_external_uris`, 512KB artifact cap, control-character checks. Reuse it. It does not touch USB.
 - `server/tenant_store.py` — SQLite users, sessions, devices, device tokens, push jobs, update manifests, enqueue / claim / complete. Add the subscription row and the checks here.
 - `server/cloud_api.py` — health, update GET, claim, complete, list devices, mint token. It rejects JSON keys that look like Wi-Fi secrets. Fold this behavior into the service below.
-- `server/app.py` — separate local setup server on port 8080. Do not merge it into the cloud process. It uses `server/artiphact.db` and a different `devices` schema, and its device link can move ownership. The cloud must not do that.
+- `server/app.py` — separate local setup server on port 8080. Do not merge it into the cloud process. It uses `server/fennsill.db` and a different `devices` schema, and its device link can move ownership. The cloud must not do that.
 
 ## 6. Process and config
 
 One Python process. Official `mcp` SDK (`MCPServer`, the same import as `connector/mcp_http_server.py`) mounted on a Starlette/ASGI app so `/mcp` and the agent/account routes share one port. Stateless Streamable HTTP at `/mcp`. SQLite is the database. One replica is enough.
 
-Default `ARTIPHACT_CLOUD_DB` to `server/cloud.db`, not `server/artiphact.db`.
+Default `FENNSILL_CLOUD_DB` to `server/cloud.db`, not `server/fennsill.db`.
 
-Environment: `ARTIPHACT_CLOUD_DB`, `ARTIPHACT_CLOUD_HOST`, `ARTIPHACT_CLOUD_PORT`, `ARTIPHACT_PUBLIC_URL` (documented as `https://mcp.example/mcp`). No secrets in the repo.
+Environment: `FENNSILL_CLOUD_DB`, `FENNSILL_CLOUD_HOST`, `FENNSILL_CLOUD_PORT`, `FENNSILL_PUBLIC_URL` (documented as `https://mcp.example/mcp`). No secrets in the repo.
 
 Auth:
 
@@ -196,7 +196,7 @@ Account routes use the user session bearer.
 |---|---|
 | `POST /api/session` | `{ mode: "signup" or "login", email, password }` → `{ token, email, subscribed, status, current_period_end }`. Password at least 8 characters. Existing email on signup → 409. Bad login → 401. Signup leaves `pending` and a null end. |
 | `GET /api/me` | `{ email, subscribed, status, started_at, current_period_end, devices }`. |
-| `POST /api/devices` | Link `{ device_id, label? }`. `device_id` matches `^AP[0-9A-F]{12}$`. Linking does not start the clock. |
+| `POST /api/devices` | Link `{ device_id, label? }`. `device_id` matches `^FS[0-9A-F]{12}$`. Linking does not start the clock. |
 | `POST /api/device/token` | Mint the device key for a device this user owns. Succeeds while `pending` or while the period is open. After expiry or revoke → 403 `subscription_inactive`. |
 | `GET /api/me/devices` | This user’s devices only, including `last_seen_at` and online. |
 
@@ -209,7 +209,7 @@ Schema additions on `tenant_store`: `devices.last_seen_at`, `access_subscription
 
 ## 9. Out of scope
 
-- Buyers running ArtiphactHost or trycloudflare
+- Buyers running FennsillHost or trycloudflare
 - The cloud process opening USB or COM
 - OAuth (bearer is this version)
 - Card checkout (the first MCP call after a heartbeat grants 30 days; the operator CLI renews or revokes; a webhook can call the same function later)
@@ -255,13 +255,13 @@ Schema additions on `tenant_store`: `devices.last_seen_at`, `access_subscription
 
 ## 12. Acceptance
 
-1. User A signs up. The response shows `subscribed: false`, `status: "pending"`, and `current_period_end: null`. A links device `APA1B2C3D4E5F6` and mints a key. An MCP call before the agent heartbeats returns 403 `device_not_activated` and the clock is still unset.
+1. User A signs up. The response shows `subscribed: false`, `status: "pending"`, and `current_period_end: null`. A links device `FSA1B2C3D4E5F6` and mints a key. An MCP call before the agent heartbeats returns 403 `device_not_activated` and the clock is still unset.
 2. The agent heartbeats with A’s key. `last_seen_at` is set. `current_period_end` is still null.
-3. An MCP client authenticated as A calls `list_panels`. That call sees `APA1B2C3D4E5F6` only, and it starts the month: `subscribed: true`, `current_period_end` 30 days out.
+3. An MCP client authenticated as A calls `list_panels`. That call sees `FSA1B2C3D4E5F6` only, and it starts the month: `subscribed: true`, `current_period_end` 30 days out.
 4. `push_artifact` with that `device_id` queues a job. A second call does not move `current_period_end`.
 5. The agent with A’s key for that id claims the job. The agent with B’s key cannot. A key for a different id cannot.
 6. User B cannot push to A’s device (403).
 7. Set A’s `current_period_end` in the past, or set A `inactive`. The same MCP token and the same device key get 403 `subscription_inactive`. The agent does not receive further jobs, and another MCP call does not start a second free month.
 8. `GET /api/updates/stable` returns the manifest. Nothing on the buyer MCP can change it, and nothing a buyer can call can extend their own month.
 
-Keep the agent HTTP shapes stable so a later `Artiphact.exe` can read `ID?`, store the device key, heartbeat, poll `jobs/next`, and pass `html` into the existing local `intake_page(..., push=True)`.
+Keep the agent HTTP shapes stable so a later `Fennsill.exe` can read `ID?`, store the device key, heartbeat, poll `jobs/next`, and pass `html` into the existing local `intake_page(..., push=True)`.

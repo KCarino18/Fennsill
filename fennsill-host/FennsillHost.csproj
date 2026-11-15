@@ -6,8 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>ArtiphactFactory</AssemblyName>
-    <RootNamespace>ArtiphactFactory</RootNamespace>
+    <AssemblyName>FennsillHost</AssemblyName>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

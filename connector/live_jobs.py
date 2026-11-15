@@ -1,4 +1,4 @@
-"""Background live updates Artiphact runs after an AI starts a job.
+"""Background live updates Fennsill runs after an AI starts a job.
 
 Example: user tells Claude "keep NFL scores up to date on my panel" → Claude
 calls start_live_update → this worker refreshes the e-ink on a timer.
@@ -20,7 +20,7 @@ sys.path.insert(0, str(ROOT / "templates"))
 
 from intake import intake_page  # noqa: E402
 
-JOBS_PATH = Path(os.environ.get("ARTIPHACT_LIVE_JOBS", ROOT / "connector" / "live_jobs.json"))
+JOBS_PATH = Path(os.environ.get("FENNSILL_LIVE_JOBS", ROOT / "connector" / "live_jobs.json"))
 ESPN_NFL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
 
 
@@ -83,7 +83,7 @@ def stop_job(kind: str | None = None) -> int:
 
 
 def fetch_json(url: str) -> dict:
-    req = urllib.request.Request(url, headers={"User-Agent": "ArtiphactLive/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "FennsillLive/1.0"})
     with urllib.request.urlopen(req, timeout=20) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
@@ -120,7 +120,7 @@ h1{{margin:0 0 4px;font-size:34px;letter-spacing:.06em}}
 .meta{{font-size:14px;margin-top:2px}}
 </style></head><body><div class="wrap">
 <h1>NFL SCORES</h1>
-<p class="sub">Updated {escape(stamp)} · Artiphact live</p>
+<p class="sub">Updated {escape(stamp)} · Fennsill live</p>
 {body}
 </div></body></html>"""
 
@@ -139,7 +139,7 @@ h1{{margin:0;font-size:28px;letter-spacing:.12em;text-transform:uppercase}}
 </style></head><body><div class="wrap">
 <h1>{escape(title or "Counter")}</h1>
 <div class="num">{n}</div>
-<p class="sub">Artiphact live · {escape(stamp)}</p>
+<p class="sub">Fennsill live · {escape(stamp)}</p>
 </div></body></html>"""
 
 
@@ -191,7 +191,7 @@ def tick_once() -> int:
 
 
 def watch_loop(poll_sec: float = 5.0):
-    print("Artiphact live jobs worker started", flush=True)
+    print("Fennsill live jobs worker started", flush=True)
     while True:
         try:
             tick_once()

@@ -1,7 +1,7 @@
-"""Artiphact hosted MCP — Streamable HTTP for Claude / ChatGPT connectors.
+"""Fennsill hosted MCP — Streamable HTTP for Claude / ChatGPT connectors.
 
 Local (preferred for ChatGPT Desktop):  http://127.0.0.1:8766/mcp
-Public (opt-in via Artiphact Host confirm): Cloudflare URL + /mcp
+Public (opt-in via Fennsill Host confirm): Cloudflare URL + /mcp
 
 Ship note: bind 127.0.0.1 by default. Public tunnels are explicit Host UX only.
 Tools delegate to mcp_server.call_tool (allowlisted in security.py).
@@ -20,9 +20,9 @@ sys.path.insert(0, str(ROOT / "firmware"))
 sys.path.insert(0, str(ROOT / "templates"))
 sys.path.insert(0, str(ROOT / "connector"))
 
-os.environ.setdefault("ARTIPHACT_ROOT", str(ROOT))
+os.environ.setdefault("FENNSILL_ROOT", str(ROOT))
 os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", str(ROOT / "connector" / "browsers"))
-os.environ.setdefault("ARTIPHACT_PAGES", str(ROOT / "connector" / "pages"))
+os.environ.setdefault("FENNSILL_PAGES", str(ROOT / "connector" / "pages"))
 
 from mcp.server.mcpserver import MCPServer  # noqa: E402
 from mcp.server.transport_security import TransportSecuritySettings  # noqa: E402
@@ -30,13 +30,13 @@ from mcp.server.transport_security import TransportSecuritySettings  # noqa: E40
 from mcp_server import call_tool  # noqa: E402
 from security import SecurityError  # noqa: E402
 
-HOST = os.environ.get("ARTIPHACT_MCP_HOST", "127.0.0.1")
-PORT = int(os.environ.get("ARTIPHACT_MCP_PORT", "8766"))
+HOST = os.environ.get("FENNSILL_MCP_HOST", "127.0.0.1")
+PORT = int(os.environ.get("FENNSILL_MCP_PORT", "8766"))
 
 server = MCPServer(
-    "artiphact",
+    "fennsill",
     instructions=(
-        "Artiphact pushes finished 800x480 HTML/SVG pages to a USB e-ink panel. "
+        "Fennsill pushes finished 800x480 HTML/SVG pages to a USB e-ink panel. "
         "Call list_panels, then push_artifact. Do not create a Claude Artifact web preview "
         "as a substitute for pushing to the panel."
     ),
@@ -53,14 +53,14 @@ def _run(name: str, arguments: dict[str, Any] | None = None) -> str:
         return json.dumps({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
 
 
-@server.tool(description="List Artiphact e-ink panels plugged in over USB.")
+@server.tool(description="List Fennsill e-ink panels plugged in over USB.")
 def list_panels() -> str:
     return _run("list_panels")
 
 
 @server.tool(
     description=(
-        "Push a finished 800x480 black/white HTML or SVG page to the Artiphact panel now. "
+        "Push a finished 800x480 black/white HTML or SVG page to the Fennsill panel now. "
         "Self-contained HTML only — no external URLs. Prefer html for dashboards."
     )
 )
@@ -75,7 +75,7 @@ def push_artifact(html: str | None = None, svg: str | None = None) -> str:
 
 @server.tool(
     description=(
-        "Start a recurring live feed on the Artiphact panel via the local Artiphact worker. "
+        "Start a recurring live feed on the Fennsill panel via the local Fennsill worker. "
         "kind=nfl_scores or kind=counter. Scheduled ChatGPT/Cursor tasks should call push_artifact "
         "each run for one-shot updates; use this for continuous local refresh without a cloud schedule."
     )
@@ -101,13 +101,13 @@ def set_wifi(ssid: str, password: str) -> str:
 
 
 def main() -> None:
-    # Line-buffered so Artiphact Host can drain logs without stalling the process.
+    # Line-buffered so Fennsill Host can drain logs without stalling the process.
     try:
         sys.stdout.reconfigure(line_buffering=True)  # type: ignore[attr-defined]
         sys.stderr.reconfigure(line_buffering=True)  # type: ignore[attr-defined]
     except Exception:
         pass
-    print(f"ARTIPHACT_MCP http://{HOST}:{PORT}/mcp", flush=True)
+    print(f"FENNSILL_MCP http://{HOST}:{PORT}/mcp", flush=True)
     # Cloudflare quick tunnels send Host: *.trycloudflare.com — the SDK's
     # default DNS-rebinding guard rejects that with HTTP 421.
     # Clients MUST Accept: application/json, text/event-stream or the SDK returns 406.

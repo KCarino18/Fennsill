@@ -2,7 +2,7 @@
 
 Writes:
   - NDJSON for the agent: .cursor/debug-7b0912.log
-  - Human-readable lines: connector/artiphact-debug.log
+  - Human-readable lines: connector/fennsill-debug.log
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
 _NDJSON = Path(r"c:\Users\Kyle\Desktop\This Is A Test For The Tablet\.cursor\debug-7b0912.log")
-_HUMAN = _ROOT / "connector" / "artiphact-debug.log"
+_HUMAN = _ROOT / "connector" / "fennsill-debug.log"
 
 
 def dlog(hypothesis_id: str, location: str, message: str, data: dict | None = None, run_id: str = "pre-fix"):

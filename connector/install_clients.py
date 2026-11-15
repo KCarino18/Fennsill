@@ -1,7 +1,7 @@
 """Wire local MCP where it still helps (Cursor); Claude/ChatGPT use Host URL.
 
 Claude Desktop and ChatGPT custom connectors need the hosted Streamable HTTP
-MCP from Artiphact Host (Start-Artiphact-Host.bat) — not local stdio.
+MCP from Fennsill Host (Start-Fennsill-Host.bat) — not local stdio.
 This installer keeps Cursor stdio and clears stale Claude/ChatGPT stdio entries.
 """
 
@@ -52,7 +52,7 @@ def mcp_entry():
         "cwd": str(ROOT / "connector"),
         "env": {
             "PLAYWRIGHT_BROWSERS_PATH": str(BROWSERS),
-            "ARTIPHACT_ROOT": str(ROOT),
+            "FENNSILL_ROOT": str(ROOT),
         },
     }
 
@@ -75,7 +75,7 @@ def merge_json_mcp(path: Path, key: str = "mcpServers") -> Path:
     servers = data.get(key)
     if not isinstance(servers, dict):
         servers = {}
-    servers["artiphact"] = mcp_entry()
+    servers["fennsill"] = mcp_entry()
     data[key] = servers
     return write_json(path, data)
 
@@ -94,7 +94,7 @@ def _claude_config_paths() -> list[Path]:
     return paths
 
 
-def remove_json_mcp(path: Path, key: str = "mcpServers", name: str = "artiphact") -> Path | None:
+def remove_json_mcp(path: Path, key: str = "mcpServers", name: str = "fennsill") -> Path | None:
     """Remove a named local stdio MCP entry; leave the rest of the config intact."""
     if not path.is_file():
         return None
@@ -114,7 +114,7 @@ def remove_json_mcp(path: Path, key: str = "mcpServers", name: str = "artiphact"
 
 
 def clear_claude_chatgpt_stdio() -> list[Path]:
-    """Drop stale local Artiphact stdio from Claude/ChatGPT — Host URL replaces it."""
+    """Drop stale local Fennsill stdio from Claude/ChatGPT — Host URL replaces it."""
     cleared: list[Path] = []
     for path in _claude_config_paths():
         done = remove_json_mcp(path)
@@ -136,22 +136,22 @@ def clear_claude_chatgpt_stdio() -> list[Path]:
             done = remove_json_mcp(path)
             if done:
                 cleared.append(done)
-    # Codex config.toml: strip [mcp_servers.artiphact] blocks if present.
+    # Codex config.toml: strip [mcp_servers.fennsill] blocks if present.
     codex = Path(os.environ.get("USERPROFILE", "")) / ".codex" / "config.toml"
     if codex.is_file():
         text = codex.read_text(encoding="utf-8")
         cleaned = re.sub(
-            r"\n?\[mcp_servers\.artiphact(?:\.env)?\][\s\S]*?(?=\n\[|\Z)",
+            r"\n?\[mcp_servers\.fennsill(?:\.env)?\][\s\S]*?(?=\n\[|\Z)",
             "\n",
             text,
         )
         cleaned = re.sub(
-            r"\n?\[marketplaces\.artiphact_local\][\s\S]*?(?=\n\[|\Z)",
+            r"\n?\[marketplaces\.fennsill_local\][\s\S]*?(?=\n\[|\Z)",
             "\n",
             cleaned,
         )
         cleaned = re.sub(
-            r'\n?\[plugins\."artiphact@artiphact_local"\][\s\S]*?(?=\n\[|\Z)',
+            r'\n?\[plugins\."fennsill@fennsill_local"\][\s\S]*?(?=\n\[|\Z)',
             "\n",
             cleaned,
         )
@@ -164,7 +164,7 @@ def clear_claude_chatgpt_stdio() -> list[Path]:
 def install_claude_desktop() -> Path:
     """Deprecated for Claude: local stdio is no longer the path.
 
-    Prefer Artiphact Host + Customize → Connectors (remote Streamable HTTP).
+    Prefer Fennsill Host + Customize → Connectors (remote Streamable HTTP).
     Kept for manual/debug calls only.
     """
     paths = _claude_config_paths()
@@ -211,20 +211,20 @@ def _toml_win_path(value: str) -> str:
     return "'" + raw.replace("'", "''") + "'"
 
 
-def install_artiphact_codex_plugin() -> Path:
-    """Local Codex marketplace with one Artiphact plugin (ChatGPT Desktop).
+def install_fennsill_codex_plugin() -> Path:
+    """Local Codex marketplace with one Fennsill plugin (ChatGPT Desktop).
 
     Layout matches OpenAI bundled marketplaces:
-      marketplace/plugins/artiphact/.codex-plugin/plugin.json
-      marketplace/plugins/artiphact/.mcp.json
+      marketplace/plugins/fennsill/.codex-plugin/plugin.json
+      marketplace/plugins/fennsill/.mcp.json
     """
     marketplace = ROOT / "connector" / "codex-marketplace"
-    plugin_root = marketplace / "plugins" / "artiphact"
+    plugin_root = marketplace / "plugins" / "fennsill"
     plugin_meta = plugin_root / ".codex-plugin"
     plugin_meta.mkdir(parents=True, exist_ok=True)
 
     # Remove mistaken top-level plugin folder from earlier installs.
-    stale = marketplace / "artiphact"
+    stale = marketplace / "fennsill"
     if stale.is_dir() and stale.resolve() != plugin_root.resolve():
         shutil.rmtree(stale, ignore_errors=True)
 
@@ -234,12 +234,12 @@ def install_artiphact_codex_plugin() -> Path:
     write_json(
         agents_plugins / "marketplace.json",
         {
-            "name": "artiphact_local",
-            "interface": {"displayName": "Artiphact"},
+            "name": "fennsill_local",
+            "interface": {"displayName": "Fennsill"},
             "plugins": [
                 {
-                    "name": "artiphact",
-                    "source": {"source": "local", "path": "./plugins/artiphact"},
+                    "name": "fennsill",
+                    "source": {"source": "local", "path": "./plugins/fennsill"},
                     "policy": {
                         "installation": "AVAILABLE",
                         "authentication": "ON_INSTALL",
@@ -253,14 +253,14 @@ def install_artiphact_codex_plugin() -> Path:
     py = resolve_python()
     plugin_json = {
         "version": "1.0.0",
-        "name": "artiphact",
+        "name": "fennsill",
         "mcpServers": "./.mcp.json",
-        "description": "Push pages and live updates to your Artiphact e-ink panel.",
-        "author": {"name": "Artiphact"},
+        "description": "Push pages and live updates to your Fennsill e-ink panel.",
+        "author": {"name": "Fennsill"},
     }
     mcp_json = {
         "mcpServers": {
-            "artiphact": {
+            "fennsill": {
                 "command": py,
                 "args": [str(MCP_SCRIPT)],
                 "cwd": str(ROOT / "connector"),
@@ -270,7 +270,7 @@ def install_artiphact_codex_plugin() -> Path:
                 "default_tools_approval_mode": "auto",
                 "env": {
                     "PLAYWRIGHT_BROWSERS_PATH": str(BROWSERS),
-                    "ARTIPHACT_ROOT": str(ROOT),
+                    "FENNSILL_ROOT": str(ROOT),
                 },
             }
         }
@@ -291,8 +291,8 @@ def install_artiphact_codex_plugin() -> Path:
         / ".codex"
         / "plugins"
         / "cache"
-        / "artiphact_local"
-        / "artiphact"
+        / "fennsill_local"
+        / "fennsill"
         / "1.0.0"
     )
     cache_meta = cache / ".codex-plugin"
@@ -307,21 +307,21 @@ def install_chatgpt_codex() -> Path:
     path = Path(os.environ.get("USERPROFILE", "")) / ".codex" / "config.toml"
     path.parent.mkdir(parents=True, exist_ok=True)
     existing = path.read_text(encoding="utf-8") if path.is_file() else ""
-    marketplace = install_artiphact_codex_plugin()
+    marketplace = install_fennsill_codex_plugin()
 
-    # Remove any previous artiphact tables / marketplace / plugin lines we own.
+    # Remove any previous fennsill tables / marketplace / plugin lines we own.
     cleaned = re.sub(
-        r"\n?\[mcp_servers\.artiphact(?:\.env)?\][\s\S]*?(?=\n\[|\Z)",
+        r"\n?\[mcp_servers\.fennsill(?:\.env)?\][\s\S]*?(?=\n\[|\Z)",
         "\n",
         existing,
     )
     cleaned = re.sub(
-        r"\n?\[marketplaces\.artiphact_local\][\s\S]*?(?=\n\[|\Z)",
+        r"\n?\[marketplaces\.fennsill_local\][\s\S]*?(?=\n\[|\Z)",
         "\n",
         cleaned,
     )
     cleaned = re.sub(
-        r'\n?\[plugins\."artiphact@artiphact_local"\][\s\S]*?(?=\n\[|\Z)',
+        r'\n?\[plugins\."fennsill@fennsill_local"\][\s\S]*?(?=\n\[|\Z)',
         "\n",
         cleaned,
     )
@@ -331,7 +331,7 @@ def install_chatgpt_codex() -> Path:
     block = "\n".join(
         [
             "",
-            "[mcp_servers.artiphact]",
+            "[mcp_servers.fennsill]",
             f"command = {_toml_quote(py)}",
             f"args = [{_toml_quote(str(MCP_SCRIPT))}]",
             f"cwd = {_toml_quote(str(ROOT / 'connector'))}",
@@ -339,15 +339,15 @@ def install_chatgpt_codex() -> Path:
             "tool_timeout_sec = 120",
             "enabled = true",
             "",
-            "[mcp_servers.artiphact.env]",
+            "[mcp_servers.fennsill.env]",
             f"PLAYWRIGHT_BROWSERS_PATH = {_toml_quote(str(BROWSERS))}",
-            f"ARTIPHACT_ROOT = {_toml_quote(str(ROOT))}",
+            f"FENNSILL_ROOT = {_toml_quote(str(ROOT))}",
             "",
-            "[marketplaces.artiphact_local]",
+            "[marketplaces.fennsill_local]",
             'source_type = "local"',
             f"source = {_toml_win_path(str(marketplace))}",
             "",
-            '[plugins."artiphact@artiphact_local"]',
+            '[plugins."fennsill@fennsill_local"]',
             "enabled = true",
             "",
         ]
@@ -386,26 +386,26 @@ def main():
     status = {
         "ok": True,
         "message": (
-            "Claude and ChatGPT use Artiphact Host (remote MCP URL), not local stdio. "
-            "Run ArtiphactHost.exe → Start server → Start public link → Copy MCP URL "
+            "Claude and ChatGPT use Fennsill Host (remote MCP URL), not local stdio. "
+            "Run FennsillHost.exe → Start server → Start public link → Copy MCP URL "
             "into Customize → Connectors (Claude) or Plugins → custom MCP (ChatGPT). "
             "Cursor still uses local stdio."
         ),
         "apps": [
             "Cursor (local stdio)",
-            "Claude Desktop (Artiphact Host URL + Connectors)",
-            "ChatGPT (Artiphact Host URL + custom MCP)",
+            "Claude Desktop (Fennsill Host URL + Connectors)",
+            "ChatGPT (Fennsill Host URL + custom MCP)",
         ],
         "written": written,
         "cleared_stdio": [str(p) for p in cleared],
         "host": {
-            "launcher": str(ROOT / "ArtiphactHost.exe"),
+            "launcher": str(ROOT / "FennsillHost.exe"),
             "local_mcp": "http://127.0.0.1:8766/mcp",
             "setup_prompt": str(ROOT / "connector" / "prompts" / "remote_mcp_setup.md"),
             "push_prompt": str(ROOT / "connector" / "prompts" / "remote_mcp_push.md"),
         },
         "examples": [
-            "Keep NFL scores up to date on my Artiphact panel",
+            "Keep NFL scores up to date on my Fennsill panel",
             "Here is SQL output — make a graph and push it to the device",
         ],
     }

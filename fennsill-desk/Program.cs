@@ -1,18 +1,18 @@
-namespace ArtiphactDesk;
+namespace FennsillDesk;
 
 static class Program
 {
     [STAThread]
     static void Main()
     {
-        // One Artiphact window only — reopening used to stack dozens of python
+        // One Fennsill window only — reopening used to stack dozens of python
         // workers and make COM3 look busy to ChatGPT.
-        using var mutex = new Mutex(true, @"Local\ArtiphactDeskSingleInstance", out var created);
+        using var mutex = new Mutex(true, @"Local\FennsillDeskSingleInstance", out var created);
         if (!created)
         {
             MessageBox.Show(
-                "Artiphact is already running.",
-                "Artiphact",
+                "Fennsill is already running.",
+                "Fennsill",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
             return;

@@ -1,15 +1,15 @@
 @echo off
 cd /d "%~dp0\.."
-title Build ArtiphactFactory.exe
-echo Building ArtiphactFactory.exe ...
-dotnet publish artiphact-factory\ArtiphactFactory.csproj -c Release -o factory
+title Build FennsillFactory.exe
+echo Building FennsillFactory.exe ...
+dotnet publish fennsill-factory\FennsillFactory.csproj -c Release -o factory
 if errorlevel 1 (
   echo Build failed. Install .NET SDK.
   pause
   exit /b 1
 )
 echo.
-echo Done: factory\ArtiphactFactory.exe
+echo Done: factory\FennsillFactory.exe
 echo Double-click that to open the window.
 echo.
 pause

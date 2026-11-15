@@ -1,7 +1,7 @@
 """Rotate selected gallery pages onto the panel on a fixed timer.
 
 The desktop app writes connector/rotate_playlist.json. This worker keeps
-pushing while enabled — including after Artiphact.exe is closed — so the
+pushing while enabled — including after Fennsill.exe is closed — so the
 playlist stays in memory and on the e-ink.
 """
 
@@ -24,7 +24,7 @@ from serial_guard import SerialBusy, SerialGuard  # noqa: E402
 from usb_protocol import encode_show, split_frame  # noqa: E402
 
 PLAYLIST_PATH = Path(
-    os.environ.get("ARTIPHACT_ROTATE", ROOT / "connector" / "rotate_playlist.json")
+    os.environ.get("FENNSILL_ROTATE", ROOT / "connector" / "rotate_playlist.json")
 )
 DEFAULT_INTERVAL = 8
 

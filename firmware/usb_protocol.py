@@ -18,7 +18,7 @@ FRAME_BYTES = 48000
 CHUNK_SIZE = 1024
 CHUNK_MAGIC = b"AFC1"
 SHOW_MAGIC = b"AFS1"
-DEFAULT_DEVICE_ID = "AP000000000000"
+DEFAULT_DEVICE_ID = "FS000000000000"
 DEFAULT_SERIAL = DEFAULT_DEVICE_ID
 
 
@@ -125,7 +125,7 @@ class PanelLink:
         if line == "SERIAL?":
             return f"SERIAL {self.serial}\n".encode("ascii")
         if line.startswith("SERIALSET "):
-            if self.serial != self.device_id and self.serial.startswith("AP-"):
+            if self.serial != self.device_id and self.serial.startswith("FS-"):
                 return b"ERR serial locked\n"
             value = line[10:].strip()
             if len(value) < 4 or len(value) > 32:
