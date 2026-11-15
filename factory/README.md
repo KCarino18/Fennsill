@@ -4,6 +4,8 @@ Separate manufacturing tool. Buyers never see this. It flashes panel firmware, l
 
 Fennsill.exe only talks USB to an already-provisioned panel.
 
+**Download:** [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillFactory.exe) from the [latest release](https://github.com/KCarino18/Fennsill/releases/latest).
+
 ## One-time setup (factory PC)
 
 1. Install [arduino-cli](https://arduino.github.io/arduino-cli/), then:
@@ -45,7 +47,7 @@ Needs `pip install esptool` and `arduino-cli` on PATH.
 ## What provision does
 
 1. Verify port is the e-ink XIAO, erase chip, then `arduino-cli compile --upload` of `firmware/fennsill`
-2. Reads chip `device_id` (`APxxxxxxxxxxxx` from eFuse MAC — never changes)
+2. Reads chip `device_id` (`FSxxxxxxxxxxxx` from eFuse MAC — never changes)
 3. Assigns box serial `FS-YYMM-NNNNNN` (or `--serial`) and **write-once** `SERIALSET`
 4. Derives `device_secret = HMAC-SHA256(master, "fennsill-device-v1|" + device_id)` and **write-once** `KEYSET`
 5. Verifies with `CHALLENGE` / `PROOF`

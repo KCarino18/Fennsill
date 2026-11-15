@@ -6,11 +6,12 @@ USB e-ink panel software: desk app, local MCP host for AI apps, and factory firm
 
 | What | Download |
 |------|----------|
-| **Fennsill** (desk / gallery / USB panel) | [Fennsill.exe](https://github.com/KCarino18/fennsill/releases/latest/download/Fennsill.exe) |
-| **Fennsill Host** (local MCP server for Claude / ChatGPT) | [FennsillHost.exe](https://github.com/KCarino18/fennsill/releases/latest/download/FennsillHost.exe) |
-| **Fennsill Factory** (firmware flasher — wipe TRMNL, install Fennsill) | [FennsillFactory.exe](https://github.com/KCarino18/fennsill/releases/latest/download/FennsillFactory.exe) |
+| **Fennsill** (desk / gallery / USB panel) | [Fennsill.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/Fennsill.exe) |
+| **Fennsill Host** (local MCP server for Claude / ChatGPT) | [FennsillHost.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillHost.exe) |
+| **Fennsill Factory** (firmware flasher — wipe TRMNL, install Fennsill) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillFactory.exe) |
+| **Fennsill Setup** (install into LocalAppData) | [FennsillSetup.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillSetup.exe) |
 
-Or open the full [latest release](https://github.com/KCarino18/fennsill/releases/latest).
+Or open the full [latest release](https://github.com/KCarino18/Fennsill/releases/latest).
 
 ### Quick use
 
