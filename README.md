@@ -12,9 +12,11 @@ Cloud MCP uses **SQLite** — **no SQL Server** required.
 | **Fennsill Host** (local MCP for Claude / ChatGPT) | [FennsillHost.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillHost.exe) |
 | **Fennsill Factory** (firmware flasher — wipe TRMNL, install Fennsill) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillFactory.exe) |
 | **Fennsill Setup** (install into LocalAppData) | [FennsillSetup.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillSetup.exe) |
-| **Full setup zip** (apps + `connector/` + **`factory/`**) | [latest release](https://github.com/KCarino18/Fennsill/releases/latest) (`Fennsill-Setup.zip`) |
+| **Full setup zip** (apps + `connector/` + **`factory/`** + firmware) | [Fennsill-Setup.zip](https://github.com/KCarino18/Fennsill/releases/latest/download/Fennsill-Setup.zip) |
 
-Or open the full [latest release](https://github.com/KCarino18/Fennsill/releases/latest).
+Prefer the **zip** for first install (Setup alone needs `Install-Fennsill.ps1` next to it). Or open the [latest release](https://github.com/KCarino18/Fennsill/releases/latest).
+
+If a downloaded exe still shows **Artiphact**, you have a stale release build — re-download from **latest** after `v0.1.2+`.
 
 ### Run names on disk
 

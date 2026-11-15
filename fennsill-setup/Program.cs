@@ -12,10 +12,10 @@ static class Program
         Application.SetCompatibleTextRenderingDefault(false);
 
         var dir = AppContext.BaseDirectory.TrimEnd('\\', '/');
-        var exe = Path.Combine(dir, "Fennsill.exe");
-        var ps1 = Path.Combine(dir, "Install-Fennsill.ps1");
+        var exe = FirstExisting(dir, "Fennsill.exe", "FennsillDesk.exe");
+        var ps1 = FirstExisting(dir, "Install-Fennsill.ps1", "Install-FennsillDesk.ps1");
 
-        if (!File.Exists(exe))
+        if (exe == null)
         {
             MessageBox.Show(
                 "Fennsill.exe was not found next to this installer.\n\nUnzip the full Fennsill folder (or copy the USB folder), then run FennsillSetup.exe again.",
@@ -25,10 +25,10 @@ static class Program
             return;
         }
 
-        if (!File.Exists(ps1))
+        if (ps1 == null)
         {
             MessageBox.Show(
-                "Install-Fennsill.ps1 was not found next to this installer.",
+                "Install-Fennsill.ps1 was not found next to this installer.\n\nUse the full setup zip (not only FennsillSetup.exe).",
                 "Fennsill Setup",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
@@ -72,5 +72,15 @@ static class Program
         {
             MessageBox.Show(ex.Message, "Fennsill Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+    }
+
+    static string? FirstExisting(string dir, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            var path = Path.Combine(dir, name);
+            if (File.Exists(path)) return path;
+        }
+        return null;
     }
 }

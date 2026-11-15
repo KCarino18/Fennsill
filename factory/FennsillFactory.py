@@ -16,7 +16,9 @@ import sys
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT.parent / "firmware"))
+for _fw in (ROOT / "firmware", ROOT.parent / "firmware"):
+    if _fw.is_dir():
+        sys.path.insert(0, str(_fw))
 
 from device_crypto import DEFAULT_MASTER_PATH  # noqa: E402
 from panel_ports import assert_factory_flash_port, list_factory_flash_targets  # noqa: E402

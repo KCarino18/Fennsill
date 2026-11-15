@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -10,8 +11,29 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-REPO = ROOT.parent
+
+
+def _repo_root() -> Path:
+    """Project root that contains firmware/ (or factory/firmware/ when shipped alone)."""
+    env = (os.environ.get("FENNSILL_ROOT") or "").strip()
+    if env:
+        p = Path(env)
+        if (p / "firmware" / "panel_ports.py").is_file():
+            return p
+    # Normal repo: …/Fennsill/factory/provision.py → …/Fennsill
+    parent = ROOT.parent
+    if (parent / "firmware" / "panel_ports.py").is_file():
+        return parent
+    # Standalone C:\factory (or zip factory\) with firmware nested beside scripts
+    if (ROOT / "firmware" / "panel_ports.py").is_file():
+        return ROOT
+    return parent
+
+
+REPO = _repo_root()
 sys.path.insert(0, str(REPO / "firmware"))
+if (ROOT / "firmware").is_dir():
+    sys.path.insert(0, str(ROOT / "firmware"))
 sys.path.insert(0, str(ROOT))
 
 from device_crypto import (  # noqa: E402
@@ -28,7 +50,17 @@ from panel_ports import (  # noqa: E402
 )
 
 FQBN = "esp32:esp32:XIAO_ESP32S3_Plus"
-SKETCH = REPO / "firmware" / "fennsill" / "fennsill.ino"
+
+
+def _sketch_path() -> Path:
+    for base in (REPO, ROOT):
+        cand = base / "firmware" / "fennsill" / "fennsill.ino"
+        if cand.is_file():
+            return cand
+    return REPO / "firmware" / "fennsill" / "fennsill.ino"
+
+
+SKETCH = _sketch_path()
 
 
 def _read_line(ser, timeout=8.0) -> str:

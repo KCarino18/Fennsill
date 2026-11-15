@@ -124,6 +124,8 @@ def stage_factory() -> None:
         shutil.rmtree(FACTORY_OUT)
     FACTORY_OUT.mkdir(parents=True)
     copy_tree(ROOT / "factory", FACTORY_OUT)
+    # Standalone C:\factory needs panel_ports + sketch without the full repo.
+    copy_tree(ROOT / "firmware", FACTORY_OUT / "firmware")
     # Never ship master key / secret ledgers
     for banned in ("master.key",):
         p = FACTORY_OUT / banned
@@ -133,18 +135,14 @@ def stage_factory() -> None:
     if secrets.exists():
         secrets.unlink()
     exe = find_factory_exe()
+    nested = OUT / "factory"
+    nested.mkdir(parents=True, exist_ok=True)
     if exe:
         shutil.copy2(exe, FACTORY_OUT / "FennsillFactory.exe")
-        # Also nest under buyer zip so unzipping one archive has factory beside apps.
-        nested = OUT / "factory"
-        nested.mkdir(parents=True, exist_ok=True)
-        copy_tree(FACTORY_OUT, nested)
     else:
-        # Scripts-only factory folder still ships; README explains how to build the exe.
-        nested = OUT / "factory"
-        nested.mkdir(parents=True, exist_ok=True)
-        copy_tree(FACTORY_OUT, nested)
         print("WARN: FennsillFactory.exe not built — factory scripts copied without exe.")
+    # Also nest under buyer zip so unzipping one archive has factory beside apps.
+    copy_tree(FACTORY_OUT, nested)
 
 
 def main():

@@ -25,7 +25,7 @@ public sealed class MainForm : Form
     public MainForm()
     {
         _repoRoot = FindRepoRoot();
-        _factoryDir = Path.Combine(_repoRoot, "factory");
+        _factoryDir = ResolveFactoryDir(_repoRoot);
 
         Text = "Fennsill Factory";
         Width = 720;
@@ -443,23 +443,52 @@ public sealed class MainForm : Form
         return outT.Length > 0 ? outT : "Unknown flash error.";
     }
 
+    static string ResolveFactoryDir(string repoRoot)
+    {
+        var nested = Path.Combine(repoRoot, "factory");
+        if (File.Exists(Path.Combine(nested, "provision.py")))
+            return nested;
+        if (File.Exists(Path.Combine(repoRoot, "provision.py")))
+            return repoRoot;
+        return nested;
+    }
+
+    static bool HasFirmware(string root) =>
+        File.Exists(Path.Combine(root, "firmware", "panel_ports.py"))
+        || File.Exists(Path.Combine(root, "factory", "firmware", "panel_ports.py"));
+
     static string FindRepoRoot()
     {
         var env = Environment.GetEnvironmentVariable("FENNSILL_ROOT");
-        if (!string.IsNullOrWhiteSpace(env) && Directory.Exists(Path.Combine(env, "factory")))
+        if (!string.IsNullOrWhiteSpace(env)
+            && (File.Exists(Path.Combine(env, "factory", "provision.py"))
+                || File.Exists(Path.Combine(env, "provision.py")))
+            && HasFirmware(env))
             return Path.GetFullPath(env);
 
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         for (var i = 0; i < 8 && dir != null; i++, dir = dir.Parent)
         {
-            if (Directory.Exists(Path.Combine(dir.FullName, "factory")) &&
-                File.Exists(Path.Combine(dir.FullName, "factory", "provision.py")))
+            // Exe sitting in …/factory/ (C:\factory or zip\factory)
+            if (File.Exists(Path.Combine(dir.FullName, "provision.py"))
+                && (File.Exists(Path.Combine(dir.FullName, "firmware", "panel_ports.py"))
+                    || (dir.Parent != null
+                        && File.Exists(Path.Combine(dir.Parent.FullName, "firmware", "panel_ports.py")))))
+            {
+                if (dir.Parent != null
+                    && File.Exists(Path.Combine(dir.Parent.FullName, "firmware", "panel_ports.py")))
+                    return dir.Parent.FullName;
+                return dir.FullName;
+            }
+
+            if (Directory.Exists(Path.Combine(dir.FullName, "factory"))
+                && File.Exists(Path.Combine(dir.FullName, "factory", "provision.py"))
+                && HasFirmware(dir.FullName))
                 return dir.FullName;
         }
 
-        // Published into factory\ : repo is parent of factory
         var beside = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, ".."));
-        if (Directory.Exists(Path.Combine(beside, "factory")))
+        if (Directory.Exists(Path.Combine(beside, "factory")) && HasFirmware(beside))
             return beside;
 
         return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
