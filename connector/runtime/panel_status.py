@@ -24,23 +24,43 @@ from panel_ports import list_candidate_ports  # noqa: E402
 
 LOCAL = Path(os.environ.get("LOCALAPPDATA", str(ROOT)))
 BIND_CANDIDATES = (
-    LOCAL / "Fennsill" / "device_bind.json",
+    LOCAL / "FennsillApp" / "device_bind.json",
     Path(os.environ.get("FENNSILL_ROOT", ROOT)) / "device_bind.json",
+    LOCAL / "Fennsill" / "device_bind.json",
     LOCAL / "Artiphact" / "device_bind.json",
 )
 
 
+def _score_bind(data: dict) -> int:
+    did = (data.get("device_id") or "").strip().upper()
+    serial = (data.get("serial") or "").strip().upper()
+    score = 0
+    if did.startswith("FS"):
+        score += 4
+    if serial.startswith("FS-"):
+        score += 2
+    if did.startswith("AP") or serial.startswith("AP-"):
+        score -= 3
+    return score
+
+
 def _load_bind() -> dict:
+    best: dict = {}
+    best_score = -999
     for path in BIND_CANDIDATES:
         try:
             if not path.is_file():
                 continue
             data = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(data, dict) and (data.get("device_id") or data.get("serial")):
-                return data
+            if not isinstance(data, dict) or not (data.get("device_id") or data.get("serial")):
+                continue
+            score = _score_bind(data)
+            if score > best_score:
+                best = data
+                best_score = score
         except Exception:
             continue
-    return {}
+    return best
 
 
 def main():
