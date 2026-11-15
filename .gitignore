@@ -60,3 +60,7 @@ artiphact-*/bin/
 artiphact-*/obj/
 artiphact-*/out/
 
+
+server/*.db
+panel-preview/out/
+
