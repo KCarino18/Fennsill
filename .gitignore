@@ -64,3 +64,6 @@ artiphact-*/out/
 server/*.db
 panel-preview/out/
 
+
+releases/
+
