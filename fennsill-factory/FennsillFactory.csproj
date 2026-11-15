@@ -22,6 +22,7 @@
     <Content Include="..\factory\*.py" Link="payload\%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\factory\*.bat" Link="payload\%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\factory\*.md" Link="payload\%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\factory\prebuilt\**\*" Link="payload\prebuilt\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\firmware\**\*" Link="payload\firmware\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 

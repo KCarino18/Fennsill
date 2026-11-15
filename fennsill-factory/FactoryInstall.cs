@@ -20,20 +20,21 @@ static class FactoryInstall
 
         var provision = Path.Combine(dest, "provision.py");
         var ports = Path.Combine(dest, "firmware", "panel_ports.py");
-        var needCopy = !File.Exists(provision) || !File.Exists(ports);
-
-        if (needCopy)
+        var payload = FindBundledPayload();
+        if (payload != null)
         {
-            var payload = FindBundledPayload();
-            if (payload == null)
-            {
-                throw new DirectoryNotFoundException(
-                    "Factory files are missing from this download.\n\n" +
-                    "Re-download FennsillFactory.exe from the latest GitHub release.");
-            }
-
+            // Always refresh scripts/firmware/prebuilt from this exe (full firmware image).
             CopyTree(payload.FactorySrc, dest);
             CopyTree(payload.FirmwareSrc, Path.Combine(dest, "firmware"));
+            var bundledPrebuilt = Path.Combine(payload.FactorySrc, "prebuilt");
+            if (Directory.Exists(bundledPrebuilt))
+                CopyTree(bundledPrebuilt, Path.Combine(dest, "prebuilt"));
+        }
+        else if (!File.Exists(provision) || !File.Exists(ports))
+        {
+            throw new DirectoryNotFoundException(
+                "Factory files are missing from this download.\n\n" +
+                "Re-download FennsillFactory.exe from the latest GitHub release.");
         }
 
         if (!File.Exists(Path.Combine(dest, "provision.py"))

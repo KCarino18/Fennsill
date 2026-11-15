@@ -175,25 +175,88 @@ def key_is_locked(key_line: str) -> bool:
     return key_line.strip().lower() == "key locked"
 
 
+def _esptool_cmd(*args: str) -> list[str]:
+    return [sys.executable, "-m", "esptool", *args]
+
+
+def _run_esptool(args: list[str], *, env: dict[str, str]) -> None:
+    print("+", " ".join(args), flush=True)
+    try:
+        subprocess.run(args, check=True, cwd=str(ROOT), env=env)
+    except PermissionError as exc:
+        raise PermissionError(_format_exc(exc)) from exc
+    except OSError as exc:
+        if getattr(exc, "errno", None) == 13 or "virtual_file.log" in str(exc).lower():
+            raise PermissionError(_format_exc(exc)) from exc
+        raise
+
+
+def find_prebuilt_firmware() -> Path | None:
+    """Full firmware image (merged) shipped with Factory — same sketch, already built."""
+    names = (
+        "fennsill.ino.merged.bin",
+        "fennsill.merged.bin",
+        "firmware.merged.bin",
+    )
+    roots = (
+        ROOT / "prebuilt",
+        ROOT / "firmware" / "prebuilt",
+        REPO / "factory" / "prebuilt",
+        REPO / "firmware" / "prebuilt",
+    )
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for name in names:
+            cand = root / name
+            if cand.is_file() and cand.stat().st_size > 100_000:
+                return cand
+        # Nested export-binaries folder
+        for cand in root.rglob("*.merged.bin"):
+            if cand.is_file() and cand.stat().st_size > 100_000:
+                return cand
+    return None
+
+
 def erase_chip(port: str) -> None:
     """Full flash wipe — removes stock TRMNL (or any) firmware + NVS before Fennsill."""
     from ensure_arduino import cli_env, harden_process_paths
 
     harden_process_paths()
     env = cli_env()
-    cmd = [
-        sys.executable,
-        "-m",
-        "esptool",
+    cmd = _esptool_cmd(
         "--chip",
         "esp32s3",
         "--port",
         port,
         "erase-flash",
-    ]
+    )
     print("Wiping chip (TRMNL/stock firmware + NVS):", " ".join(cmd))
-    subprocess.run(cmd, check=True, cwd=str(ROOT), env=env)
+    _run_esptool(cmd, env=env)
     time.sleep(1.5)
+
+
+def flash_prebuilt(port: str, image: Path, *, erase: bool = True) -> None:
+    """Write the complete prebuilt Fennsill firmware image (splash + app + USB)."""
+    from ensure_arduino import cli_env, harden_process_paths
+
+    harden_process_paths()
+    env = cli_env()
+    if erase:
+        erase_chip(port)
+    cmd = _esptool_cmd(
+        "--chip",
+        "esp32s3",
+        "--port",
+        port,
+        "--baud",
+        "921600",
+        "write_flash",
+        "0x0",
+        str(image),
+    )
+    print(f"Installing FULL Fennsill firmware from prebuilt image:\n  {image}", flush=True)
+    _run_esptool(cmd, env=env)
 
 
 def flash_firmware(port: str, sketch: Path = SKETCH, fqbn: str = FQBN, *, erase: bool = True) -> None:
@@ -202,7 +265,13 @@ def flash_firmware(port: str, sketch: Path = SKETCH, fqbn: str = FQBN, *, erase:
     harden_process_paths()
     target = assert_factory_flash_port(port)
     print(f"Target OK: {target.get('kind')} — {target.get('reason')}")
-    print("Preparing arduino-cli (downloads automatically if missing)…", flush=True)
+
+    prebuilt = find_prebuilt_firmware()
+    if prebuilt is not None:
+        flash_prebuilt(port, prebuilt, erase=erase)
+        return
+
+    print("No prebuilt image — compiling FULL firmware with arduino-cli…", flush=True)
     arduino = ensure_arduino()
     if not sketch.is_file():
         raise FileNotFoundError(sketch)
@@ -220,7 +289,11 @@ def flash_firmware(port: str, sketch: Path = SKETCH, fqbn: str = FQBN, *, erase:
         str(sketch.parent),
     ]
     print("Installing Fennsill firmware:", " ".join(cmd), flush=True)
-    subprocess.run(cmd, check=True, cwd=str(ROOT), env=env)
+    try:
+        subprocess.run(cmd, check=True, cwd=str(ROOT), env=env)
+    except PermissionError as exc:
+        raise PermissionError(_format_exc(exc)) from exc
+
 
 
 def lock_serial(ser, box_serial: str) -> None:
