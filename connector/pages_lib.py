@@ -1,12 +1,13 @@
-"""Local page library for Artifacts pushed to the panel.
+"""Local page store for Artifacts pushed to the panel.
 
-Each page is a folder under connector/pages/<id>/ with frame.bin, preview.png,
-and meta.json. The desktop app shows these previews and can delete them.
+Keeps only the newest page on disk (plus one previous) so scheduled AI pushes
+do not pile up endless gallery folders. The desk app no longer shows a gallery.
 """
 
 from __future__ import annotations
 
 import json
+import shutil
 import time
 import uuid
 from pathlib import Path
@@ -14,6 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PAGES = Path(__import__("os").environ.get("ARTIPHACT_PAGES", ROOT / "connector" / "pages"))
 FRAME_BYTES = 48000
+# Keep current + one previous for rotate/debug — prune the rest.
+KEEP_PAGES = 2
 
 
 def pages_root() -> Path:
@@ -25,6 +28,20 @@ def _write_png(frame: bytes, path: Path):
     from render import write_png
 
     write_png(frame, path)
+
+
+def prune_old_pages(keep: int = KEEP_PAGES) -> None:
+    root = pages_root()
+    folders = sorted(
+        [p for p in root.iterdir() if p.is_dir()],
+        key=lambda p: p.name,
+        reverse=True,
+    )
+    for folder in folders[max(0, keep) :]:
+        try:
+            shutil.rmtree(folder, ignore_errors=True)
+        except OSError:
+            pass
 
 
 def save_page(frame: bytes, *, source: str = "artifact", title: str = "") -> dict:
@@ -44,7 +61,7 @@ def save_page(frame: bytes, *, source: str = "artifact", title: str = "") -> dic
         "bytes": len(frame),
     }
     (folder / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
-    # Signal the desktop app to refresh.
+    prune_old_pages()
     (pages_root() / ".changed").write_text(str(time.time()), encoding="utf-8")
     return meta
 
