@@ -6,7 +6,7 @@ namespace FennsillDesk;
 
 /// <summary>
 /// Fennsill desk: panel status + local workers. AI pushes go straight to the
-/// panel via Host MCP — no accumulating gallery of every AI page.
+/// panel via cloud MCP — no accumulating gallery of every AI page.
 /// </summary>
 public class MainForm : Form
 {
@@ -139,7 +139,7 @@ public class MainForm : Form
         _status.AutoSize = true;
         _status.MaximumSize = new Size(680, 0);
         _status.ForeColor = muted;
-        _status.Text = "Panel updates come from ChatGPT / Claude through Fennsill Host.";
+        _status.Text = "Panel updates come from ChatGPT / Claude through cloud MCP.";
 
         var identityLabel = new Label
         {
@@ -243,7 +243,7 @@ public class MainForm : Form
         _hint.ForeColor = muted;
         _hint.Text =
             "Device ID → website “Link your panel” only (not the ChatGPT/Claude MCP form).\n" +
-            "MCP form: URL + Headers Authorization = Bearer <token>. Keep Host running.";
+            "MCP form: URL + Headers Authorization = Bearer <token> (cloud account).";
 
         var actions = new FlowLayoutPanel
         {

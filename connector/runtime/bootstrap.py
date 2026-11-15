@@ -1,7 +1,7 @@
 """Everything Fennsill runs when the panel shows up.
 
-Wires Cursor local MCP (if present), clears stale Claude/ChatGPT stdio, and
-registers Windows startup. Claude/ChatGPT use FennsillHost.exe (remote MCP URL).
+Clears stale local MCP stdio entries and registers Windows startup.
+Claude/ChatGPT use the cloud account MCP URL (no local Host).
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ def main():
         json.dumps(
             {
                 "ok": True,
-                "message": "Panel setup complete. For Claude/ChatGPT open FennsillHost.exe, copy the public MCP URL into Connectors, then talk.",
+                "message": "Panel setup complete. For Claude/ChatGPT use the cloud account MCP URL + Bearer header (no local Host).",
             },
             indent=2,
         )

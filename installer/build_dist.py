@@ -61,17 +61,6 @@ def find_desk_exe() -> Path:
     raise SystemExit("Fennsill.exe / FennsillDesk.exe missing — publish the desk app first.")
 
 
-def find_host_exe() -> Path:
-    for cand in (
-        ROOT / "FennsillHost.exe",
-        ROOT / "fennsill-host" / "out" / "FennsillHost.exe",
-        ROOT / "releases" / "host" / "FennsillHost.exe",
-    ):
-        if cand.is_file():
-            return cand
-    raise SystemExit("FennsillHost.exe missing — publish fennsill-host first.")
-
-
 def find_setup_exe() -> Path | None:
     for cand in (
         ROOT / "fennsill-setup" / "out" / "FennsillSetup.exe",
@@ -156,8 +145,6 @@ def main():
     if desk.name.lower() == "fennsilldesk.exe":
         shutil.copy2(desk, OUT / "FennsillDesk.exe")
 
-    shutil.copy2(find_host_exe(), OUT / "FennsillHost.exe")
-
     setup_exe = find_setup_exe()
     if setup_exe:
         shutil.copy2(setup_exe, OUT / "FennsillSetup.exe")
@@ -215,7 +202,7 @@ def main():
                 "   - URL = MCP URL from the Fennsill account site",
                 "   - Leave Bearer token env-var empty if the form asks for one",
                 "   - Headers: Authorization = Bearer <token> (Copy header)",
-                "5. Local Host (optional): FennsillHost.exe - Copy MCP URL for localhost.",
+                "   There is no local Host app — cloud MCP only.",
                 "",
                 "FACTORY / MANUFACTURING",
                 "This download includes a factory\\ folder (scripts + FennsillFactory.exe when built).",
