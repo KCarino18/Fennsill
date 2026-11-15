@@ -227,6 +227,9 @@ public sealed class HostForm : Form
             return;
         }
 
+        // IMPORTANT: do not RedirectStandardOutput/Error without draining them.
+        // A full stdout pipe deadlocks uvicorn — TCP accepts but MCP never answers.
+        var logPath = Path.Combine(_root, "connector", "mcp_http_server.log");
         var psi = new ProcessStartInfo
         {
             FileName = _python,
@@ -242,6 +245,7 @@ public sealed class HostForm : Form
         psi.Environment["ARTIPHACT_MCP_PORT"] = McpPort.ToString();
         psi.Environment["PLAYWRIGHT_BROWSERS_PATH"] = Path.Combine(_root, "connector", "browsers");
         psi.Environment["ARTIPHACT_PAGES"] = Path.Combine(_root, "connector", "pages");
+        psi.Environment["PYTHONUNBUFFERED"] = "1";
 
         try
         {
@@ -253,12 +257,35 @@ public sealed class HostForm : Form
             return;
         }
 
+        if (_server != null)
+        {
+            _server.OutputDataReceived += (_, e) =>
+            {
+                if (string.IsNullOrEmpty(e.Data)) return;
+                try { File.AppendAllText(logPath, e.Data + Environment.NewLine); } catch { /* ignore */ }
+            };
+            _server.ErrorDataReceived += (_, e) =>
+            {
+                if (string.IsNullOrEmpty(e.Data)) return;
+                try { File.AppendAllText(logPath, e.Data + Environment.NewLine); } catch { /* ignore */ }
+            };
+            _server.BeginOutputReadLine();
+            _server.BeginErrorReadLine();
+        }
+
         Thread.Sleep(800);
         if (_server is null || _server.HasExited)
         {
             var err = "";
-            try { err = _server?.StandardError.ReadToEnd() ?? ""; } catch { /* ignore */ }
-            _error.Text = string.IsNullOrWhiteSpace(err) ? "MCP server exited immediately." : err.Trim()[..Math.Min(400, err.Trim().Length)];
+            try
+            {
+                if (File.Exists(logPath))
+                    err = File.ReadAllText(logPath);
+            }
+            catch { /* ignore */ }
+            _error.Text = string.IsNullOrWhiteSpace(err)
+                ? "MCP server exited immediately."
+                : err.Trim()[..Math.Min(400, err.Trim().Length)];
             _server = null;
             return;
         }
@@ -323,18 +350,11 @@ public sealed class HostForm : Form
         _status.Text = "Tunnel starting…";
         if (_tunnel != null)
         {
-            _ = Task.Run(() => WatchTunnel(_tunnel));
-        }
-    }
-
-    void WatchTunnel(Process proc)
-    {
-        try
-        {
-            using var reader = proc.StandardOutput;
-            string? line;
-            while ((line = reader.ReadLine()) != null)
+            // Drain both pipes so cloudflared/python cannot stall on a full buffer.
+            _tunnel.OutputDataReceived += (_, e) =>
             {
+                if (string.IsNullOrEmpty(e.Data)) return;
+                var line = e.Data;
                 if (line.Contains("NO_CLOUDFLARED", StringComparison.Ordinal))
                     BeginInvoke(() => _error.Text = "cloudflared not found. Install Cloudflare Tunnel.");
                 if (line.Contains("TUNNEL_URL_TIMEOUT", StringComparison.Ordinal))
@@ -348,15 +368,18 @@ public sealed class HostForm : Form
                         _status.Text = "Public link ready — copy MCP URL";
                     });
                 }
-            }
+            };
+            _tunnel.ErrorDataReceived += (_, e) => { /* discard — must drain */ };
+            _tunnel.BeginOutputReadLine();
+            _tunnel.BeginErrorReadLine();
+            _tunnel.EnableRaisingEvents = true;
+            _tunnel.Exited += (_, _) => BeginInvoke(() =>
+            {
+                if (_status.Text.StartsWith("Tunnel", StringComparison.Ordinal) ||
+                    _status.Text.Contains("Public link", StringComparison.Ordinal))
+                    _status.Text = "Tunnel stopped";
+            });
         }
-        catch { /* process ended */ }
-        BeginInvoke(() =>
-        {
-            if (_status.Text.StartsWith("Tunnel", StringComparison.Ordinal) ||
-                _status.Text.Contains("Public link", StringComparison.Ordinal))
-                _status.Text = "Tunnel stopped";
-        });
     }
 
     void ReadPublicUrlFile()

@@ -100,14 +100,22 @@ def set_wifi(ssid: str, password: str) -> str:
 
 
 def main() -> None:
+    # Line-buffered so Artiphact Host can drain logs without stalling the process.
+    try:
+        sys.stdout.reconfigure(line_buffering=True)  # type: ignore[attr-defined]
+        sys.stderr.reconfigure(line_buffering=True)  # type: ignore[attr-defined]
+    except Exception:
+        pass
     print(f"ARTIPHACT_MCP http://{HOST}:{PORT}/mcp", flush=True)
     # Cloudflare quick tunnels send Host: *.trycloudflare.com — the SDK's
     # default DNS-rebinding guard rejects that with HTTP 421.
+    # Clients MUST Accept: application/json, text/event-stream or the SDK returns 406.
     server.run(
         transport="streamable-http",
         host=HOST,
         port=PORT,
         streamable_http_path="/mcp",
+        # Stateless avoids session sticky issues with ChatGPT Desktop / tunnels.
         stateless_http=True,
         transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
     )

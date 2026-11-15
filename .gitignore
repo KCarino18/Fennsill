@@ -67,3 +67,6 @@ panel-preview/out/
 
 releases/
 
+
+connector/mcp_http_server.log
+
