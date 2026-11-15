@@ -202,7 +202,7 @@ def main():
                 "   - URL = MCP URL from the Fennsill account site",
                 "   - Leave Bearer token env-var empty if the form asks for one",
                 "   - Headers: Authorization = Bearer <token> (Copy header)",
-                "   There is no local Host app — cloud MCP only.",
+                "   There is no local Host app - cloud MCP only.",
                 "",
                 "FACTORY / MANUFACTURING",
                 "This download includes a factory\\ folder (scripts + FennsillFactory.exe when built).",
