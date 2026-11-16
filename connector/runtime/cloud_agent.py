@@ -88,11 +88,28 @@ def acquire_singleton() -> bool:
 
 
 def cloud_base() -> str:
-    return (
+    env = (
         os.environ.get("FENNSILL_CLOUD_URL")
         or os.environ.get("FENNSILL_API_BASE")
-        or DEFAULT_CLOUD
-    ).rstrip("/")
+        or ""
+    ).strip()
+    if env:
+        return env.rstrip("/")
+    # Desk / buyer override: one-line URL file (no /mcp suffix needed).
+    for path in (_local_app() / "cloud_url.txt", ROOT / "cloud_url.txt"):
+        try:
+            if path.is_file():
+                line = path.read_text(encoding="utf-8").strip().splitlines()[0].strip()
+                if line.lower().startswith("bearer "):
+                    continue
+                line = line.rstrip("/")
+                if line.lower().endswith("/mcp"):
+                    line = line[:-4].rstrip("/")
+                if line.startswith("http://") or line.startswith("https://"):
+                    return line
+        except OSError:
+            continue
+    return DEFAULT_CLOUD
 
 
 def token_paths() -> list[Path]:

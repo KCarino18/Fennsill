@@ -586,10 +586,44 @@ public class MainForm : Form
         {
             MessageBox.Show(
                 this,
-                "Clipboard is empty.\n\nOn the account site: Mint device key → Copy → Paste device key here.",
+                "Clipboard is empty.\n\nOn the account site: Mint device key → Copy → Paste device key here.\n" +
+                "If your site is a LAN URL (not mcp.fennsill.com), also save that base URL to %LOCALAPPDATA%\\FennsillApp\\cloud_url.txt",
                 "Fennsill");
             return;
         }
+
+        // Allow pasting MCP / cloud base URL to point the agent at a LAN server.
+        var maybeUrl = text.Split('\n', '\r')[0].Trim().TrimEnd('/');
+        if (maybeUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            maybeUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            if (maybeUrl.EndsWith("/mcp", StringComparison.OrdinalIgnoreCase))
+                maybeUrl = maybeUrl[..^4].TrimEnd('/');
+            try
+            {
+                var dir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "FennsillApp");
+                Directory.CreateDirectory(dir);
+                File.WriteAllText(Path.Combine(dir, "cloud_url.txt"), maybeUrl + Environment.NewLine);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Could not save cloud URL");
+                return;
+            }
+            try { _cloudAgentProcess?.Kill(entireProcessTree: true); } catch { /* ignore */ }
+            _cloudAgentProcess = StartPythonScript("cloud_agent.py");
+            _status.Text = "Cloud URL saved — " + maybeUrl;
+            MessageBox.Show(
+                this,
+                $"Cloud URL saved:\n{maybeUrl}\n\nNow copy the device key from the site and Paste device key again.",
+                "Fennsill",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
         if (text.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             text = text[7..].Trim();
         // Device keys are long tokens; reject accidental HTML paste.
@@ -620,7 +654,8 @@ public class MainForm : Form
         _status.Text = "Cloud device key saved — agent checking in…";
         MessageBox.Show(
             this,
-            "Device key saved.\n\nKeep Fennsill open with the panel plugged in so ChatGPT/Claude can push pages.",
+            "Device key saved.\n\nKeep Fennsill open with the panel plugged in so ChatGPT/Claude can push pages.\n" +
+            "Agent cloud = cloud_url.txt if set, otherwise https://mcp.fennsill.com",
             "Fennsill",
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);
