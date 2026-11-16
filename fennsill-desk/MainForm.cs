@@ -467,8 +467,8 @@ public class MainForm : Form
             using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
             var root = doc.RootElement;
             var ok = root.TryGetProperty("ok", out var okEl) && okEl.ValueKind == JsonValueKind.True;
-            var hb = root.TryGetProperty("heartbeat_status", out var hbEl) && hbEl.TryGetInt32(out var code)
-                ? code
+            var hb = root.TryGetProperty("heartbeat_status", out var hbEl) && hbEl.TryGetInt32(out var hbCode)
+                ? hbCode
                 : 0;
             string? did = null;
             if (root.TryGetProperty("heartbeat", out var hbObj) &&
@@ -495,8 +495,8 @@ public class MainForm : Form
                 {
                     if (hbPayload.TryGetProperty("error", out var e1)) detail = e1.GetString();
                     else if (hbPayload.TryGetProperty("message", out var e2)) detail = e2.GetString();
-                    if (hbPayload.TryGetProperty("code", out var c1) && c1.GetString() is { Length: > 0 } code)
-                        detail = string.IsNullOrEmpty(detail) ? code : $"{code}: {detail}";
+                    if (hbPayload.TryGetProperty("code", out var c1) && c1.GetString() is { Length: > 0 } errCode)
+                        detail = string.IsNullOrEmpty(detail) ? errCode : $"{errCode}: {detail}";
                 }
                 else if (hbPayload.ValueKind == JsonValueKind.String)
                     detail = hbPayload.GetString();
