@@ -23,23 +23,26 @@ static class DeskInstall
         SafeMkDir(Path.Combine(dest, "firmware"));
         SafeMkDir(Path.Combine(dest, "templates"));
 
-        var identity = Path.Combine(dest, "connector", "identity_status.py");
-        var ports = Path.Combine(dest, "firmware", "panel_ports.py");
-        var needCopy = !File.Exists(identity) || !File.Exists(ports);
-
-        if (needCopy)
+        // Always refresh bundled scripts on launch so upgrades replace cloud_agent.py etc.
+        // (Previously we only copied once — buyers kept an old agent and got Cloudflare 1010.)
+        var payload = FindBundledPayload();
+        if (payload != null)
         {
-            var payload = FindBundledPayload();
-            if (payload != null)
-            {
-                if (Directory.Exists(payload.Connector))
-                    CopyTree(payload.Connector, Path.Combine(dest, "connector"));
-                if (Directory.Exists(payload.Firmware))
-                    CopyTree(payload.Firmware, Path.Combine(dest, "firmware"));
-                if (Directory.Exists(payload.Templates))
-                    CopyTree(payload.Templates, Path.Combine(dest, "templates"));
-            }
+            if (Directory.Exists(payload.Connector))
+                CopyTree(payload.Connector, Path.Combine(dest, "connector"));
+            if (Directory.Exists(payload.Firmware))
+                CopyTree(payload.Firmware, Path.Combine(dest, "firmware"));
+            if (Directory.Exists(payload.Templates))
+                CopyTree(payload.Templates, Path.Combine(dest, "templates"));
         }
+
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(dest, "desk_payload_version.txt"),
+                Application.ProductVersion + " " + DateTime.UtcNow.ToString("o") + Environment.NewLine);
+        }
+        catch { /* optional */ }
 
         try
         {
