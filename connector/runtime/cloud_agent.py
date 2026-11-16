@@ -240,35 +240,56 @@ def main() -> int:
 
     print(f"cloud agent → {cloud_base()} (device key loaded)", flush=True)
     fail_streak = 0
+    # Idle poll was ~2–3 req/s and Cloudflare starts returning 403 after a burst,
+    # which leaves MCP jobs queued while list_panels still looks "online".
+    idle_sleep = 5.0
     while True:
         token = load_device_token() or token
         st, hb = call("GET", "/api/agent/heartbeat", token)
+        err_text = ""
+        if isinstance(hb, dict):
+            err_text = str(hb.get("error") or hb.get("message") or "")
+        elif isinstance(hb, str):
+            err_text = hb
+        cf_block = st in (403, 429, 1010) and (
+            "cloudflare" in err_text.lower()
+            or "<html" in err_text.lower()
+            or "attention required" in err_text.lower()
+            or "error code" in err_text.lower()
+        )
         write_status(
             {
                 "ok": st == 200,
                 "cloud": cloud_base(),
                 "heartbeat_status": st,
                 "heartbeat": hb,
+                "cloudflare_block": cf_block,
                 "ts": int(time.time()),
             }
         )
         if st != 200:
             fail_streak += 1
             print(f"heartbeat {st} {hb}", flush=True)
-            time.sleep(min(30, 2 + fail_streak))
+            # Back off hard on 403/429 — hammering makes CF keep blocking.
+            if st in (403, 429, 1010) or cf_block:
+                time.sleep(min(180, 15 * fail_streak))
+            else:
+                time.sleep(min(45, 3 + fail_streak))
             continue
         fail_streak = 0
 
-        # Heartbeat again right before claim so list_panels stays online during long renders.
-        call("GET", "/api/agent/heartbeat", token)
-
         st, job = call("GET", "/api/agent/jobs/next", token)
+        if st in (403, 429, 1010):
+            fail_streak += 1
+            print(f"jobs/next {st} {job}", flush=True)
+            time.sleep(min(180, 15 * fail_streak))
+            continue
         if st == 204 or job is None:
-            time.sleep(1)
+            time.sleep(idle_sleep)
             continue
         if st != 200:
             print(f"jobs/next {st} {job}", flush=True)
-            time.sleep(2)
+            time.sleep(5)
             continue
 
         job_id = str(job.get("job_id") or "")
@@ -296,7 +317,7 @@ def main() -> int:
                 "ts": int(time.time()),
             }
         )
-        time.sleep(0.5)
+        time.sleep(1.0)
 
 
 if __name__ == "__main__":

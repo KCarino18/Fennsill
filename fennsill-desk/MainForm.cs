@@ -504,8 +504,12 @@ public class MainForm : Form
                     return $"Cloud: heartbeat {hb} — {detail}";
             }
 
+            if (root.TryGetProperty("cloudflare_block", out var cf) &&
+                cf.ValueKind == JsonValueKind.True)
+                return "Cloud: blocked by Cloudflare — wait 1–2 min, keep Fennsill open";
+
             if (hb == 403)
-                return "Cloud: heartbeat 403 — remint device key on same account (sub inactive or device unlinked)";
+                return "Cloud: heartbeat 403 — wait/backoff, or remint device key if it never clears";
             return hb == 0 ? "Cloud: agent not reaching mcp.fennsill.com" : $"Cloud: heartbeat HTTP {hb}";
         }
         catch
