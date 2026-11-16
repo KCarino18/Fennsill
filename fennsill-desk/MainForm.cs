@@ -487,6 +487,25 @@ public class MainForm : Form
             if (root.TryGetProperty("error", out var err) && err.GetString() is { Length: > 0 } errText)
                 return "Cloud: " + errText;
 
+            // Prefer the cloud JSON error (403 = inactive sub / unlinked device, etc.)
+            if (root.TryGetProperty("heartbeat", out var hbPayload))
+            {
+                string? detail = null;
+                if (hbPayload.ValueKind == JsonValueKind.Object)
+                {
+                    if (hbPayload.TryGetProperty("error", out var e1)) detail = e1.GetString();
+                    else if (hbPayload.TryGetProperty("message", out var e2)) detail = e2.GetString();
+                    if (hbPayload.TryGetProperty("code", out var c1) && c1.GetString() is { Length: > 0 } code)
+                        detail = string.IsNullOrEmpty(detail) ? code : $"{code}: {detail}";
+                }
+                else if (hbPayload.ValueKind == JsonValueKind.String)
+                    detail = hbPayload.GetString();
+                if (!string.IsNullOrWhiteSpace(detail))
+                    return $"Cloud: heartbeat {hb} — {detail}";
+            }
+
+            if (hb == 403)
+                return "Cloud: heartbeat 403 — remint device key on same account (sub inactive or device unlinked)";
             return hb == 0 ? "Cloud: agent not reaching mcp.fennsill.com" : $"Cloud: heartbeat HTTP {hb}";
         }
         catch
