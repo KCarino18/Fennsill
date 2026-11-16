@@ -70,7 +70,12 @@ if (-not (Test-Path (Join-Path $setupPayload "connector\runtime\cloud_agent.py")
 }
 
 Write-Host "Publishing Setup..."
-dotnet publish (Join-Path $Root "fennsill-setup\FennsillSetup.csproj") -c Release -o $setupOut --nologo
+# Stamp Setup assembly version so Apps & features shows the release number.
+$setupCsproj = Join-Path $Root "fennsill-setup\FennsillSetup.csproj"
+$csprojText = Get-Content -LiteralPath $setupCsproj -Raw
+$csprojText = [regex]::Replace($csprojText, '<Version>[^<]*</Version>', "<Version>$Version</Version>")
+Set-Content -LiteralPath $setupCsproj -Value $csprojText -NoNewline
+dotnet publish $setupCsproj -c Release -o $setupOut --nologo
 $setupBuilt = Get-ChildItem $setupOut -Filter "FennsillSetup.exe" | Select-Object -First 1
 if (-not $setupBuilt) { throw "FennsillSetup.exe not found in $setupOut" }
 $setupExe = $setupBuilt.FullName
@@ -123,7 +128,7 @@ if ($start -ge 0) {
 }
 [IO.File]::WriteAllLines($readme, $lines)
 
-git add README.md
+git add README.md (Join-Path $Root "fennsill-setup\FennsillSetup.csproj")
 git commit -m "Bump README latest release to $Tag."
 if (-not $SkipPush) {
   git push origin HEAD
