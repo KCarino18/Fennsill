@@ -24,10 +24,15 @@ New-Item -ItemType Directory -Force -Path $deskOut, $facOut, $deskObj, $facObj |
 
 Write-Host "Publishing Desk..."
 dotnet publish (Join-Path $Root "fennsill-desk\FennsillDesk.csproj") -c Release -o $deskOut "-p:BaseIntermediateOutputPath=$deskObj" --nologo
-$deskBuilt = Get-ChildItem $deskOut -Filter "*.exe" | Where-Object { $_.Name -match "Fennsill" } | Select-Object -First 1
+$deskBuilt = Get-ChildItem $deskOut -Filter "*.exe" |
+  Where-Object { $_.Name -match "Fennsill" -and $_.Name -notmatch "Factory" } |
+  Sort-Object { if ($_.Name -eq "Fennsill.exe") { 0 } else { 1 } } |
+  Select-Object -First 1
 if (-not $deskBuilt) { throw "Desk exe not found in $deskOut" }
 $deskExe = Join-Path $deskOut "Fennsill.exe"
-Copy-Item -Force $deskBuilt.FullName $deskExe
+if ($deskBuilt.FullName -ne $deskExe) {
+  Copy-Item -Force $deskBuilt.FullName $deskExe
+}
 
 $assets = @($deskExe)
 if (-not $SkipFactory) {
@@ -36,7 +41,10 @@ if (-not $SkipFactory) {
   $facBuilt = Get-ChildItem $facOut -Filter "*.exe" | Where-Object { $_.Name -match "Factory" } | Select-Object -First 1
   if (-not $facBuilt) { throw "Factory exe not found in $facOut" }
   $facExe = Join-Path $facOut "FennsillFactory.exe"
-  Copy-Item -Force $facBuilt.FullName $facExe
+  # Published name is already FennsillFactory.exe — copying onto itself fails Stop.
+  if ($facBuilt.FullName -ne $facExe) {
+    Copy-Item -Force $facBuilt.FullName $facExe
+  }
   $assets += $facExe
 }
 

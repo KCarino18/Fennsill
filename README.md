@@ -1,23 +1,23 @@
 # Fennsill
 
-USB e-ink panel software: desk app + factory flasher. Buyersí AIs talk to the **hosted cloud MCP** ó nothing hosts MCP on the buyer PC.
+USB e-ink panel software: desk app + factory flasher. Buyers‚Äô AIs talk to the **hosted cloud MCP** ‚Äî nothing hosts MCP on the buyer PC.
 
-Cloud MCP uses **SQLite** ó **no SQL Server** required.
+Cloud MCP uses **SQLite** ‚Äî **no SQL Server** required.
 
 ## One-click downloads (Windows)
 
-**Latest release: [v0.1.17](https://github.com/KCarino18/Fennsill/releases/tag/v0.1.17)** ó 2026-11-16
+**Latest release: [v0.1.18](https://github.com/KCarino18/Fennsill/releases/tag/v0.1.18)** ‚Äî 2026-11-16
 
 | What | Download |
 |------|----------|
-| **Fennsill** (desk ó self-installs to LocalAppData) | [Fennsill.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.17/Fennsill.exe) |
-| **Fennsill Factory** (flasher ó self-installs to LocalAppData) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.17/FennsillFactory.exe) |
+| **Fennsill** (desk ‚Äî self-installs to LocalAppData) | [Fennsill.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.18/Fennsill.exe) |
+| **Fennsill Factory** (flasher ‚Äî self-installs to LocalAppData) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.18/FennsillFactory.exe) |
 | **All releases** | [github.com/KCarino18/Fennsill/releases](https://github.com/KCarino18/Fennsill/releases) |
 
 
 Each `.exe` is a **full install**: first launch copies scripts/firmware into `%LOCALAPPDATA%\FennsillApp\` and creates a desktop shortcut. No `C:\factory` folder required.
 
-There is **no Fennsill Host** ó use the cloud account MCP URL.
+There is **no Fennsill Host** ‚Äî use the cloud account MCP URL.
 
 ### Run names on disk
 
@@ -27,10 +27,10 @@ There is **no Fennsill Host** ó use the cloud account MCP URL.
 
 ### Quick use
 
-1. **Factory** (manufacturing PC) ó download **FennsillFactory.exe** (self-installs). Plug in the XIAO e-ink panel ? open Factory ? Check ? Flash.
-2. **Fennsill** ó install/run on the buyer PC with the panel plugged in. Copy **Device ID / Serial / Install key** from the desk window.
-3. **Account site** ó Link your panel with the **Device ID** from the desk app (not the MCP form).
-4. **Cloud MCP** (ChatGPT / Claude ìConnect to a custom MCPî):
+1. **Factory** (manufacturing PC) ‚Äî download **FennsillFactory.exe** (self-installs). Plug in the XIAO e-ink panel ? open Factory ? Check ? Flash.
+2. **Fennsill** ‚Äî install/run on the buyer PC with the panel plugged in. Copy **Device ID / Serial / Install key** from the desk window.
+3. **Account site** ‚Äî Link your panel with the **Device ID** from the desk app (not the MCP form).
+4. **Cloud MCP** (ChatGPT / Claude ‚ÄúConnect to a custom MCP‚Äù):
    - **URL** = MCP URL from the account site
    - Leave any **Bearer token** env-var field **empty**
    - **Headers** ? `Authorization` = `Bearer <token>` from **Copy header**
@@ -46,7 +46,7 @@ There is **no Fennsill Host** ó use the cloud account MCP URL.
 | `firmware/` | Panel firmware (ESP32-S3 + EE04) |
 | `connector/` | USB push + install helpers (not a public MCP host) |
 | `cloud/` | Hosted MCP server (**SQLite**) + account UI |
-| `account-web/` | Standalone signup site ó see [`account-web/PROMPT.md`](account-web/PROMPT.md) |
+| `account-web/` | Standalone signup site ‚Äî see [`account-web/PROMPT.md`](account-web/PROMPT.md) |
 | `installer/build_dist.py` | Builds `dist/Fennsill` + `dist/factory` + `Fennsill-Setup.zip` |
 | `docs/` | Shipping, device, cloud notes |
 
