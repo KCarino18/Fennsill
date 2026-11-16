@@ -84,6 +84,12 @@ def call(method: str, path: str, token: str, body: dict | None = None):
     data = None if body is None else json.dumps(body).encode("utf-8")
     req = urllib.request.Request(cloud_base() + path, data=data, method=method)
     req.add_header("Authorization", f"Bearer {token}")
+    # Cloudflare rejects bare Python-urllib (error 1010). Look like a normal client.
+    req.add_header(
+        "User-Agent",
+        "FennsillDesk/1.0 (Windows; cloud-agent; +https://mcp.fennsill.com)",
+    )
+    req.add_header("Accept", "application/json")
     if body is not None:
         req.add_header("Content-Type", "application/json")
     try:
