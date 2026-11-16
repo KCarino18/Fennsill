@@ -151,31 +151,128 @@ def save_device_token(token: str) -> Path:
     return path
 
 
+def _parse_http_result(status: int, text: str):
+    text = text or ""
+    low = text.lower()
+    if "error code: 1010" in low or "error code 1010" in low or "error 1010" in low:
+        return 1010, {
+            "error": "cloudflare_1010",
+            "message": "Cloudflare blocked this client signature.",
+        }
+    if status == 204 or not text.strip():
+        return status, None
+    try:
+        return status, json.loads(text)
+    except json.JSONDecodeError:
+        return status, {"error": text[:500]}
+
+
+def _call_powershell(method: str, path: str, token: str, body: dict | None = None):
+    """Windows Schannel stack — Cloudflare allows this; bare Python TLS often gets 1010."""
+    import base64
+    import subprocess
+
+    url = cloud_base() + path
+    body_b64 = ""
+    if body is not None:
+        body_b64 = base64.b64encode(json.dumps(body).encode("utf-8")).decode("ascii")
+    # Avoid quoting hell: pass args via env to a tiny PowerShell snippet.
+    env = os.environ.copy()
+    env["FENN_URL"] = url
+    env["FENN_METHOD"] = method.upper()
+    env["FENN_TOKEN"] = token
+    env["FENN_BODY_B64"] = body_b64
+    ps = r"""
+$ErrorActionPreference = 'Stop'
+$url = $env:FENN_URL
+$method = $env:FENN_METHOD
+$token = $env:FENN_TOKEN
+$headers = @{
+  Authorization = "Bearer $token"
+  Accept = 'application/json, text/plain, */*'
+  'Accept-Language' = 'en-US,en;q=0.9'
+  'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+}
+try {
+  if ($env:FENN_BODY_B64) {
+    $bytes = [Convert]::FromBase64String($env:FENN_BODY_B64)
+    $json = [Text.Encoding]::UTF8.GetString($bytes)
+    $r = Invoke-WebRequest -Uri $url -Method $method -Headers $headers -Body $json -ContentType 'application/json' -UseBasicParsing -TimeoutSec 45
+  } else {
+    $r = Invoke-WebRequest -Uri $url -Method $method -Headers $headers -UseBasicParsing -TimeoutSec 45
+  }
+  Write-Output ("STATUS:" + [int]$r.StatusCode)
+  Write-Output $r.Content
+} catch {
+  $resp = $_.Exception.Response
+  if ($resp) {
+    $code = [int]$resp.StatusCode
+    $reader = New-Object IO.StreamReader($resp.GetResponseStream())
+    $content = $reader.ReadToEnd()
+    Write-Output ("STATUS:" + $code)
+    Write-Output $content
+  } else {
+    Write-Output "STATUS:0"
+    Write-Output $_.Exception.Message
+  }
+}
+"""
+    try:
+        proc = subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                ps,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            env=env,
+        )
+    except Exception as exc:
+        return 0, {"error": f"powershell_http_failed: {exc}"}
+    out = (proc.stdout or "").strip("\n")
+    if not out:
+        return 0, {"error": (proc.stderr or "empty powershell response")[:500]}
+    lines = out.splitlines()
+    status_line = lines[0] if lines else "STATUS:0"
+    body_text = "\n".join(lines[1:]) if len(lines) > 1 else ""
+    try:
+        status = int(status_line.split(":", 1)[1])
+    except (IndexError, ValueError):
+        return 0, {"error": out[:500]}
+    return _parse_http_result(status, body_text)
+
+
 def call(method: str, path: str, token: str, body: dict | None = None):
+    # On Windows prefer PowerShell/WinHTTP — Sam's diagnostic got 200 that way while
+    # Python urllib gets Cloudflare 1010 (TLS fingerprint), not just User-Agent.
+    if sys.platform == "win32":
+        return _call_powershell(method, path, token, body)
+
     data = None if body is None else json.dumps(body).encode("utf-8")
     req = urllib.request.Request(cloud_base() + path, data=data, method=method)
     req.add_header("Authorization", f"Bearer {token}")
-    # Cloudflare rejects bare Python-urllib (error 1010). Look like a normal client.
     req.add_header(
         "User-Agent",
-        "FennsillDesk/1.0 (Windows; cloud-agent; +https://mcp.fennsill.com)",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     )
-    req.add_header("Accept", "application/json")
+    req.add_header("Accept", "application/json, text/plain, */*")
+    req.add_header("Accept-Language", "en-US,en;q=0.9")
     if body is not None:
         req.add_header("Content-Type", "application/json")
     try:
         with urllib.request.urlopen(req, timeout=45) as resp:
-            raw = resp.read()
-            if resp.status == 204 or not raw:
-                return resp.status, None
-            return resp.status, json.loads(raw.decode("utf-8"))
+            raw = resp.read().decode("utf-8", errors="replace")
+            return _parse_http_result(resp.status, raw)
     except urllib.error.HTTPError as exc:
-        raw = exc.read()
-        try:
-            payload = json.loads(raw.decode("utf-8")) if raw else {"error": str(exc)}
-        except json.JSONDecodeError:
-            payload = {"error": raw.decode("utf-8", errors="replace")}
-        return exc.code, payload
+        text = exc.read().decode("utf-8", errors="replace") if exc.fp else str(exc)
+        return _parse_http_result(exc.code, text)
     except Exception as exc:
         return 0, {"error": str(exc)}
 

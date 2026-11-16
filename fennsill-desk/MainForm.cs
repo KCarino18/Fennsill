@@ -504,9 +504,13 @@ public class MainForm : Form
                     return $"Cloud: heartbeat {hb} — {detail}";
             }
 
-            if (root.TryGetProperty("cloudflare_block", out var cf) &&
-                cf.ValueKind == JsonValueKind.True)
-                return "Cloud: blocked by Cloudflare — wait 1–2 min, keep Fennsill open";
+            if (hb == 1010 ||
+                (root.TryGetProperty("cloudflare_block", out var cf) && cf.ValueKind == JsonValueKind.True) ||
+                (root.TryGetProperty("heartbeat", out var hbErr) &&
+                 hbErr.ValueKind == JsonValueKind.Object &&
+                 hbErr.TryGetProperty("error", out var e1010) &&
+                 (e1010.GetString() || "").Contains("1010", StringComparison.OrdinalIgnoreCase)))
+                return "Cloud: Cloudflare 1010 — updating agent / wait 2 min, keep Fennsill open";
 
             if (hb == 403)
                 return "Cloud: heartbeat 403 — wait/backoff, or remint device key if it never clears";
