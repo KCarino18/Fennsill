@@ -525,6 +525,14 @@ def enqueue_job(
 def claim_next_job(device_auth: dict) -> dict | None:
     user_id = device_auth["user_id"]
     device_id = device_auth["device_id"]
+    # Start the access period if the panel already heartbeated (same gate as MCP).
+    # Otherwise jobs sit "queued" forever while claim returns 204.
+    try:
+        require_mcp_access(user_id)
+    except StoreError as exc:
+        if exc.code == "device_not_activated":
+            return None
+        raise
     with connect() as conn:
         conn.execute("BEGIN IMMEDIATE")
         sub = get_subscription(conn, user_id)
@@ -532,6 +540,16 @@ def claim_next_job(device_auth: dict) -> dict | None:
             return None  # 204
         if sub["status"] == "inactive" or not period_is_open(sub):
             raise StoreError("subscription_inactive", "Subscription inactive.", 403)
+        # Reclaim jobs stuck in 'claimed' if the agent died mid-push (~2 min).
+        stale = stamp(datetime.now(timezone.utc) - timedelta(seconds=120))
+        conn.execute(
+            """
+            UPDATE push_jobs SET status = 'queued', updated_at = ?
+            WHERE user_id = ? AND device_id = ? AND status = 'claimed'
+              AND updated_at < ?
+            """,
+            (stamp(), user_id, device_id, stale),
+        )
         row = conn.execute(
             """
             SELECT id FROM push_jobs
