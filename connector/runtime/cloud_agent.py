@@ -167,93 +167,82 @@ def _parse_http_result(status: int, text: str):
         return status, {"error": text[:500]}
 
 
-def _call_powershell(method: str, path: str, token: str, body: dict | None = None):
-    """Windows Schannel stack — Cloudflare allows this; bare Python TLS often gets 1010."""
-    import base64
+def _call_curl(method: str, path: str, token: str, body: dict | None = None):
+    """Windows curl.exe uses Schannel — avoids Cloudflare 1010 on Python urllib TLS."""
     import subprocess
+    import tempfile
 
     url = cloud_base() + path
-    body_b64 = ""
+    ua = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    )
+    args = [
+        "curl.exe",
+        "-sS",
+        "-X",
+        method.upper(),
+        "-H",
+        f"Authorization: Bearer {token}",
+        "-H",
+        f"User-Agent: {ua}",
+        "-H",
+        "Accept: application/json, text/plain, */*",
+        "-H",
+        "Accept-Language: en-US,en;q=0.9",
+        "--connect-timeout",
+        "20",
+        "--max-time",
+        "45",
+        "-w",
+        "\n__HTTP_STATUS__:%{http_code}",
+        url,
+    ]
+    tmp_path = None
     if body is not None:
-        body_b64 = base64.b64encode(json.dumps(body).encode("utf-8")).decode("ascii")
-    # Avoid quoting hell: pass args via env to a tiny PowerShell snippet.
-    env = os.environ.copy()
-    env["FENN_URL"] = url
-    env["FENN_METHOD"] = method.upper()
-    env["FENN_TOKEN"] = token
-    env["FENN_BODY_B64"] = body_b64
-    ps = r"""
-$ErrorActionPreference = 'Stop'
-$url = $env:FENN_URL
-$method = $env:FENN_METHOD
-$token = $env:FENN_TOKEN
-$headers = @{
-  Authorization = "Bearer $token"
-  Accept = 'application/json, text/plain, */*'
-  'Accept-Language' = 'en-US,en;q=0.9'
-  'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-}
-try {
-  if ($env:FENN_BODY_B64) {
-    $bytes = [Convert]::FromBase64String($env:FENN_BODY_B64)
-    $json = [Text.Encoding]::UTF8.GetString($bytes)
-    $r = Invoke-WebRequest -Uri $url -Method $method -Headers $headers -Body $json -ContentType 'application/json' -UseBasicParsing -TimeoutSec 45
-  } else {
-    $r = Invoke-WebRequest -Uri $url -Method $method -Headers $headers -UseBasicParsing -TimeoutSec 45
-  }
-  Write-Output ("STATUS:" + [int]$r.StatusCode)
-  Write-Output $r.Content
-} catch {
-  $resp = $_.Exception.Response
-  if ($resp) {
-    $code = [int]$resp.StatusCode
-    $reader = New-Object IO.StreamReader($resp.GetResponseStream())
-    $content = $reader.ReadToEnd()
-    Write-Output ("STATUS:" + $code)
-    Write-Output $content
-  } else {
-    Write-Output "STATUS:0"
-    Write-Output $_.Exception.Message
-  }
-}
-"""
+        try:
+            fd, tmp_path = tempfile.mkstemp(prefix="fenn_body_", suffix=".json")
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(json.dumps(body))
+            args[1:1] = ["-H", "Content-Type: application/json", "--data-binary", f"@{tmp_path}"]
+        except OSError as exc:
+            return 0, {"error": f"curl_body_temp: {exc}"}
     try:
         proc = subprocess.run(
-            [
-                "powershell",
-                "-NoProfile",
-                "-NonInteractive",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-Command",
-                ps,
-            ],
+            args,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=60,
-            env=env,
         )
+    except FileNotFoundError:
+        return None  # caller falls back
     except Exception as exc:
-        return 0, {"error": f"powershell_http_failed: {exc}"}
-    out = (proc.stdout or "").strip("\n")
-    if not out:
-        return 0, {"error": (proc.stderr or "empty powershell response")[:500]}
-    lines = out.splitlines()
-    status_line = lines[0] if lines else "STATUS:0"
-    body_text = "\n".join(lines[1:]) if len(lines) > 1 else ""
+        return 0, {"error": f"curl_failed: {exc}"}
+    finally:
+        if tmp_path:
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
+    out = proc.stdout or ""
+    err = (proc.stderr or "").strip()
+    if "__HTTP_STATUS__:" not in out:
+        return 0, {"error": (err or out or "curl empty")[:500]}
+    body_text, _, status_part = out.rpartition("__HTTP_STATUS__:")
+    body_text = body_text.rstrip("\n")
     try:
-        status = int(status_line.split(":", 1)[1])
-    except (IndexError, ValueError):
-        return 0, {"error": out[:500]}
+        status = int(status_part.strip().splitlines()[0])
+    except (ValueError, IndexError):
+        return 0, {"error": (out or err)[:500]}
+    if status == 0 and err:
+        return 0, {"error": err[:500]}
     return _parse_http_result(status, body_text)
 
 
-def call(method: str, path: str, token: str, body: dict | None = None):
-    # On Windows prefer PowerShell/WinHTTP — Sam's diagnostic got 200 that way while
-    # Python urllib gets Cloudflare 1010 (TLS fingerprint), not just User-Agent.
-    if sys.platform == "win32":
-        return _call_powershell(method, path, token, body)
-
+def _call_urllib(method: str, path: str, token: str, body: dict | None = None):
     data = None if body is None else json.dumps(body).encode("utf-8")
     req = urllib.request.Request(cloud_base() + path, data=data, method=method)
     req.add_header("Authorization", f"Bearer {token}")
@@ -275,6 +264,19 @@ def call(method: str, path: str, token: str, body: dict | None = None):
         return _parse_http_result(exc.code, text)
     except Exception as exc:
         return 0, {"error": str(exc)}
+
+
+def call(method: str, path: str, token: str, body: dict | None = None):
+    # Windows: curl.exe (Schannel) first — Python urllib TLS often gets CF 1010.
+    if sys.platform == "win32":
+        try:
+            result = _call_curl(method, path, token, body)
+            if result is not None:
+                return result
+        except Exception as exc:
+            # Never crash the agent loop on transport bugs.
+            return 0, {"error": f"curl_exception: {exc}"}
+    return _call_urllib(method, path, token, body)
 
 
 def run_job(job: dict) -> tuple[bool, str]:
@@ -429,6 +431,9 @@ if __name__ == "__main__":
         except SystemExit:
             raise
         except Exception as exc:
-            write_status({"ok": False, "error": "agent_crash", "message": str(exc)})
+            import traceback
+
+            msg = f"{exc}\n{traceback.format_exc()}"
+            write_status({"ok": False, "error": "agent_crash", "message": msg[:1500]})
             print(f"cloud agent crash (restarting): {exc}", flush=True)
             time.sleep(3)
