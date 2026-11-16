@@ -52,19 +52,29 @@ $table = @"
 "@
 
 $readme = Join-Path $Root "README.md"
-$readmeText = Get-Content $readme -Raw
-if ($readmeText -match '(?m)^\*\*Latest release:.*$') {
-  $readmeText = [regex]::Replace($readmeText, '(?m)^\*\*Latest release:.*$', $badge)
-} else {
-  $readmeText = $readmeText -replace '(?m)^(## One-click downloads \(Windows\)\s*)$', "`$1`r`n`r`n$badge`r`n"
+$lines = [System.Collections.Generic.List[string]]::new()
+$lines.AddRange([string[]](Get-Content $readme))
+for ($i = 0; $i -lt $lines.Count; $i++) {
+  if ($lines[$i] -match '^\*\*Latest release:') {
+    $lines[$i] = $badge
+  }
 }
-# Replace the downloads table (from first | What | through the blank line after last row)
-$readmeText = [regex]::Replace(
-  $readmeText,
-  '(?s)\| What \| Download \|\r?\n\|------\|----------\|\r?\n.*?(?=\r?\n\r?\nEach)',
-  ($table.TrimEnd() + "`r`n")
-)
-Set-Content -Path $readme -Value $readmeText -NoNewline -Encoding utf8
+# Replace only the download table block (header + separator + rows starting with |)
+$start = -1
+for ($i = 0; $i -lt $lines.Count; $i++) {
+  if ($lines[$i] -eq '| What | Download |') { $start = $i; break }
+}
+if ($start -ge 0) {
+  $end = $start
+  while ($end -lt $lines.Count -and ($lines[$end].StartsWith('|') -or $lines[$end] -eq '')) {
+    if ($end -gt $start -and $lines[$end] -eq '') { break }
+    $end++
+  }
+  $newRows = $table -split "`r?`n" | Where-Object { $_ -ne '' }
+  $lines.RemoveRange($start, $end - $start)
+  $lines.InsertRange($start, [string[]]$newRows)
+}
+[IO.File]::WriteAllLines($readme, $lines)
 
 git add README.md
 git commit -m "Bump README latest release to $Tag."
