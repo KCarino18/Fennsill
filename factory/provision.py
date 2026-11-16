@@ -463,7 +463,14 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  fw:         {result['fw_version']}")
     print(f"  ledger:     {result['ledger']}")
     print()
-    print("This serial never changes across PCs. Buyer first-plug installs Fennsill and binds to it.")
+    print("Buyer next (required for Claude/ChatGPT push over USB):")
+    print("  1. Install/open Fennsill.exe on the PC that will keep the panel plugged in.")
+    print(f"  2. On mcp.fennsill.com, Link panel with device id {result['device_id']}.")
+    print("  3. Mint a device key on that SAME account → Paste device key in Fennsill.")
+    print("  4. Leave Fennsill open until the AI's list_panels shows online/last_seen_at.")
+    print("Flash erase clears panel NVS (including any old Wi-Fi). USB cloud push does NOT")
+    print("need Wi-Fi — the PC agent heartbeats. Set Wi-Fi in Fennsill only if you use it later.")
+    print("This serial never changes across PCs.")
     return 0
 
 

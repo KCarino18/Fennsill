@@ -42,6 +42,8 @@ ALLOWED_TOOLS = frozenset(
 FORBIDDEN_URI = re.compile(
     r"(?i)\b(?:https?|file|ftp|ws|wss|chrome|chrome-extension|javascript)\s*:",
 )
+# SVG/XML namespace decls look like http URLs but are not network fetches.
+XMLNS_ATTR = re.compile(r"(?i)\sxmlns(?::[\w.-]+)?\s*=\s*(\"[^\"]*\"|'[^']*')")
 
 CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
@@ -104,7 +106,8 @@ def validate_artifact_args(arguments):
 
 
 def reject_external_uris(text, label):
-    if FORBIDDEN_URI.search(text):
+    scrubbed = XMLNS_ATTR.sub("", text)
+    if FORBIDDEN_URI.search(scrubbed):
         raise SecurityError(
             f"{label} must stay on this computer. Remove network and file URLs from the Artifact."
         )

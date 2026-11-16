@@ -267,9 +267,22 @@ class FactoryApp(tk.Tk):
                     self._write(f"  serial:    {payload['serial']}")
                     self._write(f"  device_id: {payload['device_id']}")
                     self._write(f"  key_fp:    {payload['key_fingerprint']}")
+                    self._write(
+                        "NEXT: Fennsill.exe → link device id on mcp.fennsill.com → "
+                        "mint device key → Paste device key → leave open for heartbeat"
+                    )
+                    self._write(
+                        "NOTE: flash cleared panel Wi-Fi; USB cloud push does not need Wi-Fi"
+                    )
                     messagebox.showinfo(
                         "Flashed",
                         f"Serial: {payload['serial']}\nDevice ID: {payload['device_id']}\n\n"
+                        "Buyer next:\n"
+                        "1. Open Fennsill.exe with the panel plugged in\n"
+                        "2. Link this Device ID on mcp.fennsill.com\n"
+                        "3. Mint device key (same account) → Paste device key in Fennsill\n"
+                        "4. Leave Fennsill open until the panel shows online\n\n"
+                        "Flash cleared panel Wi-Fi. USB Claude/ChatGPT push does not need Wi-Fi.\n"
                         "This serial never changes across PCs.",
                     )
                     self.refresh_ports()

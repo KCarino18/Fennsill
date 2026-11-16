@@ -8,6 +8,8 @@ MAX_ARTIFACT_CHARS = 512_000
 FORBIDDEN_URI = re.compile(
     r"(?i)\b(?:https?|file|ftp|ws|wss|chrome|chrome-extension|javascript)\s*:",
 )
+# SVG/XML namespace decls look like http URLs but are not network fetches.
+XMLNS_ATTR = re.compile(r"(?i)\sxmlns(?::[\w.-]+)?\s*=\s*(\"[^\"]*\"|'[^']*')")
 CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 DEVICE_ID_RE = re.compile(r"^FS[0-9A-F]{12}$")
 WIFI_KEYS = frozenset(
@@ -36,7 +38,8 @@ def require_string(value, label, *, allow_empty=False, max_chars=None):
 
 
 def reject_external_uris(text, label):
-    if FORBIDDEN_URI.search(text):
+    scrubbed = XMLNS_ATTR.sub("", text)
+    if FORBIDDEN_URI.search(scrubbed):
         raise SecurityError(
             f"{label} must be self-contained. Remove network and file URLs from the page."
         )

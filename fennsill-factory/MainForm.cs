@@ -298,9 +298,18 @@ public sealed class MainForm : Form
             _checkStatus.Text = $"Flashed — serial {serial}   id {deviceId}";
             _checkStatus.ForeColor = Color.FromArgb(120, 200, 140);
             Log($"FLASH OK serial={serial} device_id={deviceId} key_fp={keyFp}");
+            Log("NEXT: buyer opens Fennsill.exe → link this device id on mcp.fennsill.com → mint device key → Paste device key → leave Fennsill open for heartbeat.");
+            Log("NOTE: flash erase cleared panel Wi-Fi NVS; USB cloud push does not need Wi-Fi (PC agent heartbeats).");
             MessageBox.Show(
                 this,
-                $"Serial: {serial}\nDevice ID: {deviceId}\n\nThis serial never changes across PCs.",
+                $"Serial: {serial}\nDevice ID: {deviceId}\n\n" +
+                "Buyer next:\n" +
+                "1. Open Fennsill.exe with the panel plugged in\n" +
+                "2. Link this Device ID on mcp.fennsill.com\n" +
+                "3. Mint device key (same account) → Paste device key in Fennsill\n" +
+                "4. Leave Fennsill open until the panel shows online\n\n" +
+                "Flash cleared panel Wi-Fi. USB Claude/ChatGPT push does not need Wi-Fi.\n" +
+                "This serial never changes across PCs.",
                 "Flashed",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
