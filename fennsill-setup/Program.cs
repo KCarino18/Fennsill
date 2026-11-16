@@ -423,7 +423,7 @@ static class Program
         if (headless.Length == 0)
             throw new InvalidOperationException(
                 "Playwright chrome-headless-shell.exe missing under connector\\browsers. "
-                "Re-run Setup with internet so browsers finish installing.");
+                + "Re-run Setup with internet so browsers finish installing.");
     }
 
     static (string FileName, string PrefixArgs)? FindBootstrapPython()
