@@ -273,12 +273,36 @@ def _tool_result(payload: Any) -> str:
     return json.dumps(payload, indent=2)
 
 
-@server.tool(description="List Fennsill e-ink panels linked to this account.")
+@server.tool(
+    description=(
+        "List Fennsill e-ink panels linked to this MCP account. "
+        "Works even before the first heartbeat so you can see whether a panel is linked "
+        "and whether last_seen_at/online is set. If panels is empty, the buyer must link "
+        "the panel id on mcp.fennsill.com using the same account as this MCP bearer. "
+        "If linked but online=false and last_seen_at is null, they must mint a device key "
+        "on that same account, paste it into Fennsill.exe, and keep the agent running."
+    )
+)
 def list_panels(ctx: Context) -> str:
     try:
         user = _mcp_user(ctx)
-        store.require_mcp_access(int(user["id"]))
-        return _tool_result({"ok": True, "panels": store.list_devices(int(user["id"]))})
+        panels = store.list_devices(int(user["id"]))
+        hint = None
+        if not panels:
+            hint = (
+                "No panels linked to this MCP account. On mcp.fennsill.com (same bearer), "
+                "link the device id shown in Fennsill.exe."
+            )
+        elif not any(p.get("last_seen_at") for p in panels):
+            hint = (
+                "Panel(s) linked but none have heartbeated for this account. "
+                "Mint a device key on this same account, paste it into Fennsill.exe, "
+                "keep the agent running. A key from another account will not activate these rows."
+            )
+        payload: dict[str, Any] = {"ok": True, "panels": panels}
+        if hint:
+            payload["hint"] = hint
+        return _tool_result(payload)
     except store.StoreError as exc:
         return _tool_result({"ok": False, "error": exc.message, "code": exc.code})
 

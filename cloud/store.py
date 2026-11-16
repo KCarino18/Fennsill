@@ -202,7 +202,11 @@ def begin_access_period(user_id: int) -> dict:
         if not user_has_activated_device(conn, user_id):
             raise StoreError(
                 "device_not_activated",
-                "Plug in the panel and run the agent so it can heartbeat first.",
+                "No panel has heartbeated for this MCP account yet. "
+                "On mcp.fennsill.com (same account as this Claude/ChatGPT bearer): "
+                "link the panel id from Fennsill.exe, mint a device key, paste that key "
+                "into Fennsill, and keep the desk agent running until list_panels shows "
+                "online/last_seen_at. A key minted on a different account will not count.",
                 403,
             )
         now = datetime.now(timezone.utc)
