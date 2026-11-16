@@ -19,15 +19,11 @@ $deskOut = Join-Path $app "desk"
 $agentOut = Join-Path $app "agent"
 $facOut = Join-Path $app "factory"
 $setupOut = Join-Path $app "setup"
-$deskObj = Join-Path $app "desk-obj\"
-$agentObj = Join-Path $app "agent-obj\"
-$facObj = Join-Path $app "fac-obj\"
-$setupObj = Join-Path $app "setup-obj\"
 $setupPayload = Join-Path $Root "fennsill-setup\setup-payload"
 
 Remove-Item -Recurse -Force $app -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force $setupPayload -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $deskOut, $agentOut, $facOut, $setupOut, $deskObj, $agentObj, $facObj, $setupObj, $setupPayload | Out-Null
+New-Item -ItemType Directory -Force -Path $deskOut, $agentOut, $facOut, $setupOut, $setupPayload | Out-Null
 
 function Sync-Tree([string]$src, [string]$dst) {
   if (-not (Test-Path -LiteralPath $src)) { return }
@@ -43,7 +39,7 @@ function Sync-Tree([string]$src, [string]$dst) {
 }
 
 Write-Host "Publishing Desk..."
-dotnet publish (Join-Path $Root "fennsill-desk\FennsillDesk.csproj") -c Release -o $deskOut "-p:BaseIntermediateOutputPath=$deskObj" --nologo
+dotnet publish (Join-Path $Root "fennsill-desk\FennsillDesk.csproj") -c Release -o $deskOut --nologo
 $deskBuilt = Get-ChildItem $deskOut -Filter "*.exe" |
   Where-Object { $_.Name -match "Fennsill" -and $_.Name -notmatch "Factory|Setup|Agent" } |
   Sort-Object { if ($_.Name -eq "Fennsill.exe") { 0 } else { 1 } } |
@@ -55,7 +51,7 @@ if ($deskBuilt.FullName -ne $deskExe) {
 }
 
 Write-Host "Publishing Agent service..."
-dotnet publish (Join-Path $Root "fennsill-agent\FennsillAgent.csproj") -c Release -o $agentOut "-p:BaseIntermediateOutputPath=$agentObj" --nologo
+dotnet publish (Join-Path $Root "fennsill-agent\FennsillAgent.csproj") -c Release -o $agentOut --nologo
 $agentBuilt = Get-ChildItem $agentOut -Filter "FennsillAgent.exe" | Select-Object -First 1
 if (-not $agentBuilt) { throw "FennsillAgent.exe not found in $agentOut" }
 $agentExe = $agentBuilt.FullName
@@ -74,7 +70,7 @@ if (-not (Test-Path (Join-Path $setupPayload "connector\runtime\cloud_agent.py")
 }
 
 Write-Host "Publishing Setup..."
-dotnet publish (Join-Path $Root "fennsill-setup\FennsillSetup.csproj") -c Release -o $setupOut "-p:BaseIntermediateOutputPath=$setupObj" --nologo
+dotnet publish (Join-Path $Root "fennsill-setup\FennsillSetup.csproj") -c Release -o $setupOut --nologo
 $setupBuilt = Get-ChildItem $setupOut -Filter "FennsillSetup.exe" | Select-Object -First 1
 if (-not $setupBuilt) { throw "FennsillSetup.exe not found in $setupOut" }
 $setupExe = $setupBuilt.FullName
@@ -82,7 +78,7 @@ $setupExe = $setupBuilt.FullName
 $assets = @($setupExe)
 if (-not $SkipFactory) {
   Write-Host "Publishing Factory..."
-  dotnet publish (Join-Path $Root "fennsill-factory\FennsillFactory.csproj") -c Release -o $facOut "-p:BaseIntermediateOutputPath=$facObj" --nologo
+  dotnet publish (Join-Path $Root "fennsill-factory\FennsillFactory.csproj") -c Release -o $facOut --nologo
   $facBuilt = Get-ChildItem $facOut -Filter "*.exe" | Where-Object { $_.Name -match "Factory" } | Select-Object -First 1
   if (-not $facBuilt) { throw "Factory exe not found in $facOut" }
   $facExe = Join-Path $facOut "FennsillFactory.exe"
