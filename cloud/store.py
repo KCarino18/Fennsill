@@ -377,12 +377,25 @@ def issue_device_token(user_id: int, device_id: str) -> str:
             (user_id, device_id),
         ).fetchone()
         if not owned:
-            raise StoreError("forbidden", "Device not linked to this account.", 403)
+            raise StoreError(
+                "forbidden",
+                "Device not linked to this account. Link the Device ID from Fennsill.exe "
+                "(FS + 12 hex), not the box serial.",
+                403,
+            )
         sub = get_subscription(conn, user_id)
         if sub and sub["status"] == "inactive":
-            raise StoreError("subscription_inactive", "Subscription inactive.", 403)
+            raise StoreError(
+                "subscription_inactive",
+                "Subscription inactive — renew access, then mint a device key.",
+                403,
+            )
         if sub and sub["status"] == "active" and not period_is_open(sub):
-            raise StoreError("subscription_inactive", "Subscription inactive.", 403)
+            raise StoreError(
+                "subscription_inactive",
+                "Access period ended — renew access, then mint a device key.",
+                403,
+            )
         # pending OK so agent can heartbeat
         token = secrets.token_urlsafe(32)
         conn.execute(

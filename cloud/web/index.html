@@ -83,8 +83,13 @@
 
       <div class="block">
         <h2>3. Device key for Fennsill.exe</h2>
-        <p class="hint">Local agent only (heartbeat / claim jobs). Not for Claude or ChatGPT MCP.</p>
+        <p class="hint">
+          Local agent only (heartbeat / claim jobs). Not for Claude or ChatGPT MCP.
+          Click your linked panel in the list above, then mint. Uses the <strong>Device ID</strong>
+          (<code>FS</code> + 12 hex), never the box serial.
+        </p>
         <button type="button" id="mint-token">Mint device key for linked panel</button>
+        <p id="device-token-note" class="hint" hidden></p>
         <div class="copy-row" id="device-token-row" hidden>
           <code id="device-token" class="token"></code>
           <button type="button" class="ghost" data-copy="device-token">Copy</button>

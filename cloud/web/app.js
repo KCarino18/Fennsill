@@ -59,6 +59,9 @@
     accountPanel.hidden = true;
   }
 
+  const DEVICE_ID_RE = /^FS[0-9A-F]{12}$/i;
+  let selectedDeviceId = "";
+
   function showAccount(me) {
     authPanel.hidden = true;
     accountPanel.hidden = false;
@@ -71,12 +74,45 @@
     userTokenEl.textContent = token();
     authHeaderEl.textContent = `Bearer ${token()}`;
     deviceList.innerHTML = "";
-    (me.devices || []).forEach((d) => {
+    const devices = me.devices || [];
+    if (
+      selectedDeviceId &&
+      !devices.some((d) => d.device_id === selectedDeviceId)
+    ) {
+      selectedDeviceId = "";
+    }
+    if (!selectedDeviceId && devices[0]) selectedDeviceId = devices[0].device_id;
+    devices.forEach((d) => {
       const li = document.createElement("li");
-      li.textContent = `${d.device_id}${d.label ? " — " + d.label : ""}${d.online ? " (online)" : ""}`;
+      const online = d.online ? " (online)" : d.last_seen_at ? " (offline)" : " (no heartbeat yet)";
+      li.textContent = `${d.device_id}${d.label ? " — " + d.label : ""}${online}`;
       li.dataset.deviceId = d.device_id;
+      li.tabIndex = 0;
+      li.classList.toggle("selected", d.device_id === selectedDeviceId);
+      li.addEventListener("click", () => {
+        selectedDeviceId = d.device_id;
+        deviceList.querySelectorAll("li").forEach((el) => {
+          el.classList.toggle("selected", el.dataset.deviceId === selectedDeviceId);
+        });
+        document.getElementById("device-id").value = d.device_id;
+      });
       deviceList.appendChild(li);
     });
+  }
+
+  function resolveMintDeviceId() {
+    const typed = document.getElementById("device-id").value.trim().toUpperCase();
+    const linked = Array.from(deviceList.querySelectorAll("li")).map((li) =>
+      (li.dataset.deviceId || "").toUpperCase()
+    );
+    // Prefer an explicit linked selection — never mint a box serial from the text box.
+    if (selectedDeviceId && linked.includes(selectedDeviceId.toUpperCase())) {
+      return selectedDeviceId.toUpperCase();
+    }
+    if (DEVICE_ID_RE.test(typed) && linked.includes(typed)) return typed;
+    if (DEVICE_ID_RE.test(typed)) return typed;
+    if (linked[0]) return linked[0];
+    return "";
   }
 
   async function refreshMe() {
@@ -133,13 +169,16 @@
 
   document.getElementById("mint-token").addEventListener("click", async () => {
     deviceError.hidden = true;
-    const first = deviceList.querySelector("li");
-    const deviceId =
-      document.getElementById("device-id").value.trim() ||
-      (first && first.dataset.deviceId) ||
-      "";
+    const deviceId = resolveMintDeviceId();
     if (!deviceId) {
-      deviceError.textContent = "Link a device first.";
+      deviceError.textContent =
+        "Link a panel first (Device ID looks like FS + 12 hex digits from Fennsill.exe — not the box serial FS-YYMM-######).";
+      deviceError.hidden = false;
+      return;
+    }
+    if (!DEVICE_ID_RE.test(deviceId)) {
+      deviceError.textContent =
+        `"${deviceId}" is not a Device ID. Use the FS############ value from Fennsill.exe, not the serial.`;
       deviceError.hidden = false;
       return;
     }
@@ -150,8 +189,19 @@
       });
       deviceTokenEl.textContent = body.token;
       deviceTokenRow.hidden = false;
+      deviceError.hidden = true;
+      const note = document.getElementById("device-token-note");
+      if (note) {
+        note.hidden = false;
+        note.textContent =
+          `Key for ${deviceId}. In Fennsill.exe click “Paste device key” (not the MCP Authorization header). Keep Fennsill open until it says Cloud: checked in.`;
+      }
     } catch (err) {
-      deviceError.textContent = err.message || "Could not mint device key.";
+      const msg = err.message || "Could not mint device key.";
+      deviceError.textContent =
+        err.status === 403
+          ? `${msg} If access is inactive/expired, renew on this account, then mint again.`
+          : msg;
       deviceError.hidden = false;
     }
   });

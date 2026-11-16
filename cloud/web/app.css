@@ -181,6 +181,12 @@ code { font-family: var(--mono); font-size: 0.78rem; }
   margin-top: 0.4rem;
   font-family: var(--mono);
   font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.devices li.selected {
+  border-color: var(--accent);
+  background: #eef3fb;
 }
 
 #sign-out {
