@@ -22,6 +22,7 @@ public class MainForm : Form
     Process? _bridgeProcess;
     Process? _liveProcess;
     Process? _liveJobsProcess;
+    Process? _cloudAgentProcess;
     bool _panelReady;
     bool _setupRanForThisPlug;
     string _panelPorts = "";
@@ -239,7 +240,8 @@ public class MainForm : Form
         _hint.ForeColor = muted;
         _hint.Text =
             "Device ID → website “Link your panel” only (not the ChatGPT/Claude MCP form).\n" +
-            "MCP form: URL + Headers Authorization = Bearer <token> (cloud account).";
+            "MCP form: URL + Headers Authorization = Bearer <token> (cloud account).\n" +
+            "Then Mint device key → Paste device key here, keep Fennsill open (panel check-in).";
 
         var actions = new FlowLayoutPanel
         {
@@ -265,12 +267,15 @@ public class MainForm : Form
         var refresh = ActionBtn("Refresh");
         var importBtn = ActionBtn("Import HTML");
         var paste = ActionBtn("Paste page");
+        var pasteKey = ActionBtn("Paste device key");
         refresh.Click += async (_, _) => await RefreshPanelStatus();
         importBtn.Click += async (_, _) => await ImportHtmlFile();
         paste.Click += async (_, _) => await PastePage();
+        pasteKey.Click += (_, _) => PasteCloudDeviceKey();
         actions.Controls.Add(refresh);
         actions.Controls.Add(importBtn);
         actions.Controls.Add(paste);
+        actions.Controls.Add(pasteKey);
 
         top.Controls.Add(title);
         top.Controls.Add(_readyBanner);
@@ -301,6 +306,8 @@ public class MainForm : Form
         _bridgeProcess = StartPythonScript("http_bridge.py");
         _liveProcess = StartPythonScript("live_watch.py");
         _liveJobsProcess = StartPythonScript("live_jobs.py");
+        // Cloud MCP jobs land here — heartbeat makes the panel “checked in”.
+        _cloudAgentProcess = StartPythonScript("cloud_agent.py");
     }
 
     Process? StartPythonScript(params string[] names)
@@ -460,6 +467,55 @@ public class MainForm : Form
         await IngestHtml(html, "clipboard");
     }
 
+    void PasteCloudDeviceKey()
+    {
+        string text;
+        try { text = Clipboard.GetText()?.Trim() ?? ""; }
+        catch { text = ""; }
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            MessageBox.Show(
+                this,
+                "Clipboard is empty.\n\nOn the account site: Mint device key → Copy → Paste device key here.",
+                "Fennsill");
+            return;
+        }
+        if (text.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            text = text[7..].Trim();
+        // Device keys are long tokens; reject accidental HTML paste.
+        if (text.Contains('<') || text.Length < 20)
+        {
+            MessageBox.Show(
+                this,
+                "That clipboard text does not look like a device key.\n\nMint the key on the account site, copy it, then try again.",
+                "Fennsill");
+            return;
+        }
+        try
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "FennsillApp");
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, "cloud_device_token.txt"), text + Environment.NewLine);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Could not save device key");
+            return;
+        }
+
+        try { _cloudAgentProcess?.Kill(entireProcessTree: true); } catch { /* ignore */ }
+        _cloudAgentProcess = StartPythonScript("cloud_agent.py");
+        _status.Text = "Cloud device key saved — agent checking in…";
+        MessageBox.Show(
+            this,
+            "Device key saved.\n\nKeep Fennsill open with the panel plugged in so ChatGPT/Claude can push pages.",
+            "Fennsill",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+    }
+
     async Task ImportHtmlFile()
     {
         using var dlg = new OpenFileDialog
@@ -556,6 +612,7 @@ public class MainForm : Form
         Kill(_liveProcess);
         Kill(_liveJobsProcess);
         Kill(_bridgeProcess);
+        Kill(_cloudAgentProcess);
         base.OnFormClosed(e);
     }
 }
