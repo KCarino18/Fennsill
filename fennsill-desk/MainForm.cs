@@ -333,7 +333,7 @@ public class MainForm : Form
         {
             var psi = new ProcessStartInfo
             {
-                FileName = "python",
+                FileName = FindPython(),
                 Arguments = $"\"{script}\"",
                 WorkingDirectory = _root,
                 UseShellExecute = false,
@@ -627,7 +627,42 @@ public class MainForm : Form
         Kill(_liveProcess);
         Kill(_liveJobsProcess);
         Kill(_bridgeProcess);
-        Kill(_cloudAgentProcess);
+        // Do NOT kill the cloud agent — it must keep heartbeating so ChatGPT
+        // still sees the panel online after Desk is closed.
         base.OnFormClosed(e);
+    }
+
+    static string FindPython()
+    {
+        foreach (var name in new[] { "python", "py" })
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = name,
+                    ArgumentList = { "--version" },
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+                using var p = Process.Start(psi);
+                if (p is null) continue;
+                p.WaitForExit(4000);
+                if (p.ExitCode == 0) return name;
+            }
+            catch { /* try next */ }
+        }
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        foreach (var cand in new[]
+                 {
+                     Path.Combine(local, "Python", "pythoncore-3.14-64", "python.exe"),
+                     Path.Combine(local, "Python", "bin", "python.exe"),
+                 })
+        {
+            if (File.Exists(cand)) return cand;
+        }
+        return "python";
     }
 }

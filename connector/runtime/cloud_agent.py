@@ -198,7 +198,15 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    try:
-        raise SystemExit(main())
-    except KeyboardInterrupt:
-        raise SystemExit(0)
+    # Never exit on transient errors — offline drops when this process dies.
+    while True:
+        try:
+            raise SystemExit(main())
+        except KeyboardInterrupt:
+            raise SystemExit(0)
+        except SystemExit:
+            raise
+        except Exception as exc:
+            write_status({"ok": False, "error": "agent_crash", "message": str(exc)})
+            print(f"cloud agent crash (restarting): {exc}", flush=True)
+            time.sleep(3)
