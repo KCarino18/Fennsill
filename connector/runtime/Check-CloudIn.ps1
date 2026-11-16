@@ -45,22 +45,30 @@ function Invoke-Fenn([string]$Path, [string]$Tok) {
   }
 }
 
+$code = 0
 $cfg = Invoke-Fenn "/api/config" ""
 Write-Host "GET /api/config -> $($cfg.Status)"
 Write-Host "  $($cfg.Body)"
 if ($cfg.Status -ne 200) {
   Write-Host "FAIL: cannot reach cloud."
-  exit 1
-}
-if (-not $token) {
+  $code = 1
+} elseif (-not $token) {
   Write-Host "FAIL: no device key. Mint on https://mcp.fennsill.com then Paste device key in Fennsill.exe"
-  exit 2
+  $code = 2
+} else {
+  $hb = Invoke-Fenn "/api/agent/heartbeat" $token
+  Write-Host "GET /api/agent/heartbeat -> $($hb.Status)"
+  Write-Host "  $($hb.Body)"
+  if ($hb.Status -eq 200) { Write-Host "OK: check-in works."; $code = 0 }
+  elseif ($hb.Status -eq 401) { Write-Host "FAIL: bad/wrong key (often pasted account Bearer). Remint device key."; $code = 3 }
+  elseif ($hb.Status -eq 403) { Write-Host "FAIL: 403 refused (inactive access or unlinked). Remint; renew if mint fails."; $code = 4 }
+  else { Write-Host "FAIL: unexpected. Send this output to support."; $code = 5 }
 }
-$hb = Invoke-Fenn "/api/agent/heartbeat" $token
-Write-Host "GET /api/agent/heartbeat -> $($hb.Status)"
-Write-Host "  $($hb.Body)"
-if ($hb.Status -eq 200) { Write-Host "OK: check-in works."; exit 0 }
-if ($hb.Status -eq 401) { Write-Host "FAIL: bad/wrong key (often pasted account Bearer). Remint device key."; exit 3 }
-if ($hb.Status -eq 403) { Write-Host "FAIL: 403 refused (inactive access or unlinked). Remint; renew if mint fails."; exit 4 }
-Write-Host "FAIL: unexpected. Send this output to support."
-exit 5
+
+Write-Host ""
+Write-Host "Done (exit $code). Copy everything above and send it."
+if ($Host.Name -eq "ConsoleHost") {
+  Write-Host "Press Enter to close..."
+  [void][Console]::ReadLine()
+}
+exit $code
