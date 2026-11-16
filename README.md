@@ -1,17 +1,17 @@
 # FennSill
 
-USB e-ink panel software: Desk UI + always-on Agent service + factory flasher. Buyers' AIs talk to the **hosted cloud MCP** â€” nothing hosts MCP on the buyer PC.
+USB e-ink panel software: Desk UI + always-on Agent service + factory flasher. Buyers' AIs talk to the **hosted cloud MCP** Ã¢â‚¬â€ nothing hosts MCP on the buyer PC.
 
-Cloud MCP uses **SQLite** â€” **no SQL Server** required.
+Cloud MCP uses **SQLite** Ã¢â‚¬â€ **no SQL Server** required.
 
 ## One-click downloads (Windows)
 
-**Latest release: [v0.1.24](https://github.com/KCarino18/Fennsill/releases/tag/v0.1.24)** — 2026-11-16
+**Latest release: [v0.1.25](https://github.com/KCarino18/Fennsill/releases/tag/v0.1.25)** — 2026-11-16
 
 | What | Download |
 |------|----------|
-| **FennSill Setup** (Desk + Agent service — run as Admin once) | [FennsillSetup.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.24/FennsillSetup.exe) |
-| **FennSill Factory** (flasher — manufacturing PC) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.24/FennsillFactory.exe) |
+| **FennSill Setup** (Desk + Agent service — run as Admin once) | [FennsillSetup.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.25/FennsillSetup.exe) |
+| **FennSill Factory** (flasher — manufacturing PC) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.25/FennsillFactory.exe) |
 | **All releases** | [github.com/KCarino18/Fennsill/releases](https://github.com/KCarino18/Fennsill/releases) |
 
 
@@ -19,11 +19,11 @@ Cloud MCP uses **SQLite** â€” **no SQL Server** required.
 
 **FennsillSetup.exe** (Admin once) installs:
 
-- **Desk** â€” Device ID / serial / install key, Paste device key, panel status
-- **FennSill Agent** â€” Windows service for USB cloud pushes (stays on when Desk is closed)
+- **Desk** Ã¢â‚¬â€ Device ID / serial / install key, Paste device key, panel status
+- **FennSill Agent** Ã¢â‚¬â€ Windows service for USB cloud pushes (stays on when Desk is closed)
 - **Python + Playwright** runtime (verified during Setup)
 - **FennSill Quick Start.pdf** on the Desktop
-- Registers under **Settings â†’ Apps â†’ Installed apps** (with Uninstall)
+- Registers under **Settings Ã¢â€ â€™ Apps Ã¢â€ â€™ Installed apps** (with Uninstall)
 
 Page delivery is **MCP-only**. There is **no local Host**.
 
@@ -31,13 +31,13 @@ Page delivery is **MCP-only**. There is **no local Host**.
 
 1. Run **FennsillSetup.exe** as Administrator (allow UAC). Open the Desktop **Quick Start** PDF.
 2. Plug in the panel over USB. Desk shows connected + Device ID.
-3. On the FennSill account site: Link panel with Device ID â†’ Mint device key â†’ **Paste device key** in Desk.
+3. On the FennSill account site: Link panel with Device ID Ã¢â€ â€™ Mint device key Ã¢â€ â€™ **Paste device key** in Desk.
 4. Connect any AI that supports custom MCP: account MCP **URL** + header `Authorization: Bearer <token>` (Copy header). Device ID does not go in the MCP form.
 5. Ask the AI to push a page; confirm the e-ink refreshes.
 
 ### Manufacturing
 
-**Factory** (`FennsillFactory.exe`) is for flashing panels before they ship â€” not part of the buyer flow.
+**Factory** (`FennsillFactory.exe`) is for flashing panels before they ship Ã¢â‚¬â€ not part of the buyer flow.
 
 ### Run names on disk
 
