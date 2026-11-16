@@ -230,10 +230,28 @@ def png_to_frame(png_bytes):
     return bytes(frame)
 
 
-def _browser_root():
-    here = Path(__file__).resolve().parents[1] / "connector" / "browsers"
-    if here.is_dir():
-        return str(here)
+def _browser_root() -> Path | None:
+    """Resolve connector/browsers under the install root (not a pinned revision)."""
+    env_root = os.environ.get("FENNSILL_ROOT")
+    candidates = []
+    if env_root:
+        candidates.append(Path(env_root) / "connector" / "browsers")
+    candidates.append(Path(__file__).resolve().parents[1] / "connector" / "browsers")
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        candidates.append(Path(local) / "FennsillApp" / "connector" / "browsers")
+    for path in candidates:
+        if path.is_dir():
+            return path
+    return None
+
+
+def _find_browser_exe(browsers: Path) -> Path | None:
+    """Prefer headless shell, else full chrome.exe (any Playwright revision)."""
+    for name in ("chrome-headless-shell.exe", "chrome.exe"):
+        matches = sorted(browsers.rglob(name))
+        if matches:
+            return matches[0]
     return None
 
 
@@ -254,44 +272,46 @@ def _shot_png(page_html):
         ) from exc
 
     browsers = _browser_root()
+    exe: Path | None = None
     if browsers:
         # Always prefer the Fennsill-bundled Chromium (ChatGPT MCP often
         # starts without PLAYWRIGHT_BROWSERS_PATH and then hangs/times out).
-        os.environ["PLAYWRIGHT_BROWSERS_PATH"] = browsers
-        shell = (
-            Path(browsers)
-            / "chromium_headless_shell-1254"
-            / "chrome-headless-shell-win64"
-            / "chrome-headless-shell.exe"
-        )
-        if not shell.is_file():
+        os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(browsers)
+        exe = _find_browser_exe(browsers)
+        if exe is None:
             raise RuntimeError(
-                f"Fennsill Chromium missing at {shell}. Reinstall Fennsill browsers."
+                f"Fennsill Chromium missing under {browsers}. "
+                "Run FennsillSetup.exe as Admin (needs internet), or: "
+                "python -m playwright install chromium"
             )
 
+    launch_kwargs = {
+        "headless": True,
+        "chromium_sandbox": True,
+        "timeout": 15_000,
+        "args": [
+            "--disable-extensions",
+            "--disable-translations",
+            "--disable-sync",
+            "--no-first-run",
+            "--disable-background-networking",
+            "--disable-client-side-phishing-detection",
+            "--disable-component-update",
+            "--disable-default-apps",
+            "--disable-domain-reliability",
+            "--disable-features=Translate,BackForwardCache",
+            "--disable-hang-monitor",
+            "--disable-popup-blocking",
+            "--disable-prompt-on-repost",
+            "--metrics-recording-only",
+            "--safebrowsing-disable-auto-update",
+        ],
+    }
+    if exe is not None:
+        launch_kwargs["executable_path"] = str(exe)
+
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(
-            headless=True,
-            chromium_sandbox=True,
-            timeout=15_000,
-            args=[
-                "--disable-extensions",
-                "--disable-translations",
-                "--disable-sync",
-                "--no-first-run",
-                "--disable-background-networking",
-                "--disable-client-side-phishing-detection",
-                "--disable-component-update",
-                "--disable-default-apps",
-                "--disable-domain-reliability",
-                "--disable-features=Translate,BackForwardCache",
-                "--disable-hang-monitor",
-                "--disable-popup-blocking",
-                "--disable-prompt-on-repost",
-                "--metrics-recording-only",
-                "--safebrowsing-disable-auto-update",
-            ],
-        )
+        browser = playwright.chromium.launch(**launch_kwargs)
         try:
             context = browser.new_context(
                 viewport={"width": WIDTH, "height": HEIGHT},

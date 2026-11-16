@@ -198,13 +198,13 @@ def install_chromium(py: Path) -> None:
     env = os.environ.copy()
     env["PLAYWRIGHT_BROWSERS_PATH"] = str(BROWSERS)
     # Default `chromium` includes headless shell unless --no-shell is passed.
-    # Also install the shell package explicitly so partial trees get repaired.
+    # Force when the shell is missing so a partial tree gets repaired.
+    force = headless_shell_exe() is None or chrome_exe() is None
     for browser in ("chromium", "chromium-headless-shell"):
-        proc = run(
-            [str(py), "-m", "playwright", "install", browser],
-            env=env,
-            timeout=900,
-        )
+        cmd = [str(py), "-m", "playwright", "install", browser]
+        if force:
+            cmd.append("--force")
+        proc = run(cmd, env=env, timeout=900)
         if proc.returncode != 0:
             log(proc.stdout or "")
             log(proc.stderr or "")
