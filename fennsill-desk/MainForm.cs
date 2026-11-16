@@ -487,10 +487,9 @@ public class MainForm : Form
             if (root.TryGetProperty("error", out var err) && err.GetString() is { Length: > 0 } errText)
                 return "Cloud: " + errText;
 
-            // Prefer the cloud JSON error (403 = inactive sub / unlinked device, etc.)
+            string? detail = null;
             if (root.TryGetProperty("heartbeat", out var hbPayload))
             {
-                string? detail = null;
                 if (hbPayload.ValueKind == JsonValueKind.Object)
                 {
                     if (hbPayload.TryGetProperty("error", out var e1)) detail = e1.GetString();
@@ -500,22 +499,17 @@ public class MainForm : Form
                 }
                 else if (hbPayload.ValueKind == JsonValueKind.String)
                     detail = hbPayload.GetString();
-                if (!string.IsNullOrWhiteSpace(detail))
-                    return $"Cloud: heartbeat {hb} — {detail}";
             }
 
+            var detailText = detail ?? "";
             var cfBlocked = root.TryGetProperty("cloudflare_block", out var cf) && cf.ValueKind == JsonValueKind.True;
-            var err1010 = false;
-            if (root.TryGetProperty("heartbeat", out var hbErr) &&
-                hbErr.ValueKind == JsonValueKind.Object &&
-                hbErr.TryGetProperty("error", out var e1010))
-            {
-                var errStr = e1010.GetString() ?? "";
-                err1010 = errStr.Contains("1010", StringComparison.OrdinalIgnoreCase)
-                    || errStr.Contains("cloudflare", StringComparison.OrdinalIgnoreCase);
-            }
-            if (hb == 1010 || cfBlocked || err1010)
-                return "Cloud: Cloudflare 1010 — updating agent / wait 2 min, keep Fennsill open";
+            if (hb == 1010 || cfBlocked ||
+                detailText.Contains("1010", StringComparison.OrdinalIgnoreCase) ||
+                detailText.Contains("cloudflare", StringComparison.OrdinalIgnoreCase))
+                return "Cloud: Cloudflare 1010 — install Fennsill v0.1.13+, or whitelist /api/agent in Cloudflare";
+
+            if (!string.IsNullOrWhiteSpace(detail))
+                return $"Cloud: heartbeat {hb} — {detail}";
 
             if (hb == 403)
                 return "Cloud: heartbeat 403 — wait/backoff, or remint device key if it never clears";
