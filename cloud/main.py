@@ -119,9 +119,28 @@ async def app_js(_request: Request) -> Response:
     return FileResponse(WEB_DIR / "app.js", media_type="application/javascript")
 
 
+def _public_urls_from_request(request: Request) -> tuple[str, str]:
+    """Prefer the browser Host (mcp.fennsill.com) over a mis-set LAN PUBLIC_URL."""
+    xf_host = (request.headers.get("x-forwarded-host") or "").split(",")[0].strip()
+    host = xf_host or (request.headers.get("host") or "").strip()
+    xf_proto = (request.headers.get("x-forwarded-proto") or "").split(",")[0].strip()
+    # Explicit env always wins when it looks like a real public HTTPS URL.
+    if PUBLIC_URL.startswith("https://") and "192.168." not in PUBLIC_URL and "127.0.0.1" not in PUBLIC_URL:
+        return PUBLIC_URL, MCP_URL if MCP_URL.startswith("http") else f"{PUBLIC_URL}/mcp"
+    if host and not host.startswith("0.0.0.0") and "localhost" not in host:
+        proto = xf_proto or ("https" if "fennsill.com" in host else "http")
+        if "://" in host:
+            base = host.rstrip("/")
+        else:
+            base = f"{proto}://{host}".rstrip("/")
+        return base, f"{base}/mcp"
+    return PUBLIC_URL, MCP_URL
+
+
 @server.custom_route("/api/config", methods=["GET"])
-async def api_config(_request: Request) -> Response:
-    return _json(200, {"mcp_url": MCP_URL, "api_base": PUBLIC_URL})
+async def api_config(request: Request) -> Response:
+    api_base, mcp_url = _public_urls_from_request(request)
+    return _json(200, {"mcp_url": mcp_url, "api_base": api_base})
 
 
 @server.custom_route("/health", methods=["GET"])
