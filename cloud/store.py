@@ -601,6 +601,61 @@ def complete_job(device_auth: dict, job_id: str, *, ok: bool, error: str = "") -
         )
 
 
+def get_job_for_user(user_id: int, job_id: str) -> dict:
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM push_jobs WHERE id = ?", (job_id,)).fetchone()
+    if not row or int(row["user_id"]) != int(user_id):
+        raise StoreError("not_found", "Job not found.", 404)
+    return {
+        "job_id": row["id"],
+        "device_id": row["device_id"],
+        "title": row["title"],
+        "status": row["status"],
+        "error": row["error"] or "",
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+        "delivered": row["status"] == "done",
+    }
+
+
+def recent_jobs_for_user(user_id: int, device_id: str | None = None, limit: int = 5) -> list[dict]:
+    limit = max(1, min(int(limit or 5), 20))
+    with connect() as conn:
+        if device_id:
+            rows = conn.execute(
+                """
+                SELECT id, device_id, title, status, error, created_at, updated_at
+                FROM push_jobs
+                WHERE user_id = ? AND device_id = ?
+                ORDER BY created_at DESC LIMIT ?
+                """,
+                (user_id, device_id, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT id, device_id, title, status, error, created_at, updated_at
+                FROM push_jobs
+                WHERE user_id = ?
+                ORDER BY created_at DESC LIMIT ?
+                """,
+                (user_id, limit),
+            ).fetchall()
+    return [
+        {
+            "job_id": r["id"],
+            "device_id": r["device_id"],
+            "title": r["title"],
+            "status": r["status"],
+            "error": r["error"] or "",
+            "created_at": r["created_at"],
+            "updated_at": r["updated_at"],
+            "delivered": r["status"] == "done",
+        }
+        for r in rows
+    ]
+
+
 def get_update_manifest(channel: str) -> dict | None:
     with connect() as conn:
         row = conn.execute(

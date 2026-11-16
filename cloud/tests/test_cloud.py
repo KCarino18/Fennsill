@@ -197,6 +197,7 @@ class ToolRegistrationTests(unittest.TestCase):
         names = {t.name for t in cloud_main.server._tool_manager.list_tools()}
         expect("list_panels" in names, names)
         expect("push_artifact" in names, names)
+        expect("get_push_status" in names, names)
         expect("set_wifi" not in names, names)
 
 

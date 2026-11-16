@@ -6,6 +6,7 @@ Fennsill.exe) is what makes the panel “checked in” and delivers queued pages
 
 from __future__ import annotations
 
+import atexit
 import json
 import os
 import sys
@@ -24,6 +25,7 @@ sys.path.insert(0, str(ROOT / "templates"))
 
 DEFAULT_CLOUD = "https://mcp.fennsill.com"
 TOKEN_NAMES = ("cloud_device_token.txt", "device_token.txt")
+_SINGLETON_FD: int | None = None
 
 
 def _local_app() -> Path:
@@ -31,6 +33,58 @@ def _local_app() -> Path:
     if local:
         return Path(local) / "FennsillApp"
     return ROOT
+
+
+def acquire_singleton() -> bool:
+    """Only one cloud agent may run — duplicates steal jobs and fight over USB."""
+    global _SINGLETON_FD
+    path = _local_app() / "cloud_agent.lock"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(path), os.O_CREAT | os.O_RDWR)
+    try:
+        if sys.platform == "win32":
+            import msvcrt
+
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        os.close(fd)
+        print("cloud agent already running — exiting duplicate", flush=True)
+        return False
+    try:
+        os.ftruncate(fd, 0)
+        os.write(fd, str(os.getpid()).encode("ascii", errors="ignore"))
+    except OSError:
+        pass
+    _SINGLETON_FD = fd
+
+    def _release() -> None:
+        global _SINGLETON_FD
+        if _SINGLETON_FD is None:
+            return
+        try:
+            if sys.platform == "win32":
+                import msvcrt
+
+                os.lseek(_SINGLETON_FD, 0, os.SEEK_SET)
+                msvcrt.locking(_SINGLETON_FD, msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(_SINGLETON_FD, fcntl.LOCK_UN)
+        except OSError:
+            pass
+        try:
+            os.close(_SINGLETON_FD)
+        except OSError:
+            pass
+        _SINGLETON_FD = None
+
+    atexit.register(_release)
+    return True
 
 
 def cloud_base() -> str:
@@ -118,11 +172,30 @@ def run_job(job: dict) -> tuple[bool, str]:
     html = job.get("html")
     svg = job.get("svg")
     title = job.get("title") or ""
-    try:
-        intake_page(html=html, svg=svg, title=title, source="cloud", push=True)
-        return True, ""
-    except Exception as exc:
-        return False, str(exc)
+    last_err = "panel push failed"
+    # USB lock contention with Desk READY polls — retry before failing the job.
+    for attempt in range(6):
+        try:
+            result = intake_page(html=html, svg=svg, title=title, source="cloud", push=True)
+            if result.get("pushed"):
+                return True, ""
+            last_err = (
+                result.get("panel_error")
+                or result.get("note")
+                or "panel push failed"
+            )
+            busy = "busy" in last_err.lower() or "lock" in last_err.lower()
+            if busy and attempt < 5:
+                time.sleep(2 + attempt)
+                continue
+            return False, last_err
+        except Exception as exc:
+            last_err = str(exc)
+            if attempt < 5:
+                time.sleep(2 + attempt)
+                continue
+            return False, last_err
+    return False, last_err
 
 
 def write_status(payload: dict) -> None:
@@ -198,6 +271,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if not acquire_singleton():
+        raise SystemExit(0)
     # Never exit on transient errors — offline drops when this process dies.
     while True:
         try:

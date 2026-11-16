@@ -54,9 +54,33 @@ public class MainForm : Form
         {
             if (_cloudAgentProcess is { HasExited: false })
                 return;
+            // Another Desk window (or a detached agent) may already be heartbeating.
+            if (CloudAgentHealthy())
+                return;
             _cloudAgentProcess = StartPythonScript("cloud_agent.py");
         }
         catch { /* best effort */ }
+    }
+
+    static bool CloudAgentHealthy()
+    {
+        try
+        {
+            var path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "FennsillApp",
+                "cloud_agent_status.json");
+            if (!File.Exists(path)) return false;
+            if ((DateTime.UtcNow - File.GetLastWriteTimeUtc(path)).TotalSeconds > 45)
+                return false;
+            var text = File.ReadAllText(path);
+            return text.Contains("\"ok\": true", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("\"ok\":true", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     static string FindProjectRoot()
@@ -322,7 +346,8 @@ public class MainForm : Form
         _liveProcess = StartPythonScript("live_watch.py");
         _liveJobsProcess = StartPythonScript("live_jobs.py");
         // Cloud MCP jobs land here — heartbeat makes the panel “checked in”.
-        _cloudAgentProcess = StartPythonScript("cloud_agent.py");
+        // Only one agent process system-wide (duplicates steal jobs / fight USB).
+        EnsureCloudAgentRunning();
     }
 
     Process? StartPythonScript(params string[] names)

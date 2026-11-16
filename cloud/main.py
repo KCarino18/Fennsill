@@ -40,7 +40,11 @@ server = MCPServer(
     instructions=(
         "Fennsill cloud pushes finished 800x480 black/white self-contained HTML/SVG "
         "to the buyer's e-ink panel via a queued job. Call list_panels, then push_artifact "
-        "with that device_id. Do not create a web Artifact preview as a substitute. "
+        "with that device_id. After push_artifact, call get_push_status with the job_id "
+        "(retry a few times) until status is done or failed — only then say the screen "
+        "refreshed or report the error. Do not say 'unconfirmed' without checking. "
+        "Offline at enqueue time is OK; the desk agent still delivers. "
+        "Do not create a web Artifact preview as a substitute. "
         "Do not send Wi-Fi credentials — Wi-Fi stays on the panel via the local USB agent."
     ),
 )
@@ -281,7 +285,8 @@ def list_panels(ctx: Context) -> str:
     description=(
         "Push a finished 800x480 black/white HTML or SVG page to a linked Fennsill panel. "
         "Requires device_id from list_panels. Self-contained only — no external URLs. "
-        "Delivery is async via the buyer's Fennsill.exe agent (USB). "
+        "Returns job_id with status=queued. Then call get_push_status(job_id) until "
+        "delivered=true (done) or status=failed. "
         "If list_panels shows offline, still enqueue — the desk agent will pick it up when online. "
         "Do not tell the user the push failed solely because online was false at enqueue time."
     )
@@ -304,7 +309,40 @@ def push_artifact(
             svg=args["svg"],
             title=title or "",
         )
-        return _tool_result({"ok": True, **result})
+        return _tool_result(
+            {
+                "ok": True,
+                **result,
+                "delivered": False,
+                "next": "Call get_push_status with this job_id until status is done or failed.",
+            }
+        )
+    except SecurityError as exc:
+        return _tool_result({"ok": False, "error": str(exc)})
+    except store.StoreError as exc:
+        return _tool_result({"ok": False, "error": exc.message, "code": exc.code})
+
+
+@server.tool(
+    description=(
+        "Check whether a push_artifact job reached the panel. "
+        "Pass job_id from push_artifact. Poll until status is done (delivered) or failed. "
+        "Optionally pass device_id with no job_id to see recent pushes for that panel."
+    )
+)
+def get_push_status(
+    ctx: Context,
+    job_id: str | None = None,
+    device_id: str | None = None,
+) -> str:
+    try:
+        user = _mcp_user(ctx)
+        store.require_mcp_access(int(user["id"]))
+        if job_id:
+            return _tool_result({"ok": True, **store.get_job_for_user(int(user["id"]), job_id)})
+        did = validate_device_id(device_id) if device_id else None
+        jobs = store.recent_jobs_for_user(int(user["id"]), did, limit=5)
+        return _tool_result({"ok": True, "jobs": jobs})
     except SecurityError as exc:
         return _tool_result({"ok": False, "error": str(exc)})
     except store.StoreError as exc:
