@@ -8,9 +8,9 @@ namespace FennsillSetup;
 static class Program
 {
     const string ServiceName = "FennsillAgent";
-    const string ServiceDisplayName = "Fennsill Agent";
+    const string ServiceDisplayName = "FennSill Agent";
     const string UninstallRegPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Fennsill";
-    const string ProductName = "Fennsill";
+    const string ProductName = "FennSill";
 
     [STAThread]
     static void Main(string[] args)
@@ -38,7 +38,7 @@ static class Program
         catch (Exception ex)
         {
             if (!quiet)
-                MessageBox.Show(ex.ToString(), "Fennsill Setup failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.ToString(), "FennSill Setup failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
             Environment.ExitCode = 1;
         }
     }
@@ -65,12 +65,12 @@ static class Program
         if (!quiet)
         {
             var result = MessageBox.Show(
-                "Install Fennsill on this PC?\n\n" +
+                "Install FennSill on this PC?\n\n" +
                 "• Desk app (Device ID / Paste device key)\n" +
-                "• Fennsill Agent Windows service (USB cloud push — stays on when Desk is closed)\n" +
-                "• Adds Fennsill to Installed apps (Settings → Apps)\n\n" +
+                "• FennSill Agent Windows service (USB cloud push — stays on when Desk is closed)\n" +
+                "• Adds FennSill to Installed apps (Settings → Apps)\n\n" +
                 "Admin permission is required to install the service.",
-                "Fennsill Setup",
+                "FennSill Setup",
                 MessageBoxButtons.OKCancel,
                 MessageBoxIcon.Information);
             if (result != DialogResult.OK) return;
@@ -134,18 +134,21 @@ static class Program
             ?? throw new FileNotFoundException("Fennsill.exe missing after install.");
         TryDesktopShortcut(deskExe, dest);
         TryStartMenuShortcut(deskExe, dest);
+        // Remove legacy shortcut name from older installs.
+        TryDeleteShortcut(
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Fennsill.lnk"));
         RegisterUninstall(dest, deskExe, setupDest);
 
         if (!quiet)
         {
             MessageBox.Show(
-                "Fennsill is installed.\n\n" +
+                "FennSill is installed.\n\n" +
                 $"Folder: {dest}\n" +
-                "Service: Fennsill Agent (Automatic)\n" +
+                "Service: FennSill Agent (Automatic)\n" +
                 "Listed under Settings → Apps → Installed apps\n\n" +
                 "Next: open Desk → copy Device ID → link on the website → Paste device key.\n" +
                 "ChatGPT/Claude use the cloud MCP URL + Bearer header.",
-                "Fennsill Setup",
+                "FennSill Setup",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
         }
@@ -170,8 +173,8 @@ static class Program
         if (!quiet)
         {
             var result = MessageBox.Show(
-                "Uninstall Fennsill?\n\nThis removes the Agent service, Desk files, shortcuts, and the Apps entry.",
-                "Fennsill Setup",
+                "Uninstall FennSill?\n\nThis removes the Agent service, Desk files, shortcuts, and the Apps entry.",
+                "FennSill Setup",
                 MessageBoxButtons.OKCancel,
                 MessageBoxIcon.Warning);
             if (result != DialogResult.OK) return;
@@ -184,19 +187,19 @@ static class Program
 
         var dest = ResolveInstallRoot();
         TryDeleteShortcut(
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Fennsill.lnk"));
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "FennSill.lnk"));
         TryDeleteShortcut(
             Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu),
                 "Programs",
-                "Fennsill",
-                "Fennsill.lnk"));
+                "FennSill",
+                "FennSill.lnk"));
         try
         {
             var startDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu),
                 "Programs",
-                "Fennsill");
+                "FennSill");
             if (Directory.Exists(startDir))
                 Directory.Delete(startDir, recursive: true);
         }
@@ -249,8 +252,8 @@ static class Program
         if (!quiet)
         {
             MessageBox.Show(
-                "Fennsill has been uninstalled.",
-                "Fennsill Setup",
+                "FennSill has been uninstalled.",
+                "FennSill Setup",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
         }
@@ -291,7 +294,7 @@ static class Program
         var sizeKb = EstimateSizeKb(dest);
         key.SetValue("DisplayName", ProductName);
         key.SetValue("DisplayVersion", ProductVersion);
-        key.SetValue("Publisher", "Fennsill");
+        key.SetValue("Publisher", "FennSill");
         key.SetValue("InstallLocation", dest);
         key.SetValue("InstallDate", DateTime.Now.ToString("yyyyMMdd"));
         key.SetValue("DisplayIcon", deskExe + ",0");
@@ -393,7 +396,7 @@ static class Program
         if (create != 0)
             throw new InvalidOperationException(
                 $"Could not create Windows service {ServiceName} (sc exit {create}).");
-        RunSc($"description {ServiceName} \"Delivers cloud MCP pages to the Fennsill USB e-ink panel.\"");
+        RunSc($"description {ServiceName} \"Delivers cloud MCP pages to the FennSill USB e-ink panel.\"");
     }
 
     static void StartService()
@@ -459,7 +462,7 @@ static class Program
     static void TryDesktopShortcut(string exePath, string workDir)
     {
         TryWriteShortcut(
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Fennsill.lnk"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "FennSill.lnk"),
             exePath,
             workDir);
     }
@@ -471,9 +474,9 @@ static class Program
             var dir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu),
                 "Programs",
-                "Fennsill");
+                "FennSill");
             Directory.CreateDirectory(dir);
-            TryWriteShortcut(Path.Combine(dir, "Fennsill.lnk"), exePath, workDir);
+            TryWriteShortcut(Path.Combine(dir, "FennSill.lnk"), exePath, workDir);
         }
         catch
         {
@@ -492,7 +495,7 @@ static class Program
             var sc = shell.CreateShortcut(lnkPath);
             sc.TargetPath = exePath;
             sc.WorkingDirectory = workDir;
-            sc.Description = "Fennsill Desk";
+            sc.Description = "FennSill Desk";
             sc.Save();
         }
         catch

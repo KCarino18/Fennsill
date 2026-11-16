@@ -91,7 +91,7 @@ static class DeskInstall
             var parts = rel.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             if (parts.Any(p => p is "__pycache__" or "browsers" or "pages" or "inbox"))
                 continue;
-            // cloud_agent.py is owned by the Fennsill Agent Windows service / Setup.
+            // cloud_agent.py is owned by the FennSill Agent Windows service / Setup.
             // Overwriting it from an older Desk payload caused post-reboot agent_crash.
             if (parts.Any(p => string.Equals(p, "cloud_agent.py", StringComparison.OrdinalIgnoreCase)))
                 continue;
@@ -118,7 +118,7 @@ static class DeskInstall
         {
             if (!File.Exists(exePath)) return;
             var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-            var lnk = Path.Combine(desktop, "Fennsill.lnk");
+            var lnk = Path.Combine(desktop, "FennSill.lnk");
             var t = Type.GetTypeFromProgID("WScript.Shell");
             if (t == null) return;
             dynamic shell = Activator.CreateInstance(t)!;

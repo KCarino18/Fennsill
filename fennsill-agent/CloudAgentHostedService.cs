@@ -19,7 +19,7 @@ sealed class CloudAgentHostedService : BackgroundService
     {
         InstallPaths.ApplyProcessEnvironment();
         var root = InstallPaths.ResolveInstallRoot();
-        _log.LogInformation("Fennsill Agent root={Root}", root);
+        _log.LogInformation("FennSill Agent root={Root}", root);
 
         while (!stoppingToken.IsCancellationRequested)
         {

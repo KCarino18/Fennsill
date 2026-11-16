@@ -27,7 +27,7 @@ public sealed class MainForm : Form
         _repoRoot = FindRepoRoot();
         _factoryDir = ResolveFactoryDir(_repoRoot);
 
-        Text = "Fennsill Factory";
+        Text = "FennSill Factory";
         Width = 720;
         Height = 560;
         MinimumSize = new Size(640, 480);
@@ -38,7 +38,7 @@ public sealed class MainForm : Form
 
         var title = new Label
         {
-            Text = "Fennsill Factory",
+            Text = "FennSill Factory",
             Font = new Font("Segoe UI", 18f, FontStyle.Bold),
             AutoSize = true,
             Location = new Point(24, 20),

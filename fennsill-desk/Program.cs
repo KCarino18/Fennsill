@@ -11,8 +11,8 @@ static class Program
         if (!created)
         {
             MessageBox.Show(
-                "Fennsill is already running.",
-                "Fennsill",
+                "FennSill is already running.",
+                "FennSill",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
             return;

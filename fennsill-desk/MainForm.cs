@@ -6,7 +6,7 @@ namespace FennsillDesk;
 
 /// <summary>
 /// Fennsill desk: panel identity + status. USB cloud delivery is owned by the
-/// Fennsill Agent Windows service — Desk never starts or kills cloud_agent.py.
+/// FennSill Agent Windows service — Desk never starts or kills cloud_agent.py.
 /// Page pushes are MCP-only (no local Import/Paste page).
 /// </summary>
 public class MainForm : Form
@@ -114,7 +114,7 @@ public class MainForm : Form
         var text = Color.FromArgb(242, 240, 235);
         var muted = Color.FromArgb(154, 149, 140);
 
-        Text = "Fennsill";
+        Text = "FennSill";
         Width = 760;
         Height = 560;
         MinimumSize = new Size(640, 480);
@@ -134,7 +134,7 @@ public class MainForm : Form
 
         var title = new Label
         {
-            Text = "Fennsill",
+            Text = "FennSill",
             Font = new Font("Segoe UI Semibold", 22F),
             ForeColor = text,
             AutoSize = true,
@@ -155,7 +155,7 @@ public class MainForm : Form
 
         var identityLabel = new Label
         {
-            Text = "Copy these into the Fennsill website (Link your panel):",
+            Text = "Copy these into the FennSill website (Link your panel):",
             ForeColor = muted,
             AutoSize = true,
             Location = new Point(28, 148),
@@ -214,7 +214,7 @@ public class MainForm : Form
             var value = getter();
             if (string.IsNullOrWhiteSpace(value))
             {
-                MessageBox.Show(this, "Nothing to copy yet — plug the panel in so Fennsill can bind it.", "Fennsill");
+                MessageBox.Show(this, "Nothing to copy yet — plug the panel in so FennSill can bind it.", "FennSill");
                 return;
             }
             try
@@ -256,7 +256,7 @@ public class MainForm : Form
         _hint.Text =
             "Device ID → website “Link your panel” only (not the ChatGPT/Claude MCP form).\n" +
             "MCP form: URL + Headers Authorization = Bearer <token> (cloud account).\n" +
-            "Mint device key → Paste device key here. The Fennsill Agent service keeps the panel checked in.";
+            "Mint device key → Paste device key here. The FennSill Agent service keeps the panel checked in.";
 
         var actions = new FlowLayoutPanel
         {
@@ -384,7 +384,7 @@ public class MainForm : Form
         if (_panelReady)
         {
             _readyBanner.ForeColor = Color.FromArgb(120, 200, 140);
-            _readyBanner.Text = "Fennsill panel connected";
+            _readyBanner.Text = "FennSill panel connected";
             var port = string.IsNullOrEmpty(_panelPorts) ? "Panel connected." : $"Panel {_panelPorts}";
             _status.Text = port + "  ·  " + cloudLine;
         }
@@ -433,7 +433,7 @@ public class MainForm : Form
                     : $"Cloud: checked in ({did})";
 
             if (age.TotalSeconds > 90)
-                return "Cloud: agent stale — check Windows service “Fennsill Agent” is running";
+                return "Cloud: agent stale — check Windows service “FennSill Agent” is running";
 
             if (root.TryGetProperty("error", out var err) && err.GetString() is { Length: > 0 } errText)
                 return "Cloud: " + errText;
@@ -457,7 +457,7 @@ public class MainForm : Form
             if (hb == 1010 || cfBlocked ||
                 detailText.Contains("1010", StringComparison.OrdinalIgnoreCase) ||
                 detailText.Contains("cloudflare", StringComparison.OrdinalIgnoreCase))
-                return "Cloud: Cloudflare 1010 — install Fennsill v0.1.13+, or whitelist /api/agent in Cloudflare";
+                return "Cloud: Cloudflare 1010 — install FennSill v0.1.13+, or whitelist /api/agent in Cloudflare";
 
             if (!string.IsNullOrWhiteSpace(detail))
                 return $"Cloud: heartbeat {hb} — {detail}";
@@ -533,7 +533,7 @@ public class MainForm : Form
                 this,
                 "Clipboard is empty.\n\nOn the account site: Mint device key → Copy → Paste device key here.\n" +
                 "If your site is a LAN URL (not mcp.fennsill.com), also save that base URL to %LOCALAPPDATA%\\FennsillApp\\cloud_url.txt",
-                "Fennsill");
+                "FennSill");
             return;
         }
 
@@ -560,9 +560,9 @@ public class MainForm : Form
             _status.Text = "Cloud URL saved — " + maybeUrl;
             MessageBox.Show(
                 this,
-                $"Cloud URL saved:\n{maybeUrl}\n\nThe Fennsill Agent service will pick this up on its next poll.\n" +
+                $"Cloud URL saved:\n{maybeUrl}\n\nThe FennSill Agent service will pick this up on its next poll.\n" +
                 "Now copy the device key from the site and Paste device key again.",
-                "Fennsill",
+                "FennSill",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
             return;
@@ -576,7 +576,7 @@ public class MainForm : Form
             MessageBox.Show(
                 this,
                 "That clipboard text does not look like a device key.\n\nMint the key on the account site, copy it, then try again.",
-                "Fennsill");
+                "FennSill");
             return;
         }
         try
@@ -595,12 +595,12 @@ public class MainForm : Form
 
         _status.Text = CloudAgentHealthy()
             ? "Cloud device key saved — agent should check in shortly…"
-            : "Cloud device key saved — start/repair the Fennsill Agent Windows service if status stays offline";
+            : "Cloud device key saved — start/repair the FennSill Agent Windows service if status stays offline";
         MessageBox.Show(
             this,
-            "Device key saved.\n\nKeep the panel plugged in. The Fennsill Agent service delivers ChatGPT/Claude pages over USB.\n" +
+            "Device key saved.\n\nKeep the panel plugged in. The FennSill Agent service delivers ChatGPT/Claude pages over USB.\n" +
             "Agent cloud = cloud_url.txt if set, otherwise https://mcp.fennsill.com",
-            "Fennsill",
+            "FennSill",
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);
     }

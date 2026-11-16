@@ -99,8 +99,8 @@ $badge = "**Latest release: [$Tag](https://github.com/KCarino18/Fennsill/release
 $table = @"
 | What | Download |
 |------|----------|
-| **Fennsill Setup** (Desk + Agent service — run as Admin once) | [FennsillSetup.exe]($base/FennsillSetup.exe) |
-| **Fennsill Factory** (flasher — manufacturing PC) | [FennsillFactory.exe]($base/FennsillFactory.exe) |
+| **FennSill Setup** (Desk + Agent service — run as Admin once) | [FennsillSetup.exe]($base/FennsillSetup.exe) |
+| **FennSill Factory** (flasher — manufacturing PC) | [FennsillFactory.exe]($base/FennsillFactory.exe) |
 | **All releases** | [github.com/KCarino18/Fennsill/releases](https://github.com/KCarino18/Fennsill/releases) |
 "@
 
@@ -135,13 +135,13 @@ if (-not $SkipPush) {
 }
 
 $notes = @"
-Fennsill $Tag
+FennSill $Tag
 
 - Setup (Desk + Agent Windows service): $base/FennsillSetup.exe
 - Factory: $base/FennsillFactory.exe
 
 Run FennsillSetup.exe once as Administrator. It installs Desk, the always-on USB Agent service, and a desktop shortcut. Closing Desk no longer drops cloud check-in. Page pushes are MCP-only.
 "@
-gh release create $Tag @assets --title "Fennsill $Tag" --notes $notes
+gh release create $Tag @assets --title "FennSill $Tag" --notes $notes
 Write-Host "Published $Tag"
 Write-Host ($assets -join "`n")

@@ -7,7 +7,7 @@ namespace FennsillAgent;
 static class InstallPaths
 {
     public const string ServiceName = "FennsillAgent";
-    public const string ServiceDisplayName = "Fennsill Agent";
+    public const string ServiceDisplayName = "FennSill Agent";
 
     public static string ProgramDataDir =>
         Path.Combine(

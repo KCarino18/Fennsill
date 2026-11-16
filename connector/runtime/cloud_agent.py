@@ -432,7 +432,7 @@ def main() -> int:
     if not token:
         msg = (
             "No cloud device key. On the account site: Link panel -> Mint device key -> "
-            "paste that key into Fennsill Desk (Paste device key). The Agent service delivers pushes."
+            "paste that key into FennSill Desk (Paste device key). The Agent service delivers pushes."
         )
         print(msg, flush=True)
         write_status({"ok": False, "error": "missing_device_token", "message": msg})
