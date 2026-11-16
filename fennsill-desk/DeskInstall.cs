@@ -88,8 +88,12 @@ static class DeskInstall
         foreach (var file in Directory.EnumerateFiles(src, "*", SearchOption.AllDirectories))
         {
             var rel = Path.GetRelativePath(src, file);
-            if (rel.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                    .Any(p => p is "__pycache__" or "browsers" or "pages" or "inbox"))
+            var parts = rel.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (parts.Any(p => p is "__pycache__" or "browsers" or "pages" or "inbox"))
+                continue;
+            // cloud_agent.py is owned by the Fennsill Agent Windows service / Setup.
+            // Overwriting it from an older Desk payload caused post-reboot agent_crash.
+            if (parts.Any(p => string.Equals(p, "cloud_agent.py", StringComparison.OrdinalIgnoreCase)))
                 continue;
             var target = Path.Combine(dst, rel);
             try
