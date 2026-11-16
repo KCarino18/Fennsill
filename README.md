@@ -6,6 +6,8 @@ Cloud MCP uses **SQLite** — **no SQL Server** required.
 
 ## One-click downloads (Windows)
 
+**Latest release: [v0.1.13](https://github.com/KCarino18/Fennsill/releases/tag/v0.1.13)** — 2026-11-15
+
 | What | Download |
 |------|----------|
 | **Fennsill** (desk — self-installs to LocalAppData) | [Fennsill.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/Fennsill.exe) |
@@ -70,3 +72,12 @@ dotnet publish fennsill-factory\FennsillFactory.csproj -c Release -o factory
 dotnet publish fennsill-setup\FennsillSetup.csproj -c Release -o releases\setup
 python installer\build_dist.py
 ```
+
+### Ship a GitHub release (updates README version automatically)
+
+```powershell
+powershell -File installer\publish_release.ps1 -Version 0.1.14
+powershell -File installer\publish_release.ps1 -Version 0.1.14 -Factory
+```
+
+That script builds the exe(s), rewrites the **Latest release** line in this README, commits, pushes, and runs `gh release create`.
