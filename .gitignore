@@ -59,6 +59,7 @@ updates/update_key.hex
 fennsill-*/bin/
 fennsill-*/obj/
 fennsill-*/out/
+fennsill-setup/setup-payload/
 
 
 server/*.db

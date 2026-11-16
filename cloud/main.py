@@ -45,9 +45,9 @@ server = MCPServer(
         "when the panel refreshed — only then tell the user the screen updated. "
         "If delivered is false, report status/error or call get_push_status. "
         "Do not say 'unconfirmed' when delivered is true. "
-        "Offline at enqueue time is OK; the desk agent still delivers. "
+        "Offline at enqueue time is OK; the Fennsill Agent Windows service still delivers over USB. "
         "Do not create a web Artifact preview as a substitute. "
-        "Do not send Wi-Fi credentials — Wi-Fi stays on the panel via the local USB agent."
+        "Do not send Wi-Fi credentials — delivery is hardwired USB via the local Agent service."
     ),
 )
 
@@ -299,7 +299,7 @@ def _tool_result(payload: Any) -> str:
         "and whether last_seen_at/online is set. If panels is empty, the buyer must link "
         "the panel id on mcp.fennsill.com using the same account as this MCP bearer. "
         "If linked but online=false and last_seen_at is null, they must mint a device key "
-        "on that same account, paste it into Fennsill.exe, and keep the agent running."
+        "on that same account, paste it into Fennsill Desk; the Agent service must be running."
     )
 )
 def list_panels(ctx: Context) -> str:
@@ -315,8 +315,8 @@ def list_panels(ctx: Context) -> str:
         elif not any(p.get("last_seen_at") for p in panels):
             hint = (
                 "Panel(s) linked but none have heartbeated for this account. "
-                "Mint a device key on this same account, paste it into Fennsill.exe, "
-                "keep the agent running. A key from another account will not activate these rows."
+                "Mint a device key on this same account, paste it into Fennsill Desk, "
+                "and ensure the Fennsill Agent service is running. A key from another account will not activate these rows."
             )
         payload: dict[str, Any] = {"ok": True, "panels": panels}
         if hint:
@@ -332,7 +332,7 @@ def list_panels(ctx: Context) -> str:
         "Requires device_id from list_panels. Self-contained only — no external URLs. "
         "Waits for the desk USB agent to finish (up to ~90s) and returns delivered=true "
         "when the panel refresh succeeds, or delivered=false with error/status if not. "
-        "If list_panels shows offline, still enqueue — the desk agent will pick it up when online. "
+        "If list_panels shows offline, still enqueue — the Agent service will pick it up when online. "
         "Do not tell the user the push failed solely because online was false at enqueue time. "
         "Only say the screen refreshed when delivered is true."
     )
@@ -377,7 +377,7 @@ def push_artifact(
                     else (
                         f"Push failed: {status.get('error')}"
                         if status["status"] == "failed"
-                        else "Queued; desk agent has not confirmed the panel refresh yet. "
+                        else "Queued; Agent service has not confirmed the panel refresh yet. "
                         "Call get_push_status with this job_id shortly."
                     )
                 ),

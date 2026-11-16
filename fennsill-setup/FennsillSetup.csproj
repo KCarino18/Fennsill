@@ -8,12 +8,23 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>FennsillSetup</AssemblyName>
     <ApplicationIcon>..\fennsill-desk\fennsill.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <DebugType>none</DebugType>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.15" />
+  </ItemGroup>
+
+  <!-- Staged by publish_release.ps1 into setup-payload\ before publishing Setup. -->
+  <ItemGroup Condition="Exists('setup-payload\Fennsill.exe')">
+    <Content Include="setup-payload\**\*" Link="payload\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 
 </Project>

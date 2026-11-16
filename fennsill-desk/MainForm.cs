@@ -5,13 +5,13 @@ using System.Text.Json;
 namespace FennsillDesk;
 
 /// <summary>
-/// Fennsill desk: panel status + local workers. AI pushes go straight to the
-/// panel via cloud MCP — no accumulating gallery of every AI page.
+/// Fennsill desk: panel identity + status. USB cloud delivery is owned by the
+/// Fennsill Agent Windows service — Desk never starts or kills cloud_agent.py.
+/// Page pushes are MCP-only (no local Import/Paste page).
 /// </summary>
 public class MainForm : Form
 {
     readonly string _root;
-    readonly string _pagesDir;
     readonly Label _readyBanner = new();
     readonly Label _status = new();
     readonly Label _hint = new();
@@ -19,10 +19,6 @@ public class MainForm : Form
     readonly TextBox _serialBox = new();
     readonly TextBox _installKeyBox = new();
     readonly System.Windows.Forms.Timer _panelTimer = new();
-    Process? _bridgeProcess;
-    Process? _liveProcess;
-    Process? _liveJobsProcess;
-    Process? _cloudAgentProcess;
     bool _panelReady;
     bool _setupRanForThisPlug;
     string _panelPorts = "";
@@ -33,35 +29,13 @@ public class MainForm : Form
     public MainForm()
     {
         _root = FindProjectRoot();
-        _pagesDir = Path.Combine(_root, "connector", "pages");
-        Directory.CreateDirectory(_pagesDir);
+        Directory.CreateDirectory(Path.Combine(_root, "connector", "pages"));
         Directory.CreateDirectory(Path.Combine(_root, "connector", "inbox"));
         BuildUi();
-        StartBackgroundServices();
         _panelTimer.Interval = 3000;
-        _panelTimer.Tick += async (_, _) =>
-        {
-            EnsureCloudAgentRunning();
-            await RefreshPanelStatus();
-        };
+        _panelTimer.Tick += async (_, _) => await RefreshPanelStatus();
         _panelTimer.Start();
         _ = RefreshPanelStatus();
-    }
-
-    void EnsureCloudAgentRunning()
-    {
-        try
-        {
-            if (_cloudAgentProcess is { HasExited: false })
-                return;
-            // Prefer a live orphan (Desk closed but agent left running) over starting a second.
-            if (CloudAgentProcessRunning())
-                return;
-            // Do not trust status.json alone — kill_orphans can leave a fresh file
-            // after the process is already dead, which previously skipped restart.
-            _cloudAgentProcess = StartPythonScript("cloud_agent.py");
-        }
-        catch { /* best effort */ }
     }
 
     static bool CloudAgentHealthy()
@@ -83,47 +57,6 @@ public class MainForm : Form
         {
             return false;
         }
-    }
-
-    static bool CloudAgentProcessRunning()
-    {
-        try
-        {
-            var lockPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "FennsillApp",
-                "cloud_agent.lock");
-            if (!File.Exists(lockPath)) return false;
-            var text = File.ReadAllText(lockPath).Trim();
-            if (!int.TryParse(text.Split('\n', '\r')[0].Trim(), out var pid) || pid <= 0)
-                return false;
-            using var p = Process.GetProcessById(pid);
-            return !p.HasExited;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    static void KillAllCloudAgents()
-    {
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = "powershell",
-                Arguments =
-                    "-NoProfile -Command \"Get-CimInstance Win32_Process -Filter \\\"Name='python.exe'\\\" | " +
-                    "Where-Object { $_.CommandLine -match 'cloud_agent\\.py' } | " +
-                    "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }\"",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-            using var p = Process.Start(psi);
-            p?.WaitForExit(8000);
-        }
-        catch { /* best effort */ }
     }
 
     static string FindProjectRoot()
@@ -323,7 +256,7 @@ public class MainForm : Form
         _hint.Text =
             "Device ID → website “Link your panel” only (not the ChatGPT/Claude MCP form).\n" +
             "MCP form: URL + Headers Authorization = Bearer <token> (cloud account).\n" +
-            "Then Mint device key → Paste device key here, keep Fennsill open (panel check-in).";
+            "Mint device key → Paste device key here. The Fennsill Agent service keeps the panel checked in.";
 
         var actions = new FlowLayoutPanel
         {
@@ -347,16 +280,10 @@ public class MainForm : Form
         };
 
         var refresh = ActionBtn("Refresh");
-        var importBtn = ActionBtn("Import HTML");
-        var paste = ActionBtn("Paste page");
         var pasteKey = ActionBtn("Paste device key");
         refresh.Click += async (_, _) => await RefreshPanelStatus();
-        importBtn.Click += async (_, _) => await ImportHtmlFile();
-        paste.Click += async (_, _) => await PastePage();
         pasteKey.Click += (_, _) => PasteCloudDeviceKey();
         actions.Controls.Add(refresh);
-        actions.Controls.Add(importBtn);
-        actions.Controls.Add(paste);
         actions.Controls.Add(pasteKey);
 
         top.Controls.Add(title);
@@ -377,56 +304,6 @@ public class MainForm : Form
         _installKeyBox.Text = string.IsNullOrEmpty(_installKey) ? "(not bound yet)" : _installKey;
     }
 
-    void StartBackgroundServices()
-    {
-        try
-        {
-            using var killer = StartPythonScript("kill_orphans.py");
-            killer?.WaitForExit(8000);
-        }
-        catch { /* still start fresh workers */ }
-        _bridgeProcess = StartPythonScript("http_bridge.py");
-        _liveProcess = StartPythonScript("live_watch.py");
-        _liveJobsProcess = StartPythonScript("live_jobs.py");
-        // Cloud MCP jobs land here — heartbeat makes the panel “checked in”.
-        // kill_orphans already cleared duplicates; always start one fresh (status.json
-        // may still look healthy after the kill and must not block restart).
-        Kill(_cloudAgentProcess);
-        _cloudAgentProcess = StartPythonScript("cloud_agent.py");
-    }
-
-    Process? StartPythonScript(params string[] names)
-    {
-        var script = ResolveConnectorScript(names);
-        if (script == null) return null;
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = FindPython(),
-                Arguments = $"\"{script}\"",
-                WorkingDirectory = _root,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-            psi.Environment["FENNSILL_ROOT"] = _root;
-            psi.Environment["FENNSILL_PAGES"] = _pagesDir;
-            psi.Environment["PLAYWRIGHT_BROWSERS_PATH"] = Path.Combine(_root, "connector", "browsers");
-            psi.Environment["PYTHONUNBUFFERED"] = "1";
-            // Workers import sibling modules from connector/ (or connector/runtime/).
-            var scriptDir = Path.GetDirectoryName(script);
-            if (!string.IsNullOrEmpty(scriptDir))
-                psi.Environment["PYTHONPATH"] = scriptDir +
-                    (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("PYTHONPATH"))
-                        ? ""
-                        : (Path.PathSeparator + Environment.GetEnvironmentVariable("PYTHONPATH")));
-            return Process.Start(psi);
-        }
-        catch
-        {
-            return null;
-        }
-    }
 
     static bool UsbPausedForCloudPush()
     {
@@ -556,7 +433,7 @@ public class MainForm : Form
                     : $"Cloud: checked in ({did})";
 
             if (age.TotalSeconds > 90)
-                return "Cloud: agent stale — keep Fennsill open / Paste device key again";
+                return "Cloud: agent stale — check Windows service “Fennsill Agent” is running";
 
             if (root.TryGetProperty("error", out var err) && err.GetString() is { Length: > 0 } errText)
                 return "Cloud: " + errText;
@@ -645,19 +522,6 @@ public class MainForm : Form
         catch { /* form may be closing */ }
     }
 
-    async Task PastePage()
-    {
-        string html;
-        try { html = Clipboard.GetText(); }
-        catch { html = ""; }
-        if (string.IsNullOrWhiteSpace(html))
-        {
-            MessageBox.Show(this, "Clipboard is empty.", "Fennsill");
-            return;
-        }
-        await IngestHtml(html, "clipboard");
-    }
-
     void PasteCloudDeviceKey()
     {
         string text;
@@ -693,13 +557,11 @@ public class MainForm : Form
                 MessageBox.Show(this, ex.Message, "Could not save cloud URL");
                 return;
             }
-            KillAllCloudAgents();
-            Kill(_cloudAgentProcess);
-            _cloudAgentProcess = StartPythonScript("cloud_agent.py");
             _status.Text = "Cloud URL saved — " + maybeUrl;
             MessageBox.Show(
                 this,
-                $"Cloud URL saved:\n{maybeUrl}\n\nNow copy the device key from the site and Paste device key again.",
+                $"Cloud URL saved:\n{maybeUrl}\n\nThe Fennsill Agent service will pick this up on its next poll.\n" +
+                "Now copy the device key from the site and Paste device key again.",
                 "Fennsill",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
@@ -731,151 +593,22 @@ public class MainForm : Form
             return;
         }
 
-        KillAllCloudAgents();
-        Kill(_cloudAgentProcess);
-        _cloudAgentProcess = StartPythonScript("cloud_agent.py");
-        _status.Text = "Cloud device key saved — agent checking in…";
+        _status.Text = CloudAgentHealthy()
+            ? "Cloud device key saved — agent should check in shortly…"
+            : "Cloud device key saved — start/repair the Fennsill Agent Windows service if status stays offline";
         MessageBox.Show(
             this,
-            "Device key saved.\n\nKeep Fennsill open with the panel plugged in so ChatGPT/Claude can push pages.\n" +
+            "Device key saved.\n\nKeep the panel plugged in. The Fennsill Agent service delivers ChatGPT/Claude pages over USB.\n" +
             "Agent cloud = cloud_url.txt if set, otherwise https://mcp.fennsill.com",
             "Fennsill",
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);
     }
 
-    async Task ImportHtmlFile()
-    {
-        using var dlg = new OpenFileDialog
-        {
-            Filter = "HTML (*.html;*.htm)|*.html;*.htm|All files|*.*",
-            Title = "Import HTML page",
-        };
-        if (dlg.ShowDialog(this) != DialogResult.OK) return;
-        try
-        {
-            var html = await File.ReadAllTextAsync(dlg.FileName);
-            await IngestHtml(html, Path.GetFileName(dlg.FileName));
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "Import failed");
-        }
-    }
-
-    async Task IngestHtml(string html, string source)
-    {
-        var script = ResolveConnectorScript("ingest_page.py");
-        if (script == null)
-        {
-            MessageBox.Show(this, "ingest_page.py missing.", "Fennsill");
-            return;
-        }
-        _status.Text = "Sending to panel…";
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = "python",
-                Arguments = $"\"{script}\"",
-                WorkingDirectory = _root,
-                UseShellExecute = false,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-            };
-            psi.Environment["FENNSILL_ROOT"] = _root;
-            psi.Environment["FENNSILL_PAGES"] = _pagesDir;
-            psi.Environment["PLAYWRIGHT_BROWSERS_PATH"] = Path.Combine(_root, "connector", "browsers");
-            using var proc = Process.Start(psi);
-            if (proc == null)
-            {
-                _status.Text = "Could not start ingest.";
-                return;
-            }
-            var payload = JsonSerializer.Serialize(new { html, source, push = true });
-            await proc.StandardInput.WriteAsync(payload);
-            proc.StandardInput.Close();
-            var stdout = await proc.StandardOutput.ReadToEndAsync();
-            await proc.WaitForExitAsync();
-            if (proc.ExitCode != 0)
-            {
-                _status.Text = "Import failed.";
-                return;
-            }
-            var note = "Sent to the panel.";
-            try
-            {
-                using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(stdout) ? "{}" : stdout);
-                if (doc.RootElement.TryGetProperty("note", out var n))
-                    note = n.GetString() ?? note;
-            }
-            catch { /* keep default */ }
-            _status.Text = note;
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "Import failed");
-            _status.Text = "Import failed.";
-        }
-    }
-
-    static void Kill(Process? p)
-    {
-        try
-        {
-            if (p is { HasExited: false })
-            {
-                p.Kill(entireProcessTree: true);
-                p.Dispose();
-            }
-        }
-        catch { /* ignore */ }
-    }
-
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
         _panelTimer.Stop();
-        Kill(_liveProcess);
-        Kill(_liveJobsProcess);
-        Kill(_bridgeProcess);
-        // Do NOT kill the cloud agent — it must keep heartbeating so ChatGPT
-        // still sees the panel online after Desk is closed.
+        // Cloud agent is a Windows service — closing Desk must not stop check-in.
         base.OnFormClosed(e);
-    }
-
-    static string FindPython()
-    {
-        foreach (var name in new[] { "python", "py" })
-        {
-            try
-            {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = name,
-                    ArgumentList = { "--version" },
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                };
-                using var p = Process.Start(psi);
-                if (p is null) continue;
-                p.WaitForExit(4000);
-                if (p.ExitCode == 0) return name;
-            }
-            catch { /* try next */ }
-        }
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        foreach (var cand in new[]
-                 {
-                     Path.Combine(local, "Python", "pythoncore-3.14-64", "python.exe"),
-                     Path.Combine(local, "Python", "bin", "python.exe"),
-                 })
-        {
-            if (File.Exists(cand)) return cand;
-        }
-        return "python";
     }
 }

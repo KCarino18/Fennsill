@@ -11,8 +11,7 @@ MARKERS = (
     "live_jobs.py",
     "tunnel.py",
     "rotate_pages.py",
-    # Desk used to leave this alive on close, then start another on paste/reopen.
-    "cloud_agent.py",
+    # cloud_agent.py is owned by the Fennsill Agent Windows service — never kill it here.
 )
 
 
