@@ -17,10 +17,11 @@
     <DebugType>none</DebugType>
   </PropertyGroup>
 
-  <!-- Bundled payload so a lone Fennsill.exe download can self-install. -->
+  <!-- Bundled payload so a lone Fennsill.exe download can self-install.
+       Top-level connector/*.py must be listed — runtime/** alone misses push_page.py
+       (claimed cloud jobs then crash: No module named push_page). -->
   <ItemGroup>
-    <Content Include="..\connector\identity_status.py" Link="payload\connector\identity_status.py" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\connector\device_bind_tool.py" Link="payload\connector\device_bind_tool.py" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\connector\*.py" Link="payload\connector\%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\connector\runtime\**\*" Link="payload\connector\runtime\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\connector\prompts\**\*" Link="payload\connector\prompts\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\connector\requirements.txt" Link="payload\connector\requirements.txt" CopyToPublishDirectory="PreserveNewest" />
@@ -32,6 +33,7 @@
     <Content Remove="..\firmware\**\__pycache__\**" />
     <Content Remove="..\connector\runtime\**\__pycache__\**" />
     <Content Remove="..\templates\**\__pycache__\**" />
+    <Content Remove="..\connector\_debug_*.py" />
   </ItemGroup>
 
 </Project>

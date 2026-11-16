@@ -26,6 +26,7 @@ sys.path.insert(0, str(ROOT / "templates"))
 DEFAULT_CLOUD = "https://mcp.fennsill.com"
 TOKEN_NAMES = ("cloud_device_token.txt", "device_token.txt")
 _SINGLETON_FD: int | None = None
+_SINGLETON_MUTEX: int | None = None
 
 
 def _local_app() -> Path:
@@ -36,12 +37,55 @@ def _local_app() -> Path:
 
 
 def acquire_singleton() -> bool:
-    """Only one cloud agent may run — duplicates steal jobs and fight over USB."""
-    global _SINGLETON_FD
+    """Only one cloud agent may run — duplicates steal jobs and fight over USB.
+
+    Windows: named mutex (works across python.exe / Store shim / py launcher).
+    File lock alone failed when Desk left an orphan agent and started another.
+    """
+    global _SINGLETON_FD, _SINGLETON_MUTEX
     path = _local_app() / "cloud_agent.lock"
     path.parent.mkdir(parents=True, exist_ok=True)
+
+    if sys.platform == "win32":
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        kernel32.CreateMutexW.restype = ctypes.c_void_p
+        kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+        # Local\ = per-session; avoids needing SeCreateGlobalPrivilege.
+        kernel32.SetLastError(0)
+        handle = kernel32.CreateMutexW(None, False, "Local\\FennsillCloudAgent.v1")
+        if not handle:
+            print("cloud agent mutex failed — exiting", flush=True)
+            return False
+        # ERROR_ALREADY_EXISTS = 183: another live agent owns the mutex.
+        if kernel32.GetLastError() == 183:
+            kernel32.CloseHandle(handle)
+            print("cloud agent already running — exiting duplicate", flush=True)
+            return False
+        _SINGLETON_MUTEX = handle
+
+        def _release_mutex() -> None:
+            global _SINGLETON_MUTEX
+            h = _SINGLETON_MUTEX
+            _SINGLETON_MUTEX = None
+            if h:
+                try:
+                    kernel32.CloseHandle(h)
+                except Exception:
+                    pass
+
+        atexit.register(_release_mutex)
+
     fd = os.open(str(path), os.O_CREAT | os.O_RDWR)
     try:
+        # Ensure length >= 1 before msvcrt.locking (empty file → lock fails on Win).
+        try:
+            if os.fstat(fd).st_size < 1:
+                os.write(fd, b"\0")
+                os.lseek(fd, 0, os.SEEK_SET)
+        except OSError:
+            pass
         if sys.platform == "win32":
             import msvcrt
 
@@ -52,6 +96,7 @@ def acquire_singleton() -> bool:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
         os.close(fd)
+        # Mutex already held above on Windows; file-lock failure still means duplicate.
         print("cloud agent already running — exiting duplicate", flush=True)
         return False
     try:
@@ -312,8 +357,6 @@ def set_usb_pause(active: bool) -> None:
 
 
 def run_job(job: dict) -> tuple[bool, str]:
-    from intake import intake_page
-
     job_type = (job.get("job_type") or job.get("type") or "push").strip().lower()
     if job_type not in ("push", "artifact", ""):
         return False, f"unsupported job_type={job_type}"
@@ -321,11 +364,27 @@ def run_job(job: dict) -> tuple[bool, str]:
     svg = job.get("svg")
     title = job.get("title") or ""
     last_err = "panel push failed"
+    # Log before importing intake/Playwright — that import can hang and used to
+    # leave claimed jobs with zero local evidence.
+    append_push_log(f"run_job_start title={title!r} has_html={bool(html)} has_svg={bool(svg)}")
     # Win the COM lock even while Desk status polls / Factory was just closed.
     os.environ["FENNSILL_SERIAL_LOCK_TIMEOUT"] = "90"
     set_usb_pause(True)
     time.sleep(1.5)  # let in-flight Desk READY polls finish
     try:
+        # Fail fast with a clear error if the Desk payload omitted USB helpers.
+        try:
+            import push_page  # noqa: F401
+        except ImportError as exc:
+            msg = (
+                f"missing_usb_module: {exc}. "
+                "Reinstall/update Fennsill.exe (payload must include connector/push_page.py)."
+            )
+            append_push_log(msg)
+            return False, msg
+        from intake import intake_page
+
+        append_push_log("intake_imported")
         for attempt in range(10):
             try:
                 append_push_log(f"attempt={attempt + 1} title={title!r}")
@@ -428,9 +487,24 @@ def main() -> int:
 
         job_id = str(job.get("job_id") or "")
         print(f"claimed job {job_id}", flush=True)
+        append_push_log(f"claimed job_id={job_id} title={job.get('title')!r}")
+        write_status(
+            {
+                "ok": True,
+                "cloud": cloud_base(),
+                "heartbeat_status": 200,
+                "job_in_progress": job_id,
+                "job_title": job.get("title") or "",
+                "ts": int(time.time()),
+            }
+        )
         # Keep "online" true while Playwright/USB work runs (can take >60s).
         call("GET", "/api/agent/heartbeat", token)
-        ok, err = run_job(job)
+        try:
+            ok, err = run_job(job)
+        except Exception as exc:
+            ok, err = False, f"run_job_crash: {exc}"
+            append_push_log(err)
         call("GET", "/api/agent/heartbeat", token)
         done_st, done = call(
             "POST",
@@ -439,6 +513,9 @@ def main() -> int:
             {"ok": ok, "error": err},
         )
         print(f"complete {done_st} ok={ok} {err or done}", flush=True)
+        append_push_log(
+            f"complete job_id={job_id} ok={ok} http={done_st} err={err or ''}"
+        )
         write_status(
             {
                 "ok": True,

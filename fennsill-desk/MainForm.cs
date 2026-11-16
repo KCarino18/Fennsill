@@ -54,9 +54,11 @@ public class MainForm : Form
         {
             if (_cloudAgentProcess is { HasExited: false })
                 return;
-            // Another Desk window (or a detached agent) may already be heartbeating.
-            if (CloudAgentHealthy())
+            // Prefer a live orphan (Desk closed but agent left running) over starting a second.
+            if (CloudAgentProcessRunning())
                 return;
+            // Do not trust status.json alone — kill_orphans can leave a fresh file
+            // after the process is already dead, which previously skipped restart.
             _cloudAgentProcess = StartPythonScript("cloud_agent.py");
         }
         catch { /* best effort */ }
@@ -81,6 +83,47 @@ public class MainForm : Form
         {
             return false;
         }
+    }
+
+    static bool CloudAgentProcessRunning()
+    {
+        try
+        {
+            var lockPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "FennsillApp",
+                "cloud_agent.lock");
+            if (!File.Exists(lockPath)) return false;
+            var text = File.ReadAllText(lockPath).Trim();
+            if (!int.TryParse(text.Split('\n', '\r')[0].Trim(), out var pid) || pid <= 0)
+                return false;
+            using var p = Process.GetProcessById(pid);
+            return !p.HasExited;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    static void KillAllCloudAgents()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "powershell",
+                Arguments =
+                    "-NoProfile -Command \"Get-CimInstance Win32_Process -Filter \\\"Name='python.exe'\\\" | " +
+                    "Where-Object { $_.CommandLine -match 'cloud_agent\\.py' } | " +
+                    "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var p = Process.Start(psi);
+            p?.WaitForExit(8000);
+        }
+        catch { /* best effort */ }
     }
 
     static string FindProjectRoot()
@@ -346,8 +389,10 @@ public class MainForm : Form
         _liveProcess = StartPythonScript("live_watch.py");
         _liveJobsProcess = StartPythonScript("live_jobs.py");
         // Cloud MCP jobs land here — heartbeat makes the panel “checked in”.
-        // Only one agent process system-wide (duplicates steal jobs / fight USB).
-        EnsureCloudAgentRunning();
+        // kill_orphans already cleared duplicates; always start one fresh (status.json
+        // may still look healthy after the kill and must not block restart).
+        Kill(_cloudAgentProcess);
+        _cloudAgentProcess = StartPythonScript("cloud_agent.py");
     }
 
     Process? StartPythonScript(params string[] names)
@@ -648,7 +693,8 @@ public class MainForm : Form
                 MessageBox.Show(this, ex.Message, "Could not save cloud URL");
                 return;
             }
-            try { _cloudAgentProcess?.Kill(entireProcessTree: true); } catch { /* ignore */ }
+            KillAllCloudAgents();
+            Kill(_cloudAgentProcess);
             _cloudAgentProcess = StartPythonScript("cloud_agent.py");
             _status.Text = "Cloud URL saved — " + maybeUrl;
             MessageBox.Show(
@@ -685,7 +731,8 @@ public class MainForm : Form
             return;
         }
 
-        try { _cloudAgentProcess?.Kill(entireProcessTree: true); } catch { /* ignore */ }
+        KillAllCloudAgents();
+        Kill(_cloudAgentProcess);
         _cloudAgentProcess = StartPythonScript("cloud_agent.py");
         _status.Text = "Cloud device key saved — agent checking in…";
         MessageBox.Show(
