@@ -410,12 +410,20 @@ static class Program
         if (!File.Exists(pyPath))
             throw new InvalidOperationException("ensure_runtime did not write python_path.txt.");
 
-        var chrome = Directory.Exists(Path.Combine(dest, "connector", "browsers"))
-            ? Directory.GetFiles(Path.Combine(dest, "connector", "browsers"), "chrome.exe", SearchOption.AllDirectories)
+        var browsers = Path.Combine(dest, "connector", "browsers");
+        var chrome = Directory.Exists(browsers)
+            ? Directory.GetFiles(browsers, "chrome.exe", SearchOption.AllDirectories)
             : Array.Empty<string>();
         if (chrome.Length == 0)
             throw new InvalidOperationException(
                 "Playwright Chromium was not installed under connector\\browsers.");
+        // Playwright 1.49+ launches chrome-headless-shell for page render.
+        var headless = Directory.GetFiles(
+            browsers, "chrome-headless-shell.exe", SearchOption.AllDirectories);
+        if (headless.Length == 0)
+            throw new InvalidOperationException(
+                "Playwright chrome-headless-shell.exe missing under connector\\browsers. "
+                "Re-run Setup with internet so browsers finish installing.");
     }
 
     static (string FileName, string PrefixArgs)? FindBootstrapPython()

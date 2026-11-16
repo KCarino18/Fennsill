@@ -193,25 +193,37 @@ def pip_install(py: Path) -> None:
 
 
 def install_chromium(py: Path) -> None:
+    """Install full Chromium + headless shell (Playwright 1.49+ needs both)."""
     BROWSERS.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
     env["PLAYWRIGHT_BROWSERS_PATH"] = str(BROWSERS)
-    proc = run(
-        [str(py), "-m", "playwright", "install", "chromium"],
-        env=env,
-        timeout=900,
-    )
-    if proc.returncode != 0:
-        log(proc.stdout or "")
-        log(proc.stderr or "")
-        fail("playwright install chromium failed")
+    # Default `chromium` includes headless shell unless --no-shell is passed.
+    # Also install the shell package explicitly so partial trees get repaired.
+    for browser in ("chromium", "chromium-headless-shell"):
+        proc = run(
+            [str(py), "-m", "playwright", "install", browser],
+            env=env,
+            timeout=900,
+        )
+        if proc.returncode != 0:
+            log(proc.stdout or "")
+            log(proc.stderr or "")
+            fail(f"playwright install {browser} failed")
+
+
+def _first_exe(name: str) -> Path | None:
+    if not BROWSERS.is_dir():
+        return None
+    matches = list(BROWSERS.rglob(name))
+    return matches[0] if matches else None
 
 
 def chrome_exe() -> Path | None:
-    if not BROWSERS.is_dir():
-        return None
-    matches = list(BROWSERS.rglob("chrome.exe"))
-    return matches[0] if matches else None
+    return _first_exe("chrome.exe")
+
+
+def headless_shell_exe() -> Path | None:
+    return _first_exe("chrome-headless-shell.exe")
 
 
 def verify(py: Path) -> None:
@@ -227,6 +239,13 @@ def verify(py: Path) -> None:
     if chrome is None:
         fail(f"Chromium chrome.exe not found under {BROWSERS}")
     log(f"Chromium OK: {chrome}")
+    shell = headless_shell_exe()
+    if shell is None:
+        fail(
+            f"Playwright chrome-headless-shell.exe not found under {BROWSERS}. "
+            "Page render will fail until Setup finishes installing browsers."
+        )
+    log(f"Headless shell OK: {shell}")
     push = ROOT / "connector" / "push_page.py"
     agent = ROOT / "connector" / "runtime" / "cloud_agent.py"
     if not push.is_file():
