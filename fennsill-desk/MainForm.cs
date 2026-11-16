@@ -429,19 +429,70 @@ public class MainForm : Form
         if (!_panelReady)
             _setupRanForThisPlug = false;
 
+        var cloudLine = DescribeCloudCheckIn();
         if (_panelReady)
         {
             _readyBanner.ForeColor = Color.FromArgb(120, 200, 140);
             _readyBanner.Text = "Fennsill panel connected";
-            _status.Text = string.IsNullOrEmpty(_panelPorts) ? "Panel connected." : $"Panel {_panelPorts}";
+            var port = string.IsNullOrEmpty(_panelPorts) ? "Panel connected." : $"Panel {_panelPorts}";
+            _status.Text = port + "  ·  " + cloudLine;
         }
         else
         {
             _readyBanner.ForeColor = Color.FromArgb(232, 184, 74);
             _readyBanner.Text = "Waiting for panel…";
-            _status.Text = string.IsNullOrEmpty(_panelPorts) ? "Waiting for panel." : $"Seen: {_panelPorts}";
+            var seen = string.IsNullOrEmpty(_panelPorts) ? "Waiting for panel." : $"Seen: {_panelPorts}";
+            _status.Text = seen + "  ·  " + cloudLine;
         }
         ApplyIdentityUi();
+    }
+
+    static string DescribeCloudCheckIn()
+    {
+        try
+        {
+            var app = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "FennsillApp");
+            var tokenPath = Path.Combine(app, "cloud_device_token.txt");
+            if (!File.Exists(tokenPath) || string.IsNullOrWhiteSpace(File.ReadAllText(tokenPath)))
+                return "Cloud: no device key — Mint on mcp.fennsill.com → Paste device key";
+
+            var statusPath = Path.Combine(app, "cloud_agent_status.json");
+            if (!File.Exists(statusPath))
+                return "Cloud: agent starting…";
+
+            var age = DateTime.UtcNow - File.GetLastWriteTimeUtc(statusPath);
+            var json = File.ReadAllText(statusPath);
+            using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
+            var root = doc.RootElement;
+            var ok = root.TryGetProperty("ok", out var okEl) && okEl.ValueKind == JsonValueKind.True;
+            var hb = root.TryGetProperty("heartbeat_status", out var hbEl) && hbEl.TryGetInt32(out var code)
+                ? code
+                : 0;
+            string? did = null;
+            if (root.TryGetProperty("heartbeat", out var hbObj) &&
+                hbObj.ValueKind == JsonValueKind.Object &&
+                hbObj.TryGetProperty("device_id", out var didEl))
+                did = didEl.GetString();
+
+            if (ok && hb == 200 && age.TotalSeconds <= 90)
+                return string.IsNullOrEmpty(did)
+                    ? "Cloud: checked in"
+                    : $"Cloud: checked in ({did})";
+
+            if (age.TotalSeconds > 90)
+                return "Cloud: agent stale — keep Fennsill open / Paste device key again";
+
+            if (root.TryGetProperty("error", out var err) && err.GetString() is { Length: > 0 } errText)
+                return "Cloud: " + errText;
+
+            return hb == 0 ? "Cloud: agent not reaching mcp.fennsill.com" : $"Cloud: heartbeat HTTP {hb}";
+        }
+        catch
+        {
+            return "Cloud: status unknown";
+        }
     }
 
     void RunClientSetupOnce()
