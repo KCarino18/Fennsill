@@ -15,6 +15,16 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+# Windows service consoles are often cp1252 — fancy arrows/dashes crash prints
+# and leave Desk stuck on "Cloud: agent_crash".
+os.environ.setdefault("PYTHONUTF8", "1")
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+    except Exception:
+        pass
+
 _HERE = Path(__file__).resolve().parent
 _DEFAULT_ROOT = _HERE.parents[1] if _HERE.name == "runtime" else _HERE.parent
 ROOT = Path(os.environ.get("FENNSILL_ROOT") or _DEFAULT_ROOT)
@@ -56,12 +66,12 @@ def acquire_singleton() -> bool:
         kernel32.SetLastError(0)
         handle = kernel32.CreateMutexW(None, False, "Local\\FennsillCloudAgent.v1")
         if not handle:
-            print("cloud agent mutex failed — exiting", flush=True)
+            print("cloud agent mutex failed - exiting", flush=True)
             return False
         # ERROR_ALREADY_EXISTS = 183: another live agent owns the mutex.
         if kernel32.GetLastError() == 183:
             kernel32.CloseHandle(handle)
-            print("cloud agent already running — exiting duplicate", flush=True)
+            print("cloud agent already running - exiting duplicate", flush=True)
             return False
         _SINGLETON_MUTEX = handle
 
@@ -97,7 +107,7 @@ def acquire_singleton() -> bool:
     except OSError:
         os.close(fd)
         # Mutex already held above on Windows; file-lock failure still means duplicate.
-        print("cloud agent already running — exiting duplicate", flush=True)
+        print("cloud agent already running - exiting duplicate", flush=True)
         return False
     try:
         os.ftruncate(fd, 0)
@@ -421,8 +431,8 @@ def main() -> int:
     token = load_device_token()
     if not token:
         msg = (
-            "No cloud device key. On the account site: Link panel → Mint device key → "
-            "paste that key into Fennsill (Paste device key), keep Fennsill open."
+            "No cloud device key. On the account site: Link panel -> Mint device key -> "
+            "paste that key into Fennsill Desk (Paste device key). The Agent service delivers pushes."
         )
         print(msg, flush=True)
         write_status({"ok": False, "error": "missing_device_token", "message": msg})
@@ -431,7 +441,7 @@ def main() -> int:
             time.sleep(5)
         token = load_device_token()
 
-    print(f"cloud agent → {cloud_base()} (device key loaded)", flush=True)
+    print(f"cloud agent -> {cloud_base()} (device key loaded)", flush=True)
     fail_streak = 0
     # Idle poll was ~2–3 req/s and Cloudflare starts returning 403 after a burst,
     # which leaves MCP jobs queued while list_panels still looks "online".

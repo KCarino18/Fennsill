@@ -76,6 +76,8 @@ sealed class CloudAgentHostedService : BackgroundService
         psi.Environment["FENNSILL_ROOT"] = root;
         psi.Environment["PLAYWRIGHT_BROWSERS_PATH"] = Path.Combine(root, "connector", "browsers");
         psi.Environment["PYTHONUNBUFFERED"] = "1";
+        psi.Environment["PYTHONUTF8"] = "1";
+        psi.Environment["PYTHONIOENCODING"] = "utf-8";
         psi.Environment["PYTHONPATH"] = Path.Combine(root, "connector", "runtime");
 
         _log.LogInformation("Starting cloud_agent via {Python}", python);
