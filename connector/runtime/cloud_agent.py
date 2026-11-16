@@ -279,6 +279,38 @@ def call(method: str, path: str, token: str, body: dict | None = None):
     return _call_urllib(method, path, token, body)
 
 
+def write_status(payload: dict) -> None:
+    path = _local_app() / "cloud_agent_status.json"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def append_push_log(line: str) -> None:
+    path = _local_app() / "cloud_push.log"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(f"{int(time.time())} {line}\n")
+    except OSError:
+        pass
+
+
+def set_usb_pause(active: bool) -> None:
+    """Tell Desk/live workers to stop opening COM while a cloud push runs."""
+    path = _local_app() / "pause_usb.poll"
+    try:
+        if active:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(f"{os.getpid()}\n{int(time.time()) + 180}\n", encoding="utf-8")
+        elif path.is_file():
+            path.unlink()
+    except OSError:
+        pass
+
+
 def run_job(job: dict) -> tuple[bool, str]:
     from intake import intake_page
 
@@ -289,38 +321,41 @@ def run_job(job: dict) -> tuple[bool, str]:
     svg = job.get("svg")
     title = job.get("title") or ""
     last_err = "panel push failed"
-    # USB lock contention with Desk READY polls — retry before failing the job.
-    for attempt in range(6):
-        try:
-            result = intake_page(html=html, svg=svg, title=title, source="cloud", push=True)
-            if result.get("pushed"):
-                return True, ""
-            last_err = (
-                result.get("panel_error")
-                or result.get("note")
-                or "panel push failed"
-            )
-            busy = "busy" in last_err.lower() or "lock" in last_err.lower()
-            if busy and attempt < 5:
-                time.sleep(2 + attempt)
-                continue
-            return False, last_err
-        except Exception as exc:
-            last_err = str(exc)
-            if attempt < 5:
-                time.sleep(2 + attempt)
-                continue
-            return False, last_err
-    return False, last_err
-
-
-def write_status(payload: dict) -> None:
-    path = _local_app() / "cloud_agent_status.json"
+    # Win the COM lock even while Desk status polls / Factory was just closed.
+    os.environ["FENNSILL_SERIAL_LOCK_TIMEOUT"] = "90"
+    set_usb_pause(True)
+    time.sleep(1.5)  # let in-flight Desk READY polls finish
     try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    except OSError:
-        pass
+        for attempt in range(10):
+            try:
+                append_push_log(f"attempt={attempt + 1} title={title!r}")
+                result = intake_page(
+                    html=html, svg=svg, title=title, source="cloud", push=True
+                )
+                if result.get("pushed"):
+                    append_push_log(f"pushed_ok page_id={result.get('page_id')}")
+                    return True, ""
+                last_err = (
+                    result.get("panel_error")
+                    or result.get("note")
+                    or "panel push failed"
+                )
+                append_push_log(f"push_fail {last_err}")
+                busy = "busy" in last_err.lower() or "lock" in last_err.lower()
+                if busy and attempt < 9:
+                    time.sleep(3 + attempt)
+                    continue
+                return False, last_err
+            except Exception as exc:
+                last_err = str(exc)
+                append_push_log(f"exception {last_err}")
+                if attempt < 9:
+                    time.sleep(3 + attempt)
+                    continue
+                return False, last_err
+        return False, last_err
+    finally:
+        set_usb_pause(False)
 
 
 def main() -> int:

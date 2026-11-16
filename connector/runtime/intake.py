@@ -31,7 +31,7 @@ from usb_protocol import encode_show, split_frame  # noqa: E402
 # is open (desk status / rotate may briefly hold the lock).
 PROBE_TIMEOUT = 1.2
 # Scheduled ChatGPT/Cursor tasks need time to win the COM lock (tool timeout ~120s).
-LOCK_TIMEOUT = 45.0
+LOCK_TIMEOUT = float(os.environ.get("FENNSILL_SERIAL_LOCK_TIMEOUT") or 45.0)
 
 
 def render_frame(arguments: dict) -> bytes:

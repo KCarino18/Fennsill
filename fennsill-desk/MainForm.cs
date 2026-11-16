@@ -383,8 +383,37 @@ public class MainForm : Form
         }
     }
 
+    static bool UsbPausedForCloudPush()
+    {
+        try
+        {
+            var path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "FennsillApp",
+                "pause_usb.poll");
+            if (!File.Exists(path)) return false;
+            var lines = File.ReadAllLines(path);
+            if (lines.Length >= 2 && long.TryParse(lines[1], out var until))
+                return DateTimeOffset.UtcNow.ToUnixTimeSeconds() < until;
+            // Missing expiry — treat as paused briefly.
+            return (DateTime.UtcNow - File.GetLastWriteTimeUtc(path)).TotalSeconds < 120;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     async Task RefreshPanelStatus()
     {
+        // Cloud agent holds COM while pushing — don't steal the port mid-transfer.
+        if (UsbPausedForCloudPush())
+        {
+            _status.Text = (string.IsNullOrEmpty(_panelPorts) ? "Panel connected." : $"Panel {_panelPorts}")
+                + "  ·  Cloud: writing to panel…";
+            return;
+        }
+
         var script = ResolveConnectorScript("identity_status.py", "panel_status.py", "status_check.py");
         if (script == null) return;
         var wasReady = _panelReady;
