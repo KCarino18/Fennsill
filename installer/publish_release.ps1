@@ -1,11 +1,10 @@
-﻿# Publish Desk (+ optional Factory) and keep README version in sync.
+﻿# Publish Desk + Factory and keep README version + download links in sync.
 # Usage:
-#   powershell -File installer\publish_release.ps1 -Version 0.1.14
-#   powershell -File installer\publish_release.ps1 -Version 0.1.14 -Factory
+#   powershell -File installer\publish_release.ps1 -Version 0.1.15
 param(
   [Parameter(Mandatory = $true)]
   [string]$Version,
-  [switch]$Factory,
+  [switch]$SkipFactory,
   [switch]$SkipPush
 )
 
@@ -31,7 +30,7 @@ $deskExe = Join-Path $deskOut "Fennsill.exe"
 Copy-Item -Force $deskBuilt.FullName $deskExe
 
 $assets = @($deskExe)
-if ($Factory) {
+if (-not $SkipFactory) {
   Write-Host "Publishing Factory..."
   dotnet publish (Join-Path $Root "fennsill-factory\FennsillFactory.csproj") -c Release -o $facOut "-p:BaseIntermediateOutputPath=$facObj" --nologo
   $facBuilt = Get-ChildItem $facOut -Filter "*.exe" | Where-Object { $_.Name -match "Factory" } | Select-Object -First 1
@@ -41,15 +40,31 @@ if ($Factory) {
   $assets += $facExe
 }
 
+$base = "https://github.com/KCarino18/Fennsill/releases/download/$Tag"
+$date = Get-Date -Format "yyyy-MM-dd"
+$badge = "**Latest release: [$Tag](https://github.com/KCarino18/Fennsill/releases/tag/$Tag)** — $date"
+$table = @"
+| What | Download |
+|------|----------|
+| **Fennsill** (desk — self-installs to LocalAppData) | [Fennsill.exe]($base/Fennsill.exe) |
+| **Fennsill Factory** (flasher — self-installs to LocalAppData) | [FennsillFactory.exe]($base/FennsillFactory.exe) |
+| **All releases** | [github.com/KCarino18/Fennsill/releases](https://github.com/KCarino18/Fennsill/releases) |
+"@
+
 $readme = Join-Path $Root "README.md"
 $readmeText = Get-Content $readme -Raw
-$badge = "**Latest release: [$Tag](https://github.com/KCarino18/Fennsill/releases/tag/$Tag)** — $(Get-Date -Format 'yyyy-MM-dd')"
-if ($readmeText -match '(?m)^\*\*Latest release:.*\*\*.*$') {
-  $readmeText = [regex]::Replace($readmeText, '(?m)^\*\*Latest release:.*\*\*.*$', $badge)
+if ($readmeText -match '(?m)^\*\*Latest release:.*$') {
+  $readmeText = [regex]::Replace($readmeText, '(?m)^\*\*Latest release:.*$', $badge)
 } else {
   $readmeText = $readmeText -replace '(?m)^(## One-click downloads \(Windows\)\s*)$', "`$1`r`n`r`n$badge`r`n"
 }
-Set-Content -Path $readme -Value $readmeText -NoNewline
+# Replace the downloads table (from first | What | through the blank line after last row)
+$readmeText = [regex]::Replace(
+  $readmeText,
+  '(?s)\| What \| Download \|\r?\n\|------\|----------\|\r?\n.*?(?=\r?\n\r?\nEach)',
+  ($table.TrimEnd() + "`r`n")
+)
+Set-Content -Path $readme -Value $readmeText -NoNewline -Encoding utf8
 
 git add README.md
 git commit -m "Bump README latest release to $Tag."
@@ -60,7 +75,10 @@ if (-not $SkipPush) {
 $notes = @"
 Fennsill $Tag
 
-See README for install steps. Desk self-installs to %LOCALAPPDATA%\FennsillApp\.
+- Desk: $base/Fennsill.exe
+- Factory: $base/FennsillFactory.exe
+
+Desk self-installs to %LOCALAPPDATA%\FennsillApp\.
 "@
 gh release create $Tag @assets --title "Fennsill $Tag" --notes $notes
 Write-Host "Published $Tag"

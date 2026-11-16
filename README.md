@@ -6,13 +6,13 @@ Cloud MCP uses **SQLite** — **no SQL Server** required.
 
 ## One-click downloads (Windows)
 
-**Latest release: [v0.1.14](https://github.com/KCarino18/Fennsill/releases/tag/v0.1.14)** � 2026-11-15
+**Latest release: [v0.1.14](https://github.com/KCarino18/Fennsill/releases/tag/v0.1.14)** — 2026-11-15
 
 | What | Download |
 |------|----------|
-| **Fennsill** (desk — self-installs to LocalAppData) | [Fennsill.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/Fennsill.exe) |
-| **Fennsill Factory** (flasher — self-installs to LocalAppData) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/latest/download/FennsillFactory.exe) |
-| **Full setup zip** (optional; same apps + extras) | [Fennsill-Setup.zip](https://github.com/KCarino18/Fennsill/releases/latest/download/Fennsill-Setup.zip) |
+| **Fennsill** (desk — self-installs to LocalAppData) | [Fennsill.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.14/Fennsill.exe) |
+| **Fennsill Factory** (flasher — self-installs to LocalAppData) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.14/FennsillFactory.exe) |
+| **All releases** | [github.com/KCarino18/Fennsill/releases](https://github.com/KCarino18/Fennsill/releases) |
 
 Each `.exe` is a **full install**: first launch copies scripts/firmware into `%LOCALAPPDATA%\FennsillApp\` and creates a desktop shortcut. No `C:\factory` folder required.
 
@@ -73,11 +73,10 @@ dotnet publish fennsill-setup\FennsillSetup.csproj -c Release -o releases\setup
 python installer\build_dist.py
 ```
 
-### Ship a GitHub release (updates README version automatically)
+### Ship a GitHub release (updates README version + download links)
 
 ```powershell
-powershell -File installer\publish_release.ps1 -Version 0.1.14
-powershell -File installer\publish_release.ps1 -Version 0.1.14 -Factory
+powershell -File installer\publish_release.ps1 -Version 0.1.15
 ```
 
-That script builds the exe(s), rewrites the **Latest release** line in this README, commits, pushes, and runs `gh release create`.
+Builds Desk + Factory, rewrites the **Latest release** line and download table URLs in this README, commits, pushes, and runs `gh release create`.
