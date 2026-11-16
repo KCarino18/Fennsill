@@ -6,13 +6,14 @@ Cloud MCP uses **SQLite** — **no SQL Server** required.
 
 ## One-click downloads (Windows)
 
-**Latest release: [v0.1.14](https://github.com/KCarino18/Fennsill/releases/tag/v0.1.14)** — 2026-11-15
+**Latest release: [v0.1.15](https://github.com/KCarino18/Fennsill/releases/tag/v0.1.15)** — 2026-11-15
 
 | What | Download |
 |------|----------|
-| **Fennsill** (desk — self-installs to LocalAppData) | [Fennsill.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.14/Fennsill.exe) |
-| **Fennsill Factory** (flasher — self-installs to LocalAppData) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.14/FennsillFactory.exe) |
+| **Fennsill** (desk — self-installs to LocalAppData) | [Fennsill.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.15/Fennsill.exe) |
+| **Fennsill Factory** (flasher — self-installs to LocalAppData) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.15/FennsillFactory.exe) |
 | **All releases** | [github.com/KCarino18/Fennsill/releases](https://github.com/KCarino18/Fennsill/releases) |
+
 
 Each `.exe` is a **full install**: first launch copies scripts/firmware into `%LOCALAPPDATA%\FennsillApp\` and creates a desktop shortcut. No `C:\factory` folder required.
 
