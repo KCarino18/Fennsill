@@ -169,18 +169,24 @@ def main() -> int:
             continue
         fail_streak = 0
 
+        # Heartbeat again right before claim so list_panels stays online during long renders.
+        call("GET", "/api/agent/heartbeat", token)
+
         st, job = call("GET", "/api/agent/jobs/next", token)
         if st == 204 or job is None:
-            time.sleep(2)
+            time.sleep(1)
             continue
         if st != 200:
             print(f"jobs/next {st} {job}", flush=True)
-            time.sleep(3)
+            time.sleep(2)
             continue
 
         job_id = str(job.get("job_id") or "")
         print(f"claimed job {job_id}", flush=True)
+        # Keep "online" true while Playwright/USB work runs (can take >60s).
+        call("GET", "/api/agent/heartbeat", token)
         ok, err = run_job(job)
+        call("GET", "/api/agent/heartbeat", token)
         done_st, done = call(
             "POST",
             f"/api/agent/jobs/{job_id}/complete",
@@ -188,7 +194,7 @@ def main() -> int:
             {"ok": ok, "error": err},
         )
         print(f"complete {done_st} ok={ok} {err or done}", flush=True)
-        time.sleep(1)
+        time.sleep(0.5)
 
 
 if __name__ == "__main__":

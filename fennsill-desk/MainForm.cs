@@ -39,9 +39,24 @@ public class MainForm : Form
         BuildUi();
         StartBackgroundServices();
         _panelTimer.Interval = 3000;
-        _panelTimer.Tick += async (_, _) => await RefreshPanelStatus();
+        _panelTimer.Tick += async (_, _) =>
+        {
+            EnsureCloudAgentRunning();
+            await RefreshPanelStatus();
+        };
         _panelTimer.Start();
         _ = RefreshPanelStatus();
+    }
+
+    void EnsureCloudAgentRunning()
+    {
+        try
+        {
+            if (_cloudAgentProcess is { HasExited: false })
+                return;
+            _cloudAgentProcess = StartPythonScript("cloud_agent.py");
+        }
+        catch { /* best effort */ }
     }
 
     static string FindProjectRoot()

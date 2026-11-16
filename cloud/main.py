@@ -280,7 +280,10 @@ def list_panels(ctx: Context) -> str:
 @server.tool(
     description=(
         "Push a finished 800x480 black/white HTML or SVG page to a linked Fennsill panel. "
-        "Requires device_id from list_panels. Self-contained only — no external URLs."
+        "Requires device_id from list_panels. Self-contained only — no external URLs. "
+        "Delivery is async via the buyer's Fennsill.exe agent (USB). "
+        "If list_panels shows offline, still enqueue — the desk agent will pick it up when online. "
+        "Do not tell the user the push failed solely because online was false at enqueue time."
     )
 )
 def push_artifact(

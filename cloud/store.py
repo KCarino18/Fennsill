@@ -17,7 +17,9 @@ from security_artifact import DEVICE_ID_RE, MAX_ARTIFACT_CHARS
 
 DB_PATH = Path(os.environ.get("FENNSILL_CLOUD_DB", Path(__file__).resolve().parent / "cloud.db"))
 PBKDF2_ROUNDS = 120_000
-ONLINE_SEC = 60
+# Desk agent heartbeats while Fennsill.exe is open. Keep this wide enough that
+# brief gaps (AV, sleep, job push) don't make list_panels report "offline".
+ONLINE_SEC = 300
 RATE_WINDOW_SEC = 600
 RATE_LIMIT = 30
 PERIOD_DAYS = 30
