@@ -1,0 +1,122 @@
+%PDF-1.4
+1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj
+2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj
+3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>endobj
+4 0 obj<< /Length 2412 >>stream
+BT
+/F1 18 Tf
+50 720 Td
+18 TL
+(FennSill Quick Start) Tj
+T*
+ET
+BT
+/F1 11 Tf
+50 698 Td
+14 TL
+() Tj
+T*
+(Your e-ink panel arrives already flashed. You only need to install FennSill,) Tj
+T*
+(link your account, and connect the AI tools you already use.) Tj
+T*
+() Tj
+T*
+(1. Install FennSill) Tj
+T*
+(   - Download FennsillSetup.exe from the FennSill releases page.) Tj
+T*
+(   - Run it and allow the Administrator \(UAC\) prompt.) Tj
+T*
+(   - Wait until FennSill Desk opens. Setup also installs the FennSill Agent) Tj
+T*
+(     service so the panel stays checked in when Desk is closed.) Tj
+T*
+() Tj
+T*
+(2. Plug in the panel) Tj
+T*
+(   - Connect the panel with USB.) Tj
+T*
+(   - Desk should show: FennSill panel connected.) Tj
+T*
+(   - Copy Device ID, Serial, and Install key from Desk when needed.) Tj
+T*
+() Tj
+T*
+(3. Link your account) Tj
+T*
+(   - Open the FennSill account site and sign up or sign in.) Tj
+T*
+(   - Use Link your panel and paste the Device ID from Desk.) Tj
+T*
+(   - Do not put Device ID in the AI MCP connector form.) Tj
+T*
+() Tj
+T*
+(4. Paste the device key) Tj
+T*
+(   - On the account site: Mint device key, then Copy.) Tj
+T*
+(   - In Desk, click Paste device key.) Tj
+T*
+(   - Status should become Cloud: checked in.) Tj
+T*
+(   - You can close Desk; the Agent service keeps check-in while USB is plugged in.) Tj
+T*
+() Tj
+T*
+(5. Connect any AI that supports custom MCP) Tj
+T*
+(   Works the same for ChatGPT, Claude, Cursor, and similar tools:) Tj
+T*
+(   - MCP URL = the MCP URL from your FennSill account site) Tj
+T*
+(   - Add header Authorization = Bearer <token> \(use Copy header on the site\)) Tj
+T*
+(   - Leave any Bearer token environment-variable field empty) Tj
+T*
+(   - Device ID does not go in the MCP form) Tj
+T*
+() Tj
+T*
+(6. Try a push) Tj
+T*
+(   - Ask your AI to send a simple page to your panel \(for example a short greeting\).) Tj
+T*
+(   - Confirm the e-ink screen refreshes.) Tj
+T*
+() Tj
+T*
+(7. Troubleshooting) Tj
+T*
+(   - Panel not seen: try another USB cable/port; click Refresh in Desk.) Tj
+T*
+(   - Cloud offline / agent stale: open Services and confirm FennSill Agent is Running;) Tj
+T*
+(     Paste device key again if needed.) Tj
+T*
+(   - AI cannot push: re-check MCP URL and Authorization Bearer header on the same account.) Tj
+T*
+(   - Uninstall: Settings > Apps > Installed apps > FennSill.) Tj
+T*
+() Tj
+T*
+(Need help? https://github.com/KCarino18/Fennsill/releases) Tj
+T*
+ET
+endstream
+endobj
+5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000056 00000 n 
+0000000111 00000 n 
+0000000235 00000 n 
+0000002697 00000 n 
+trailer<< /Size 6 /Root 1 0 R >>
+startxref
+2765
+%%EOF

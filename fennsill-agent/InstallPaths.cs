@@ -17,6 +17,29 @@ static class InstallPaths
     public static string UserLocalAppDataFile =>
         Path.Combine(ProgramDataDir, "user_localappdata.txt");
 
+    public static string PythonPathFile =>
+        Path.Combine(ProgramDataDir, "python_path.txt");
+
+    public static string? ResolvePythonFromSetup()
+    {
+        try
+        {
+            if (!File.Exists(PythonPathFile)) return null;
+            var line = File.ReadAllText(PythonPathFile)
+                .Trim()
+                .Split('\n', '\r')[0]
+                .Trim()
+                .Trim('"');
+            if (!string.IsNullOrWhiteSpace(line) && File.Exists(line))
+                return line;
+        }
+        catch
+        {
+            /* fall through */
+        }
+        return null;
+    }
+
     public static string ResolveUserLocalAppData()
     {
         try

@@ -25,6 +25,10 @@
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.15" />
   </ItemGroup>
 
+  <ItemGroup Condition="Exists('quickstart\FennSill-Quick-Start.pdf')">
+    <Content Include="quickstart\FennSill-Quick-Start.pdf" Link="payload\FennSill-Quick-Start.pdf" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- Staged by publish_release.ps1 into setup-payload\ before publishing Setup. -->
   <ItemGroup Condition="Exists('setup-payload\Fennsill.exe')">
     <Content Include="setup-payload\**\*" Link="payload\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />

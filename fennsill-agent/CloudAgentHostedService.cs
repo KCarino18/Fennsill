@@ -149,6 +149,11 @@ sealed class CloudAgentHostedService : BackgroundService
 
     static string FindPython()
     {
+        // Prefer the interpreter FennSill Setup recorded for Session 0.
+        var fromSetup = InstallPaths.ResolvePythonFromSetup();
+        if (!string.IsNullOrWhiteSpace(fromSetup))
+            return fromSetup;
+
         foreach (var name in new[] { "python", "py" })
         {
             try
@@ -177,7 +182,9 @@ sealed class CloudAgentHostedService : BackgroundService
         foreach (var cand in new[]
                  {
                      Path.Combine(userLocal, "Python", "pythoncore-3.14-64", "python.exe"),
+                     Path.Combine(userLocal, "Python", "pythoncore-3.12-64", "python.exe"),
                      Path.Combine(userLocal, "Python", "bin", "python.exe"),
+                     Path.Combine(userLocal, "Programs", "Python", "Python312", "python.exe"),
                      Path.Combine(
                          Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                          "Python",

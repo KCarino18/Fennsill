@@ -123,12 +123,25 @@ static class Program
             Path.Combine(programData, "install_root.txt"),
             dest + Environment.NewLine);
 
+        if (!quiet)
+        {
+            MessageBox.Show(
+                "Next: FennSill will install Python and Playwright (needed for USB page pushes).\n" +
+                "This needs internet and may take a few minutes.",
+                "FennSill Setup",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+
+        EnsureRuntime(dest, quiet);
+
         var agentExe = Path.Combine(dest, "FennsillAgent.exe");
         if (!File.Exists(agentExe))
             throw new FileNotFoundException("FennsillAgent.exe missing after install.", agentExe);
 
         InstallOrUpdateService(agentExe);
         StartService();
+        WaitForAgentStatus(dest, quiet);
 
         var deskExe = FirstExisting(dest, "Fennsill.exe", "FennsillDesk.exe")
             ?? throw new FileNotFoundException("Fennsill.exe missing after install.");
@@ -137,6 +150,7 @@ static class Program
         // Remove legacy shortcut name from older installs.
         TryDeleteShortcut(
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Fennsill.lnk"));
+        InstallQuickStartPdf(dest, payload);
         RegisterUninstall(dest, deskExe, setupDest);
 
         if (!quiet)
@@ -145,9 +159,10 @@ static class Program
                 "FennSill is installed.\n\n" +
                 $"Folder: {dest}\n" +
                 "Service: FennSill Agent (Automatic)\n" +
-                "Listed under Settings → Apps → Installed apps\n\n" +
-                "Next: open Desk → copy Device ID → link on the website → Paste device key.\n" +
-                "ChatGPT/Claude use the cloud MCP URL + Bearer header.",
+                "Listed under Settings → Apps → Installed apps\n" +
+                "Quick Start PDF saved to your Desktop.\n\n" +
+                "Next: plug in the panel → copy Device ID → link on the website → Paste device key.\n" +
+                "Then connect ChatGPT/Claude/Cursor with the account MCP URL + Bearer header.",
                 "FennSill Setup",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
@@ -188,6 +203,8 @@ static class Program
         var dest = ResolveInstallRoot();
         TryDeleteShortcut(
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "FennSill.lnk"));
+        TryDeleteShortcut(
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "FennSill Quick Start.pdf"));
         TryDeleteShortcut(
             Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu),
@@ -337,6 +354,211 @@ static class Program
         }
     }
 
+    static void EnsureRuntime(string dest, bool quiet)
+    {
+        var script = Path.Combine(dest, "connector", "runtime", "ensure_runtime.py");
+        if (!File.Exists(script))
+            throw new FileNotFoundException("ensure_runtime.py missing from install payload.", script);
+
+        // Prefer an already-installed interpreter to run the bootstrap script.
+        var launcher = FindBootstrapPython();
+        if (launcher == null)
+        {
+            TryWingetPython();
+            launcher = FindBootstrapPython();
+        }
+        if (launcher == null)
+            throw new InvalidOperationException(
+                "Python was not found and could not be bootstrapped. Install Python 3.12+ from python.org, then re-run FennSill Setup.");
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = launcher.Value.FileName,
+            Arguments = string.IsNullOrEmpty(launcher.Value.PrefixArgs)
+                ? $"\"{script}\""
+                : $"{launcher.Value.PrefixArgs} \"{script}\"",
+            WorkingDirectory = dest,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        psi.Environment["FENNSILL_ROOT"] = dest;
+        psi.Environment["PLAYWRIGHT_BROWSERS_PATH"] = Path.Combine(dest, "connector", "browsers");
+        psi.Environment["PYTHONUNBUFFERED"] = "1";
+        psi.Environment["LOCALAPPDATA"] =
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        using var proc = Process.Start(psi)
+            ?? throw new InvalidOperationException("Could not start ensure_runtime.py");
+        var stdout = proc.StandardOutput.ReadToEnd();
+        var stderr = proc.StandardError.ReadToEnd();
+        proc.WaitForExit(30 * 60 * 1000);
+        var combined = (stdout + "\n" + stderr).Trim();
+        if (proc.ExitCode != 0)
+        {
+            var detail = string.IsNullOrWhiteSpace(combined) ? $"exit {proc.ExitCode}" : combined;
+            if (detail.Length > 2500) detail = detail[^2500..];
+            throw new InvalidOperationException(
+                "FennSill could not finish installing Python / Playwright.\n\n" + detail);
+        }
+
+        var pyPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Fennsill",
+            "python_path.txt");
+        if (!File.Exists(pyPath))
+            throw new InvalidOperationException("ensure_runtime did not write python_path.txt.");
+
+        var chrome = Directory.Exists(Path.Combine(dest, "connector", "browsers"))
+            ? Directory.GetFiles(Path.Combine(dest, "connector", "browsers"), "chrome.exe", SearchOption.AllDirectories)
+            : Array.Empty<string>();
+        if (chrome.Length == 0)
+            throw new InvalidOperationException(
+                "Playwright Chromium was not installed under connector\\browsers.");
+    }
+
+    static (string FileName, string PrefixArgs)? FindBootstrapPython()
+    {
+        foreach (var name in new[] { "py", "python" })
+        {
+            try
+            {
+                var args = name == "py" ? "-3 --version" : "--version";
+                var psi = new ProcessStartInfo
+                {
+                    FileName = name,
+                    Arguments = args,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                };
+                using var p = Process.Start(psi);
+                if (p == null) continue;
+                p.WaitForExit(5000);
+                if (p.ExitCode != 0) continue;
+                return name == "py" ? (name, "-3") : (name, "");
+            }
+            catch
+            {
+                /* try next */
+            }
+        }
+
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        foreach (var cand in new[]
+                 {
+                     Path.Combine(local, "Programs", "Python", "Python312", "python.exe"),
+                     Path.Combine(local, "Programs", "Python", "Python313", "python.exe"),
+                     Path.Combine(local, "Python", "pythoncore-3.12-64", "python.exe"),
+                     Path.Combine(local, "Python", "pythoncore-3.14-64", "python.exe"),
+                     Path.Combine(local, "Python", "bin", "python.exe"),
+                 })
+        {
+            if (File.Exists(cand)) return (cand, "");
+        }
+        return null;
+    }
+
+    static void TryWingetPython()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "winget",
+                Arguments =
+                    "install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements --disable-interactivity",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            using var p = Process.Start(psi);
+            p?.WaitForExit(15 * 60 * 1000);
+        }
+        catch
+        {
+            /* ensure_runtime will try again / fail clearly */
+        }
+    }
+
+    static void WaitForAgentStatus(string dest, bool quiet)
+    {
+        var statusPath = Path.Combine(dest, "cloud_agent_status.json");
+        // Also check LocalAppData FennsillApp — status is written there by cloud_agent.
+        var appStatus = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "FennsillApp",
+            "cloud_agent_status.json");
+        for (var i = 0; i < 20; i++)
+        {
+            Thread.Sleep(1000);
+            foreach (var path in new[] { appStatus, statusPath })
+            {
+                try
+                {
+                    if (!File.Exists(path)) continue;
+                    var text = File.ReadAllText(path);
+                    if (text.Contains("\"agent_crash\"", StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException(
+                            "FennSill Agent started but crashed. Re-run Setup or check python_path.txt.\n\n" + text);
+                    // Any status file means the agent process is writing — missing key is OK.
+                    if (text.Contains("heartbeat", StringComparison.OrdinalIgnoreCase) ||
+                        text.Contains("missing_device_token", StringComparison.OrdinalIgnoreCase) ||
+                        text.Contains("\"ok\"", StringComparison.OrdinalIgnoreCase))
+                        return;
+                }
+                catch (InvalidOperationException)
+                {
+                    throw;
+                }
+                catch
+                {
+                    /* retry */
+                }
+            }
+        }
+        if (!quiet)
+        {
+            MessageBox.Show(
+                "FennSill Agent was installed but has not written status yet.\n" +
+                "Plug in the panel, open Desk, and use Paste device key. If Cloud stays offline, re-run Setup.",
+                "FennSill Setup",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+    }
+
+    static void InstallQuickStartPdf(string dest, string payload)
+    {
+        string? src = null;
+        foreach (var cand in new[]
+                 {
+                     Path.Combine(payload, "FennSill-Quick-Start.pdf"),
+                     Path.Combine(payload, "quickstart", "FennSill-Quick-Start.pdf"),
+                     Path.Combine(AppContext.BaseDirectory, "payload", "FennSill-Quick-Start.pdf"),
+                     Path.Combine(AppContext.BaseDirectory, "FennSill-Quick-Start.pdf"),
+                 })
+        {
+            if (File.Exists(cand)) { src = cand; break; }
+        }
+        if (src == null) return;
+
+        try
+        {
+            var appCopy = Path.Combine(dest, "FennSill Quick Start.pdf");
+            File.Copy(src, appCopy, overwrite: true);
+            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            File.Copy(src, Path.Combine(desktop, "FennSill Quick Start.pdf"), overwrite: true);
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
+
     static string? FindPayloadRoot()
     {
         var baseDir = AppContext.BaseDirectory.TrimEnd('\\', '/');
@@ -361,9 +583,10 @@ static class Program
     {
         var push = Path.Combine(dest, "connector", "push_page.py");
         var agent = Path.Combine(dest, "connector", "runtime", "cloud_agent.py");
-        if (!File.Exists(push) || !File.Exists(agent))
+        var ensure = Path.Combine(dest, "connector", "runtime", "ensure_runtime.py");
+        if (!File.Exists(push) || !File.Exists(agent) || !File.Exists(ensure))
             throw new InvalidOperationException(
-                "Install payload is incomplete (missing push_page.py or cloud_agent.py). Re-download FennsillSetup.");
+                "Install payload is incomplete (missing push_page.py, cloud_agent.py, or ensure_runtime.py). Re-download FennsillSetup.");
     }
 
     static void CopyTree(string src, string dst)

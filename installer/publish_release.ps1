@@ -62,11 +62,22 @@ Copy-Item -Force $agentExe (Join-Path $setupPayload "FennsillAgent.exe")
 Sync-Tree (Join-Path $Root "connector") (Join-Path $setupPayload "connector")
 Sync-Tree (Join-Path $Root "firmware") (Join-Path $setupPayload "firmware")
 Sync-Tree (Join-Path $Root "templates") (Join-Path $setupPayload "templates")
+$quickPdf = Join-Path $Root "fennsill-setup\quickstart\FennSill-Quick-Start.pdf"
+if (-not (Test-Path -LiteralPath $quickPdf)) {
+  $py = Join-Path $env:LOCALAPPDATA "Python\pythoncore-3.14-64\python.exe"
+  if (-not (Test-Path $py)) { $py = "python" }
+  & $py -u (Join-Path $Root "fennsill-setup\quickstart\build_quickstart_pdf.py")
+}
+if (-not (Test-Path -LiteralPath $quickPdf)) { throw "missing FennSill-Quick-Start.pdf" }
+Copy-Item -Force $quickPdf (Join-Path $setupPayload "FennSill-Quick-Start.pdf")
 if (-not (Test-Path (Join-Path $setupPayload "connector\push_page.py"))) {
   throw "setup-payload missing connector\push_page.py"
 }
 if (-not (Test-Path (Join-Path $setupPayload "connector\runtime\cloud_agent.py"))) {
   throw "setup-payload missing cloud_agent.py"
+}
+if (-not (Test-Path (Join-Path $setupPayload "connector\runtime\ensure_runtime.py"))) {
+  throw "setup-payload missing ensure_runtime.py"
 }
 
 Write-Host "Publishing Setup..."
