@@ -504,12 +504,17 @@ public class MainForm : Form
                     return $"Cloud: heartbeat {hb} — {detail}";
             }
 
-            if (hb == 1010 ||
-                (root.TryGetProperty("cloudflare_block", out var cf) && cf.ValueKind == JsonValueKind.True) ||
-                (root.TryGetProperty("heartbeat", out var hbErr) &&
-                 hbErr.ValueKind == JsonValueKind.Object &&
-                 hbErr.TryGetProperty("error", out var e1010) &&
-                 (e1010.GetString() || "").Contains("1010", StringComparison.OrdinalIgnoreCase)))
+            var cfBlocked = root.TryGetProperty("cloudflare_block", out var cf) && cf.ValueKind == JsonValueKind.True;
+            var err1010 = false;
+            if (root.TryGetProperty("heartbeat", out var hbErr) &&
+                hbErr.ValueKind == JsonValueKind.Object &&
+                hbErr.TryGetProperty("error", out var e1010))
+            {
+                var errStr = e1010.GetString() ?? "";
+                err1010 = errStr.Contains("1010", StringComparison.OrdinalIgnoreCase)
+                    || errStr.Contains("cloudflare", StringComparison.OrdinalIgnoreCase);
+            }
+            if (hb == 1010 || cfBlocked || err1010)
                 return "Cloud: Cloudflare 1010 — updating agent / wait 2 min, keep Fennsill open";
 
             if (hb == 403)
