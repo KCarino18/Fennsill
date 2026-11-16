@@ -267,6 +267,18 @@ def main() -> int:
             {"ok": ok, "error": err},
         )
         print(f"complete {done_st} ok={ok} {err or done}", flush=True)
+        write_status(
+            {
+                "ok": True,
+                "cloud": cloud_base(),
+                "heartbeat_status": 200,
+                "last_job_id": job_id,
+                "last_job_ok": ok,
+                "last_job_error": err or "",
+                "last_job_complete_status": done_st,
+                "ts": int(time.time()),
+            }
+        )
         time.sleep(0.5)
 
 

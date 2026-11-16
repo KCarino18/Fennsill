@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -40,9 +41,10 @@ server = MCPServer(
     instructions=(
         "Fennsill cloud pushes finished 800x480 black/white self-contained HTML/SVG "
         "to the buyer's e-ink panel via a queued job. Call list_panels, then push_artifact "
-        "with that device_id. After push_artifact, call get_push_status with the job_id "
-        "(retry a few times) until status is done or failed — only then say the screen "
-        "refreshed or report the error. Do not say 'unconfirmed' without checking. "
+        "with that device_id. push_artifact waits for USB delivery and returns delivered=true "
+        "when the panel refreshed — only then tell the user the screen updated. "
+        "If delivered is false, report status/error or call get_push_status. "
+        "Do not say 'unconfirmed' when delivered is true. "
         "Offline at enqueue time is OK; the desk agent still delivers. "
         "Do not create a web Artifact preview as a substitute. "
         "Do not send Wi-Fi credentials — Wi-Fi stays on the panel via the local USB agent."
@@ -285,10 +287,11 @@ def list_panels(ctx: Context) -> str:
     description=(
         "Push a finished 800x480 black/white HTML or SVG page to a linked Fennsill panel. "
         "Requires device_id from list_panels. Self-contained only — no external URLs. "
-        "Returns job_id with status=queued. Then call get_push_status(job_id) until "
-        "delivered=true (done) or status=failed. "
+        "Waits for the desk USB agent to finish (up to ~90s) and returns delivered=true "
+        "when the panel refresh succeeds, or delivered=false with error/status if not. "
         "If list_panels shows offline, still enqueue — the desk agent will pick it up when online. "
-        "Do not tell the user the push failed solely because online was false at enqueue time."
+        "Do not tell the user the push failed solely because online was false at enqueue time. "
+        "Only say the screen refreshed when delivered is true."
     )
 )
 def push_artifact(
@@ -309,12 +312,32 @@ def push_artifact(
             svg=args["svg"],
             title=title or "",
         )
+        job_id = result["job_id"]
+        # Block until the local agent completes so ChatGPT can confirm the refresh
+        # without a second tool call (models often skip get_push_status).
+        deadline = time.time() + 90
+        status = store.get_job_for_user(int(user["id"]), job_id)
+        while time.time() < deadline and status["status"] in ("queued", "claimed"):
+            time.sleep(1.0)
+            status = store.get_job_for_user(int(user["id"]), job_id)
         return _tool_result(
             {
                 "ok": True,
-                **result,
-                "delivered": False,
-                "next": "Call get_push_status with this job_id until status is done or failed.",
+                "job_id": job_id,
+                "device_id": result["device_id"],
+                "status": status["status"],
+                "delivered": bool(status.get("delivered")),
+                "error": status.get("error") or "",
+                "message": (
+                    "Panel refresh confirmed."
+                    if status.get("delivered")
+                    else (
+                        f"Push failed: {status.get('error')}"
+                        if status["status"] == "failed"
+                        else "Queued; desk agent has not confirmed the panel refresh yet. "
+                        "Call get_push_status with this job_id shortly."
+                    )
+                ),
             }
         )
     except SecurityError as exc:
