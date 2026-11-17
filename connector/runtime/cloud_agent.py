@@ -366,6 +366,36 @@ def set_usb_pause(active: bool) -> None:
         pass
 
 
+def ensure_playwright_browsers() -> None:
+    """Make sure Chromium exists under connector/browsers (Setup can miss this)."""
+    import subprocess
+
+    browsers = ROOT / "connector" / "browsers"
+    os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", str(browsers))
+    has_exe = False
+    if browsers.is_dir():
+        for name in ("chrome-headless-shell.exe", "chrome.exe"):
+            if any(browsers.rglob(name)):
+                has_exe = True
+                break
+    if has_exe:
+        return
+    print(f"playwright browsers missing under {browsers} — installing…", flush=True)
+    browsers.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env["PLAYWRIGHT_BROWSERS_PATH"] = str(browsers)
+    for browser in ("chromium", "chromium-headless-shell"):
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "playwright", "install", browser],
+                env=env,
+                timeout=900,
+                check=False,
+            )
+        except Exception as exc:
+            print(f"playwright install {browser} failed: {exc}", flush=True)
+
+
 def run_job(job: dict) -> tuple[bool, str]:
     job_type = (job.get("job_type") or job.get("type") or "push").strip().lower()
     if job_type not in ("push", "artifact", ""):
@@ -442,6 +472,7 @@ def main() -> int:
         token = load_device_token()
 
     print(f"cloud agent -> {cloud_base()} (device key loaded)", flush=True)
+    ensure_playwright_browsers()
     fail_streak = 0
     # Idle poll was ~2–3 req/s and Cloudflare starts returning 403 after a burst,
     # which leaves MCP jobs queued while list_panels still looks "online".

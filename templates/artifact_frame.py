@@ -255,6 +255,23 @@ def _find_browser_exe(browsers: Path) -> Path | None:
     return None
 
 
+def _install_browsers(browsers: Path) -> None:
+    """Download Chromium into the Fennsill browsers folder (no manual PowerShell)."""
+    import subprocess
+    import sys
+
+    browsers.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env["PLAYWRIGHT_BROWSERS_PATH"] = str(browsers)
+    for browser in ("chromium", "chromium-headless-shell"):
+        subprocess.run(
+            [sys.executable, "-m", "playwright", "install", browser],
+            env=env,
+            check=False,
+            timeout=900,
+        )
+
+
 def _allow_request(route):
     url = route.request.url
     if url.startswith("data:") or url.startswith("about:"):
@@ -279,10 +296,12 @@ def _shot_png(page_html):
         os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(browsers)
         exe = _find_browser_exe(browsers)
         if exe is None:
+            _install_browsers(browsers)
+            exe = _find_browser_exe(browsers)
+        if exe is None:
             raise RuntimeError(
                 f"Fennsill Chromium missing under {browsers}. "
-                "Run FennsillSetup.exe as Admin (needs internet), or: "
-                "python -m playwright install chromium"
+                "Run FennsillSetup.exe as Admin (needs internet)."
             )
 
     launch_kwargs = {
