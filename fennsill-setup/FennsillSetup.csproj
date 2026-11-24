@@ -7,7 +7,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>FennsillSetup</AssemblyName>
-    <Version>0.1.32</Version>
+    <Version>0.1.33</Version>
     <Product>FennSill</Product>
     <Company>FennSill</Company>
     <ApplicationIcon>..\fennsill-desk\fennsill.ico</ApplicationIcon>
