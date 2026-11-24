@@ -582,59 +582,122 @@ def drain_cloud_jobs(token: str) -> int:
     return claimed
 
 
+_HOLD_GENERATION = 0
+
+
 def advance_local_queue(token: str) -> None:
-    """Show the queue head, hold, then advance. Completes cloud job on panel show."""
+    """Show the queue head, hold, then advance. Completes cloud job on panel show.
+
+    If Desk removes the showing item, generation bumps and we immediately push
+    the new head. After a natural hold ends, the next waiting item is pushed in
+    the same call (not deferred to the next loop).
+    """
+    global _HOLD_GENERATION
     from display_queue import (
         STATUS_SHOWING,
-        STATUS_WAITING,
         finish_head,
         head_item,
         mark_showing,
+        queue_generation,
     )
 
-    item = head_item()
-    if not item:
-        return
-    now = time.time()
-    held_until = item.get("held_until")
-    if item.get("status") == STATUS_SHOWING and held_until is not None:
-        try:
-            until = float(held_until)
-        except (TypeError, ValueError):
-            until = 0.0
-        if until > now:
+    for _ in range(8):
+        gen = queue_generation()
+        if gen != _HOLD_GENERATION:
+            append_push_log(f"queue_generation {_HOLD_GENERATION}->{gen} (desk edit)")
+            _HOLD_GENERATION = gen
+
+        item = head_item()
+        if not item:
             return
-        # Hold finished — drop head and let the next item play next loop.
-        finish_head(item["id"])
-        append_push_log(f"hold_done id={item.get('id')}")
-        return
 
-    if item.get("status") != STATUS_WAITING and item.get("status") != STATUS_SHOWING:
-        item["status"] = STATUS_WAITING
+        now = time.time()
+        status = str(item.get("status") or "")
+        held_until = item.get("held_until")
 
-    if item.get("status") == STATUS_SHOWING:
-        # held_until missing or past — advance
-        finish_head(item["id"])
-        return
+        if status == STATUS_SHOWING and held_until is not None:
+            try:
+                until = float(held_until)
+            except (TypeError, ValueError):
+                until = 0.0
+            if until > now:
+                # Still holding — unless Desk removed/replaced this page.
+                return
+            finish_head(item["id"])
+            append_push_log(f"hold_done id={item.get('id')}")
+            continue  # push next waiting item now
 
-    # Waiting head → push to panel.
-    write_status(
-        {
-            "ok": True,
-            "cloud": cloud_base(),
-            "heartbeat_status": 200,
-            "job_in_progress": item.get("job_id") or item.get("id"),
-            "job_title": item.get("title") or "",
-            "ts": int(time.time()),
-            **_queue_status_fields(),
-        }
-    )
-    call("GET", "/api/agent/heartbeat", token)
-    ok, err = push_queue_item(item)
-    call("GET", "/api/agent/heartbeat", token)
-    job_id = str(item.get("job_id") or "")
-    if not ok:
-        complete_cloud_job(token, job_id, ok=False, error=err)
+        if status == STATUS_SHOWING:
+            finish_head(item["id"])
+            append_push_log(f"showing_cleared id={item.get('id')}")
+            continue
+
+        # Waiting head → push to panel.
+        write_status(
+            {
+                "ok": True,
+                "cloud": cloud_base(),
+                "heartbeat_status": 200,
+                "job_in_progress": item.get("job_id") or item.get("id"),
+                "job_title": item.get("title") or "",
+                "ts": int(time.time()),
+                **_queue_status_fields(),
+            }
+        )
+        call("GET", "/api/agent/heartbeat", token)
+        # Re-check head still matches — Desk may have removed/reordered.
+        fresh = head_item()
+        if not fresh or fresh.get("id") != item.get("id"):
+            append_push_log("head_changed_before_push")
+            continue
+        ok, err = push_queue_item(item)
+        call("GET", "/api/agent/heartbeat", token)
+        job_id = str(item.get("job_id") or "")
+        # If Desk removed this item during USB push, don't complete/finish stale id.
+        still = head_item()
+        if not still or still.get("id") != item.get("id"):
+            append_push_log(f"head_changed_during_push id={item.get('id')}")
+            if ok:
+                complete_cloud_job(token, job_id, ok=True, error="")
+            continue
+
+        if not ok:
+            complete_cloud_job(token, job_id, ok=False, error=err)
+            finish_head(item["id"])
+            write_status(
+                {
+                    "ok": True,
+                    "cloud": cloud_base(),
+                    "heartbeat_status": 200,
+                    "last_job_id": job_id,
+                    "last_job_ok": False,
+                    "last_job_error": err or "",
+                    "ts": int(time.time()),
+                    **_queue_status_fields(),
+                }
+            )
+            continue
+
+        complete_cloud_job(token, job_id, ok=True, error="")
+        hold_sec = int(item.get("hold_sec") or 0)
+        if hold_sec > 0:
+            mark_showing(item["id"], held_until=time.time() + hold_sec)
+            _HOLD_GENERATION = queue_generation()
+            append_push_log(f"holding id={item.get('id')} sec={hold_sec}")
+            write_status(
+                {
+                    "ok": True,
+                    "cloud": cloud_base(),
+                    "heartbeat_status": 200,
+                    "last_job_id": job_id,
+                    "last_job_ok": True,
+                    "last_job_error": "",
+                    "ts": int(time.time()),
+                    **_queue_status_fields(),
+                }
+            )
+            return
+
         finish_head(item["id"])
         write_status(
             {
@@ -642,33 +705,13 @@ def advance_local_queue(token: str) -> None:
                 "cloud": cloud_base(),
                 "heartbeat_status": 200,
                 "last_job_id": job_id,
-                "last_job_ok": False,
-                "last_job_error": err or "",
+                "last_job_ok": True,
+                "last_job_error": "",
                 "ts": int(time.time()),
                 **_queue_status_fields(),
             }
         )
-        return
-
-    complete_cloud_job(token, job_id, ok=True, error="")
-    hold_sec = int(item.get("hold_sec") or 0)
-    if hold_sec > 0:
-        mark_showing(item["id"], held_until=now + hold_sec)
-        append_push_log(f"holding id={item.get('id')} sec={hold_sec}")
-    else:
-        finish_head(item["id"])
-    write_status(
-        {
-            "ok": True,
-            "cloud": cloud_base(),
-            "heartbeat_status": 200,
-            "last_job_id": job_id,
-            "last_job_ok": True,
-            "last_job_error": "",
-            "ts": int(time.time()),
-            **_queue_status_fields(),
-        }
-    )
+        # hold_sec == 0 → keep looping to show the next waiting page.
 
 
 def main() -> int:

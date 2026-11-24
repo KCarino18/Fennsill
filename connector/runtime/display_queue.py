@@ -14,19 +14,12 @@ import time
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Callable
 
 _HERE = Path(__file__).resolve().parent
 _DEFAULT_ROOT = _HERE.parents[1] if _HERE.name == "runtime" else _HERE.parent
 ROOT = Path(os.environ.get("FENNSILL_ROOT") or _DEFAULT_ROOT)
 
-QUEUE_PATH = Path(
-    os.environ.get("FENNSILL_DISPLAY_QUEUE", ROOT / "connector" / "display_queue.json")
-)
-PREVIEWS_DIR = Path(
-    os.environ.get(
-        "FENNSILL_QUEUE_PREVIEWS", ROOT / "connector" / "queue_previews"
-    )
-)
 FRAME_BYTES = 48000
 MAX_HOLD_SEC = 6 * 3600
 STATUS_WAITING = "waiting"
@@ -44,7 +37,6 @@ def queue_path() -> Path:
     env = os.environ.get("FENNSILL_DISPLAY_QUEUE")
     if env:
         return Path(env)
-    # Prefer install root; fall back beside agent status so Desk always finds it.
     preferred = ROOT / "connector" / "display_queue.json"
     if preferred.parent.is_dir() or ROOT.is_dir():
         return preferred
@@ -117,7 +109,7 @@ def _file_lock(path: Path):
 
 
 def _empty() -> dict:
-    return {"version": 1, "items": [], "updated_at": _stamp()}
+    return {"version": 1, "items": [], "updated_at": _stamp(), "generation": 0}
 
 
 def _stamp() -> str:
@@ -132,41 +124,54 @@ def _atomic_write(path: Path, payload: dict) -> None:
     os.replace(str(tmp), str(path))
 
 
+def _parse_queue_unlocked(path: Path) -> dict:
+    if not path.is_file():
+        return _empty()
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return _empty()
+    if not isinstance(data, dict):
+        return _empty()
+    items = data.get("items")
+    if not isinstance(items, list):
+        items = []
+    cleaned = []
+    for raw in items:
+        if not isinstance(raw, dict):
+            continue
+        item_id = str(raw.get("id") or "").strip()
+        if not item_id:
+            continue
+        cleaned.append(
+            {
+                "id": item_id,
+                "job_id": str(raw.get("job_id") or ""),
+                "title": str(raw.get("title") or "")[:80],
+                "hold_sec": clamp_hold_sec(raw.get("hold_sec")),
+                "preview_path": str(raw.get("preview_path") or ""),
+                "frame_path": str(raw.get("frame_path") or ""),
+                "status": str(raw.get("status") or STATUS_WAITING),
+                "created_at": str(raw.get("created_at") or _stamp()),
+                "held_until": raw.get("held_until"),
+            }
+        )
+    try:
+        generation = int(data.get("generation") or 0)
+    except (TypeError, ValueError):
+        generation = 0
+    return {
+        "version": 1,
+        "items": cleaned,
+        "updated_at": data.get("updated_at") or _stamp(),
+        "generation": generation,
+    }
+
+
 def load_queue() -> dict:
     path = queue_path()
     with _file_lock(path):
-        if not path.is_file():
-            return _empty()
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            return _empty()
-        if not isinstance(data, dict):
-            return _empty()
-        items = data.get("items")
-        if not isinstance(items, list):
-            items = []
-        cleaned = []
-        for raw in items:
-            if not isinstance(raw, dict):
-                continue
-            item_id = str(raw.get("id") or "").strip()
-            if not item_id:
-                continue
-            cleaned.append(
-                {
-                    "id": item_id,
-                    "job_id": str(raw.get("job_id") or ""),
-                    "title": str(raw.get("title") or "")[:80],
-                    "hold_sec": clamp_hold_sec(raw.get("hold_sec")),
-                    "preview_path": str(raw.get("preview_path") or ""),
-                    "frame_path": str(raw.get("frame_path") or ""),
-                    "status": str(raw.get("status") or STATUS_WAITING),
-                    "created_at": str(raw.get("created_at") or _stamp()),
-                    "held_until": raw.get("held_until"),
-                }
-            )
-        return {"version": 1, "items": cleaned, "updated_at": data.get("updated_at") or _stamp()}
+        return _parse_queue_unlocked(path)
 
 
 def save_queue(data: dict) -> dict:
@@ -175,10 +180,27 @@ def save_queue(data: dict) -> dict:
         "version": 1,
         "items": list(data.get("items") or []),
         "updated_at": _stamp(),
+        "generation": int(data.get("generation") or 0),
     }
     with _file_lock(path):
         _atomic_write(path, payload)
     return payload
+
+
+def _mutate(mutator: Callable[[dict], object]) -> object:
+    """Read-modify-write under one lock so Desk remove cannot be overwritten."""
+    path = queue_path()
+    with _file_lock(path):
+        data = _parse_queue_unlocked(path)
+        result = mutator(data)
+        payload = {
+            "version": 1,
+            "items": list(data.get("items") or []),
+            "updated_at": _stamp(),
+            "generation": int(data.get("generation") or 0),
+        }
+        _atomic_write(path, payload)
+        return result
 
 
 def _delete_files(item: dict) -> None:
@@ -187,7 +209,6 @@ def _delete_files(item: dict) -> None:
         if not p.is_file():
             continue
         try:
-            # Only delete under our previews dir (or matching stem).
             p.unlink()
         except OSError:
             pass
@@ -222,10 +243,12 @@ def append_item(
         "created_at": _stamp(),
         "held_until": None,
     }
-    data = load_queue()
-    data["items"].append(item)
-    save_queue(data)
-    return item
+
+    def _add(data: dict):
+        data.setdefault("items", []).append(item)
+        return item
+
+    return _mutate(_add)  # type: ignore[return-value]
 
 
 def has_job(job_id: str) -> bool:
@@ -241,34 +264,45 @@ def list_items() -> list[dict]:
 
 def move_item(item_id: str, direction: int) -> bool:
     """Move a waiting item up (-1) or down (+1). Showing item stays at head."""
-    data = load_queue()
-    items = data["items"]
-    idx = next((i for i, it in enumerate(items) if it["id"] == item_id), None)
-    if idx is None:
-        return False
-    if items[idx].get("status") == STATUS_SHOWING:
-        return False
-    # Do not swap with a showing head.
-    new_idx = idx + int(direction)
-    if new_idx < 0 or new_idx >= len(items):
-        return False
-    if items[new_idx].get("status") == STATUS_SHOWING:
-        return False
-    items[idx], items[new_idx] = items[new_idx], items[idx]
-    save_queue(data)
-    return True
+
+    def _move(data: dict):
+        items = data["items"]
+        idx = next((i for i, it in enumerate(items) if it["id"] == item_id), None)
+        if idx is None:
+            return False
+        if items[idx].get("status") == STATUS_SHOWING:
+            return False
+        new_idx = idx + int(direction)
+        if new_idx < 0 or new_idx >= len(items):
+            return False
+        if items[new_idx].get("status") == STATUS_SHOWING:
+            return False
+        items[idx], items[new_idx] = items[new_idx], items[idx]
+        return True
+
+    return bool(_mutate(_move))
 
 
 def remove_item(item_id: str) -> dict | None:
-    data = load_queue()
-    items = data["items"]
-    idx = next((i for i, it in enumerate(items) if it["id"] == item_id), None)
-    if idx is None:
-        return None
-    removed = items.pop(idx)
-    save_queue(data)
-    _delete_files(removed)
-    return removed
+    removed_box: dict = {"item": None}
+
+    def _remove(data: dict):
+        items = data["items"]
+        idx = next((i for i, it in enumerate(items) if it["id"] == item_id), None)
+        if idx is None:
+            return None
+        removed = items.pop(idx)
+        # Desk removed the live page — bump generation so Agent interrupts hold.
+        if removed.get("status") == STATUS_SHOWING:
+            data["generation"] = int(data.get("generation") or 0) + 1
+        removed_box["item"] = removed
+        return removed
+
+    removed = _mutate(_remove)
+    if isinstance(removed, dict):
+        _delete_files(removed)
+        return removed
+    return None
 
 
 def head_item() -> dict | None:
@@ -276,19 +310,28 @@ def head_item() -> dict | None:
     return items[0] if items else None
 
 
+def queue_generation() -> int:
+    try:
+        return int(load_queue().get("generation") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 def mark_showing(item_id: str, held_until: float | None = None) -> dict | None:
-    data = load_queue()
-    for it in data["items"]:
-        if it["id"] == item_id:
-            it["status"] = STATUS_SHOWING
-            it["held_until"] = held_until
-            save_queue(data)
-            return it
-        # Only one showing at a time.
-        if it.get("status") == STATUS_SHOWING:
-            it["status"] = STATUS_WAITING
-            it["held_until"] = None
-    return None
+    def _mark(data: dict):
+        found = None
+        for it in data["items"]:
+            if it["id"] == item_id:
+                it["status"] = STATUS_SHOWING
+                it["held_until"] = held_until
+                found = it
+            elif it.get("status") == STATUS_SHOWING:
+                it["status"] = STATUS_WAITING
+                it["held_until"] = None
+        return found
+
+    result = _mutate(_mark)
+    return result if isinstance(result, dict) else None
 
 
 def finish_head(item_id: str) -> dict | None:

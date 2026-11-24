@@ -27,48 +27,64 @@ static class DisplayQueue
         public double? HeldUntil { get; set; }
     }
 
-    public static List<Item> Load(string root)
+    public static List<Item> Load(string root) => LoadFull(root).Items;
+
+    sealed class QueueState
+    {
+        public List<Item> Items { get; set; } = new();
+        public int Generation { get; set; }
+    }
+
+    static QueueState LoadFull(string root)
     {
         var path = QueuePath(root);
-        if (!File.Exists(path)) return new List<Item>();
+        if (!File.Exists(path)) return new QueueState();
         try
         {
             using var _ = AcquireSidecarLock(root);
-            var text = File.ReadAllText(path, Encoding.UTF8);
-            if (string.IsNullOrWhiteSpace(text)) return new List<Item>();
-            using var doc = JsonDocument.Parse(text);
-            if (!doc.RootElement.TryGetProperty("items", out var items) ||
-                items.ValueKind != JsonValueKind.Array)
-                return new List<Item>();
-            var list = new List<Item>();
-            foreach (var el in items.EnumerateArray())
-            {
-                var id = el.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? "" : "";
-                if (string.IsNullOrWhiteSpace(id)) continue;
-                double? held = null;
-                if (el.TryGetProperty("held_until", out var hu) &&
-                    hu.ValueKind == JsonValueKind.Number &&
-                    hu.TryGetDouble(out var hv))
-                    held = hv;
-                list.Add(new Item
-                {
-                    Id = id,
-                    JobId = el.TryGetProperty("job_id", out var j) ? j.GetString() ?? "" : "",
-                    Title = el.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "",
-                    HoldSec = el.TryGetProperty("hold_sec", out var h) && h.TryGetInt32(out var hs) ? hs : 0,
-                    PreviewPath = el.TryGetProperty("preview_path", out var p) ? p.GetString() ?? "" : "",
-                    FramePath = el.TryGetProperty("frame_path", out var f) ? f.GetString() ?? "" : "",
-                    Status = el.TryGetProperty("status", out var s) ? s.GetString() ?? "waiting" : "waiting",
-                    CreatedAt = el.TryGetProperty("created_at", out var c) ? c.GetString() ?? "" : "",
-                    HeldUntil = held,
-                });
-            }
-            return list;
+            return ParseUnlocked(path);
         }
         catch
         {
-            return new List<Item>();
+            return new QueueState();
         }
+    }
+
+    static QueueState ParseUnlocked(string path)
+    {
+        var state = new QueueState();
+        if (!File.Exists(path)) return state;
+        var text = File.ReadAllText(path, Encoding.UTF8);
+        if (string.IsNullOrWhiteSpace(text)) return state;
+        using var doc = JsonDocument.Parse(text);
+        if (doc.RootElement.TryGetProperty("generation", out var gen) && gen.TryGetInt32(out var g))
+            state.Generation = g;
+        if (!doc.RootElement.TryGetProperty("items", out var items) ||
+            items.ValueKind != JsonValueKind.Array)
+            return state;
+        foreach (var el in items.EnumerateArray())
+        {
+            var id = el.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? "" : "";
+            if (string.IsNullOrWhiteSpace(id)) continue;
+            double? held = null;
+            if (el.TryGetProperty("held_until", out var hu) &&
+                hu.ValueKind == JsonValueKind.Number &&
+                hu.TryGetDouble(out var hv))
+                held = hv;
+            state.Items.Add(new Item
+            {
+                Id = id,
+                JobId = el.TryGetProperty("job_id", out var j) ? j.GetString() ?? "" : "",
+                Title = el.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "",
+                HoldSec = el.TryGetProperty("hold_sec", out var h) && h.TryGetInt32(out var hs) ? hs : 0,
+                PreviewPath = el.TryGetProperty("preview_path", out var p) ? p.GetString() ?? "" : "",
+                FramePath = el.TryGetProperty("frame_path", out var f) ? f.GetString() ?? "" : "",
+                Status = el.TryGetProperty("status", out var s) ? s.GetString() ?? "waiting" : "waiting",
+                CreatedAt = el.TryGetProperty("created_at", out var c) ? c.GetString() ?? "" : "",
+                HeldUntil = held,
+            });
+        }
+        return state;
     }
 
     /// <summary>Same sidecar lock file the Agent uses (display_queue.json.lock).</summary>
@@ -95,9 +111,8 @@ static class DisplayQueue
         }
     }
 
-    static void Save(string root, List<Item> items)
+    static void WriteUnlocked(string path, List<Item> items, int generation)
     {
-        var path = QueuePath(root);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var arr = new JsonArray();
         foreach (var it in items)
@@ -123,20 +138,21 @@ static class DisplayQueue
         {
             ["version"] = 1,
             ["items"] = arr,
+            ["generation"] = generation,
             ["updated_at"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
         };
         var json = rootObj.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
         var tmp = path + ".tmp";
-        using (AcquireSidecarLock(root))
-        {
-            File.WriteAllText(tmp, json, Encoding.UTF8);
-            File.Move(tmp, path, overwrite: true);
-        }
+        File.WriteAllText(tmp, json, Encoding.UTF8);
+        File.Move(tmp, path, overwrite: true);
     }
 
     public static bool Move(string root, string itemId, int direction)
     {
-        var items = Load(root);
+        var path = QueuePath(root);
+        using var _ = AcquireSidecarLock(root);
+        var state = ParseUnlocked(path);
+        var items = state.Items;
         var idx = items.FindIndex(i => i.Id == itemId);
         if (idx < 0) return false;
         if (string.Equals(items[idx].Status, "showing", StringComparison.OrdinalIgnoreCase))
@@ -146,18 +162,27 @@ static class DisplayQueue
         if (string.Equals(items[newIdx].Status, "showing", StringComparison.OrdinalIgnoreCase))
             return false;
         (items[idx], items[newIdx]) = (items[newIdx], items[idx]);
-        Save(root, items);
+        WriteUnlocked(path, items, state.Generation);
         return true;
     }
 
     public static Item? Remove(string root, string itemId)
     {
-        var items = Load(root);
-        var idx = items.FindIndex(i => i.Id == itemId);
-        if (idx < 0) return null;
-        var removed = items[idx];
-        items.RemoveAt(idx);
-        Save(root, items);
+        var path = QueuePath(root);
+        Item? removed;
+        using (AcquireSidecarLock(root))
+        {
+            var state = ParseUnlocked(path);
+            var items = state.Items;
+            var idx = items.FindIndex(i => i.Id == itemId);
+            if (idx < 0) return null;
+            removed = items[idx];
+            items.RemoveAt(idx);
+            var generation = state.Generation;
+            if (string.Equals(removed.Status, "showing", StringComparison.OrdinalIgnoreCase))
+                generation += 1;
+            WriteUnlocked(path, items, generation);
+        }
         TryDelete(removed.PreviewPath);
         TryDelete(removed.FramePath);
         return removed;

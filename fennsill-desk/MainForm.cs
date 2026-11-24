@@ -21,6 +21,7 @@ public class MainForm : Form
     readonly Label _queueEmpty = new();
     readonly FlowLayoutPanel _queuePanel = new();
     readonly System.Windows.Forms.Timer _panelTimer = new();
+    readonly System.Windows.Forms.Timer _queueTick = new();
     readonly Dictionary<string, Image> _previewCache = new();
     string _queueFingerprint = "";
     bool _panelReady;
@@ -39,6 +40,14 @@ public class MainForm : Form
         _panelTimer.Interval = 3000;
         _panelTimer.Tick += async (_, _) => await RefreshPanelStatus();
         _panelTimer.Start();
+        // Hold countdown must tick every second; panel status only refreshes every 3–12s.
+        _queueTick.Interval = 1000;
+        _queueTick.Tick += (_, _) =>
+        {
+            RefreshQueueUi();
+            UpdateHoldCountdowns();
+        };
+        _queueTick.Start();
         _ = RefreshPanelStatus();
     }
 
@@ -327,9 +336,42 @@ public class MainForm : Form
         _serialBox.Text = string.IsNullOrEmpty(_serial) ? "(not bound yet)" : _serial;
     }
 
+    static string HoldMetaText(DisplayQueue.Item item, out bool showing)
+    {
+        showing = string.Equals(item.Status, "showing", StringComparison.OrdinalIgnoreCase);
+        var holdLabel = item.HoldSec > 0
+            ? (item.HoldSec >= 60 ? $"{item.HoldSec / 60} min hold" : $"{item.HoldSec}s hold")
+            : "no hold";
+        var state = showing ? "Now showing" : "Waiting";
+        if (showing && item.HeldUntil is double until)
+        {
+            var left = Math.Max(0, (int)Math.Ceiling(until - DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
+            state = left > 0 ? $"Now showing · {left}s left" : "Now showing · ending";
+        }
+        return $"{state} · {holdLabel}";
+    }
+
+    void UpdateHoldCountdowns()
+    {
+        foreach (Control row in _queuePanel.Controls)
+        {
+            foreach (Control child in row.Controls)
+            {
+                if (child is not Label lbl || lbl.Tag is not DisplayQueue.Item item) continue;
+                if (!string.Equals(item.Status, "showing", StringComparison.OrdinalIgnoreCase)) continue;
+                // Re-read held_until from disk so Agent advances are picked up.
+                var fresh = DisplayQueue.Load(_root).FirstOrDefault(i => i.Id == item.Id);
+                if (fresh == null) continue;
+                lbl.Tag = fresh;
+                lbl.Text = HoldMetaText(fresh, out _);
+            }
+        }
+    }
+
     void RefreshQueueUi(bool force = false)
     {
         var items = DisplayQueue.Load(_root);
+        // Do not put remaining seconds in the fingerprint — countdown updates in place.
         var fingerprint = string.Join("|", items.Select(i =>
             $"{i.Id}:{i.Status}:{i.HoldSec}:{i.HeldUntil}:{i.PreviewPath}"));
         if (!force && fingerprint == _queueFingerprint) return;
@@ -373,16 +415,7 @@ public class MainForm : Form
             };
             thumb.Image = LoadPreview(item.PreviewPath);
 
-            var showing = string.Equals(item.Status, "showing", StringComparison.OrdinalIgnoreCase);
-            var holdLabel = item.HoldSec > 0
-                ? (item.HoldSec >= 60 ? $"{item.HoldSec / 60} min hold" : $"{item.HoldSec}s hold")
-                : "no hold";
-            var state = showing ? "Now showing" : "Waiting";
-            if (showing && item.HeldUntil is double until)
-            {
-                var left = Math.Max(0, (int)(until - DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
-                state = left > 0 ? $"Now showing · {left}s left" : "Now showing · ending";
-            }
+            var metaText = HoldMetaText(item, out var showing);
 
             var titleLbl = new Label
             {
@@ -395,10 +428,11 @@ public class MainForm : Form
             };
             var metaLbl = new Label
             {
-                Text = $"{state} · {holdLabel}",
+                Text = metaText,
                 ForeColor = showing ? Color.FromArgb(120, 200, 140) : muted,
                 Location = new Point(220, 40),
                 AutoSize = true,
+                Tag = item,
             };
 
             Button SmallBtn(string caption) => new()
@@ -792,6 +826,7 @@ public class MainForm : Form
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
         _panelTimer.Stop();
+        _queueTick.Stop();
         foreach (var img in _previewCache.Values)
             img.Dispose();
         _previewCache.Clear();
