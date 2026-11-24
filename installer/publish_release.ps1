@@ -114,12 +114,13 @@ if (-not $SkipFactory) {
 
 $base = "https://github.com/KCarino18/Fennsill/releases/download/$Tag"
 $date = Get-Date -Format "yyyy-MM-dd"
-$badge = "**Latest release: [$Tag](https://github.com/KCarino18/Fennsill/releases/tag/$Tag)** — $date"
+# ASCII-only punctuation so PowerShell encoding cannot mojibake the README.
+$badge = "**Latest release: [$Tag](https://github.com/KCarino18/Fennsill/releases/tag/$Tag)** -- $date"
 $table = @"
 | What | Download |
 |------|----------|
-| **FennSill Setup** (Desk + Agent service — run as Admin once) | [FennsillSetup.exe]($base/FennsillSetup.exe) |
-| **FennSill Factory** (flasher — manufacturing PC) | [FennsillFactory.exe]($base/FennsillFactory.exe) |
+| **FennSill Setup** (Desk + Agent service -- run as Admin once) | [FennsillSetup.exe]($base/FennsillSetup.exe) |
+| **FennSill Factory** (flasher -- manufacturing PC) | [FennsillFactory.exe]($base/FennsillFactory.exe) |
 | **All releases** | [github.com/KCarino18/Fennsill/releases](https://github.com/KCarino18/Fennsill/releases) |
 "@
 
@@ -145,7 +146,8 @@ if ($start -ge 0) {
   $lines.RemoveRange($start, $end - $start)
   $lines.InsertRange($start, [string[]]$newRows)
 }
-[IO.File]::WriteAllLines($readme, $lines)
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[IO.File]::WriteAllLines($readme, $lines.ToArray(), $utf8NoBom)
 
 git add README.md (Join-Path $Root "fennsill-setup\FennsillSetup.csproj")
 git commit -m "Bump README latest release to $Tag."
