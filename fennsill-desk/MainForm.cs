@@ -120,6 +120,15 @@ public class MainForm : Form
 
     string? ResolveConnectorScript(params string[] names) => ResolveUnderRoot(_root, names);
 
+    static string ShortVersion()
+    {
+        var raw = Application.ProductVersion ?? "";
+        var parts = raw.Split('.');
+        if (parts.Length >= 3)
+            return string.Join('.', parts.Take(3));
+        return string.IsNullOrWhiteSpace(raw) ? "?" : raw;
+    }
+
     void BuildUi()
     {
         var bg = Color.FromArgb(18, 20, 24);
@@ -152,6 +161,22 @@ public class MainForm : Form
             ForeColor = text,
             AutoSize = true,
             Location = new Point(28, 28),
+        };
+
+        var versionLabel = new Label
+        {
+            Text = "v" + ShortVersion(),
+            Font = new Font("Segoe UI", 9F),
+            ForeColor = muted,
+            AutoSize = true,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+        };
+        // Place after layout so we can pin to the right padding edge.
+        top.Resize += (_, _) =>
+        {
+            versionLabel.Location = new Point(
+                Math.Max(28, top.ClientSize.Width - versionLabel.Width - 28),
+                34);
         };
 
         _readyBanner.Location = new Point(28, 78);
@@ -316,7 +341,11 @@ public class MainForm : Form
         _queuePanel.Visible = false;
 
         top.Controls.Add(title);
+        top.Controls.Add(versionLabel);
         top.Controls.Add(_readyBanner);
+        versionLabel.Location = new Point(
+            Math.Max(28, top.ClientSize.Width - versionLabel.PreferredWidth - 28),
+            34);
         top.Controls.Add(_status);
         top.Controls.Add(identityLabel);
         top.Controls.Add(identity);
