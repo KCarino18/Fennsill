@@ -51,6 +51,7 @@ from security import (  # noqa: E402
     read_linked_provider,
     redact,
     require_dict,
+    validate_chart_args,
     validate_tool_name,
     validate_wifi_args,
 )
@@ -231,6 +232,28 @@ def call_tool(name, arguments, link=None):
             "note": "No USB-connected Fennsill panel detected. Plug the panel in over USB and retry.",
         }
 
+    if name == "push_chart":
+        from chart_page import render_chart_html
+
+        clean = validate_chart_args(
+            title=str(arguments.get("title") or ""),
+            labels=arguments.get("labels") or [],
+            values=arguments.get("values") or [],
+            chart_type=str(arguments.get("chart_type") or "auto"),
+            unit=str(arguments.get("unit") or ""),
+            subtitle=str(arguments.get("subtitle") or ""),
+            require_device_id=False,
+        )
+        html = render_chart_html(
+            title=clean["title"],
+            labels=clean["labels"],
+            values=clean["values"],
+            chart_type=clean["chart_type"],
+            unit=clean["unit"],
+            subtitle=clean["subtitle"],
+        )
+        return call_tool("push_artifact", {"html": html}, link=link)
+
     if name == "push_artifact":
         # #region agent log
         try:
@@ -265,7 +288,13 @@ def call_tool(name, arguments, link=None):
             if not replies or replies[-1] != "OK":
                 raise SecurityError(replies[-1] if replies else "The panel did not accept the frame.")
             meta = save_page(frame, source=f"{provider}-artifact")
-            return {"ok": True, "bytes": len(frame), "page_id": meta["id"], "pushed": True}
+            return {
+                "ok": True,
+                "bytes": len(frame),
+                "page_id": meta["id"],
+                "pushed": True,
+                "delivered": True,
+            }
         result = intake_page(
             html=arguments.get("html"),
             svg=arguments.get("svg"),
@@ -277,6 +306,8 @@ def call_tool(name, arguments, link=None):
             detail = result.get("panel_error") or result.get("note") or "Panel push did not complete."
             page_id = result.get("page_id") or "?"
             raise SecurityError(f"{detail} (saved page_id={page_id})")
+        if isinstance(result, dict) and "delivered" not in result:
+            result = {**result, "delivered": bool(result.get("pushed"))}
         return result
 
     if name == "start_live_update":

@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FennSill V1 Plan</title>
+<style>
+  @page { size: letter; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    color: #0a0a0a;
+    background: #f7f5f1;
+    font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.4;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  h2 {
+    font-family: "Arial Narrow", "Franklin Gothic Medium", "Segoe UI", sans-serif;
+    font-size: 16pt;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: 2.5px solid #0a0a0a;
+    padding-bottom: 6px;
+    margin: 0 0 10px;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  h2.follow { margin-top: 18px; font-size: 13pt; }
+  h2.section {
+    break-before: page;
+    page-break-before: always;
+    margin-top: 0;
+  }
+  h3 {
+    font-family: "Arial Narrow", "Franklin Gothic Medium", "Segoe UI", sans-serif;
+    font-size: 13pt;
+    letter-spacing: 0.01em;
+    margin: 2px 0 6px;
+    line-height: 1.2;
+  }
+  p { margin: 0 0 8px; }
+  ol, ul { margin: 0 0 8px; padding-left: 1.2em; }
+  li { margin: 0 0 3px; }
+  ol.path { margin: 12px 0 12px; }
+  ol.path li { margin: 0 0 5px; }
+  section.break { break-before: page; page-break-before: always; }
+  header.doc-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: end;
+    border-bottom: 3px solid #0a0a0a;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+  }
+  .brand {
+    font-family: "Arial Narrow", "Franklin Gothic Medium", "Segoe UI", sans-serif;
+    font-size: 26pt;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    line-height: 1;
+    margin: 0;
+  }
+  .doc-title {
+    font-family: "Arial Narrow", "Franklin Gothic Medium", "Segoe UI", sans-serif;
+    font-size: 13pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 6px 0 0;
+  }
+  .meta { text-align: right; font-size: 8.5pt; color: #333; line-height: 1.45; }
+  .lede { color: #222; margin-bottom: 10px; }
+  .blurb { color: #333; margin: 0 0 14px; }
+  .index-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 18px;
+    margin-top: 4px;
+  }
+  .index-col h3 {
+    font-family: "Arial Narrow", "Franklin Gothic Medium", "Segoe UI", sans-serif;
+    font-size: 11pt;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: 1.5px solid #0a0a0a;
+    padding-bottom: 4px;
+    margin: 0 0 8px;
+  }
+  .count { float: right; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+  ol.index { list-style: none; padding: 0; margin: 0; font-size: 8.5pt; line-height: 1.35; }
+  ol.index li { margin: 0 0 5px; }
+  table.sheet {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 8px;
+    background: #fff;
+  }
+  table.sheet th {
+    text-align: left;
+    font-size: 7.5pt;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-bottom: 1.5px solid #0a0a0a;
+    padding: 0 10px 5px 0;
+    font-weight: 700;
+  }
+  table.sheet td {
+    border-bottom: 1px solid #d5d5d5;
+    padding: 6px 10px 6px 0;
+    vertical-align: top;
+    font-size: 9.5pt;
+  }
+  table.sheet td.id {
+    font-family: Consolas, "Courier New", monospace;
+    font-weight: 700;
+    white-space: nowrap;
+    width: 0.85in;
+  }
+  .card {
+    margin: 0 0 14px;
+    padding: 0 0 4px;
+    border-bottom: 1px solid #cfcfcf;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 1px;
+  }
+  .kicker { margin: 0; }
+  .ident {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9pt;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .badge {
+    border: 1px solid #0a0a0a;
+    padding: 1px 6px;
+    font-size: 7pt;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .badge.close { background: #0a0a0a; color: #fff; }
+  .badge.later { border-style: dashed; color: #333; }
+  .label {
+    font-size: 7.5pt;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 8px 0 2px;
+  }
+  .note {
+    margin-top: 8px;
+    font-size: 9.5pt;
+    color: #333;
+  }
+  .end {
+    margin-top: 18px;
+    padding-top: 8px;
+    border-top: 1.5px solid #0a0a0a;
+    font-size: 8.5pt;
+    color: #333;
+    letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body>
+<header class="doc-head">
+  <div>
+    <p class="brand">FENNSILL</p>
+    <h1 class="doc-title">Product plan</h1>
+  </div>
+  <div class="meta">
+    <strong>23 November 2026</strong><br>
+    Product plan · Revision 1<br>
+    Assignee KC<br>
+    Release v0.1.27
+  </div>
+</header>
+
+<p class="lede">What to check off on the FennSill board, and the plan for every card that stays open. The engineering rows are assigned to KC. The public app release named in the README is v0.1.27, 16 November 2026.</p>
+<ol class="path">
+  <li>Run FennsillSetup.exe once and accept the administrator prompt.</li>
+  <li>Plug the panel in over USB. Desk shows the Device ID.</li>
+  <li>On mcp.fennsill.com, link that id, mint a device key, and paste it into Desk.</li>
+  <li>Point Claude, ChatGPT, or Cursor at https://mcp.fennsill.com/mcp with the account bearer. Leave the Device ID out of that form.</li>
+  <li>Ask for a page. The Agent pulls the job and the panel refreshes.</li>
+</ol>
+<p>That path, on a PC you do not remote into, is V1. The access window is 30 days from the first MCP call after a real Agent heartbeat. You renew it. 31 December is for the open cards in the next section, not for grayscale, Wi-Fi, macOS, or Shopify.</p>
+<p>KC owns the December rows. If SO or TW are other people, the ROLES card splits Device and Buyer path. The factory master key stays offline.</p>
+
+<section class="break">
+  <h2>Check these off</h2>
+  <p class="lede">The feature is already in the firmware, the cloud, or the Windows apps. Check the card.</p>
+  
+<table class="sheet">
+  <thead><tr><th>Id</th><th>Card</th><th>Why it is done</th></tr></thead>
+  <tbody><tr><td class="id">MS-10</td><td>Make decision on infrastructure</td><td>MS-10 is checked, and the four child cards below are checked with the same sentences</td></tr><tr><td class="id">SM-145</td><td>Decide local vs hosted (or both) and write it up</td><td>The card says: V1 is hosted only</td></tr><tr><td class="id">SM-146</td><td>Decide push vs pull for content delivery</td><td>The card says: V1 is USB push via the Agent</td></tr><tr><td class="id">SM-147</td><td>Security model for hosted mode</td><td>The card quotes those four sentences, and MS-12 uses the same sentences as the engineering input to counsel</td></tr><tr><td class="id">SM-148</td><td>Pick the hosted stack</td><td>The card says: keep our cloud process and SQLite through the pilot</td></tr><tr><td class="id">MS-13</td><td>MCP structure</td><td>MS-13 and SM-049 are checked with that URL, that header, and that tool list</td></tr><tr><td class="id">SM-049</td><td>Build an MCP connector so any authorized model can push</td><td>A model other than Claude can push a page with the same URL and the same header</td></tr><tr><td class="id">FN-030</td><td>Send a READY and firmware version handshake on every USB connect</td><td>The card is checked</td></tr><tr><td class="id">FN-032</td><td>Chunked transfer with per-chunk ACK and checksum</td><td>The design card is checked</td></tr><tr><td class="id">FN-035</td><td>Over-the-air firmware updates</td><td>The mechanism card is checked</td></tr><tr><td class="id">MS-14</td><td>Domain</td><td>MS-14 is checked: the product host is https://mcp.fennsill.com</td></tr></tbody>
+</table>
+<h2 class="follow">Leave these unchecked</h2>
+<p class="lede">The program is partway there. The card is done only when the missing piece exists.</p>
+<table class="sheet">
+  <thead><tr><th>Id</th><th>Card</th><th>What is still missing</th></tr></thead>
+  <tbody><tr><td class="id">FN-031</td><td>Display timeout</td><td>Firmware prints the error. Desk and Factory do not show it.</td></tr><tr><td class="id">SM-142</td><td>Versioning</td><td>The publish script exists. A release note still does not pair Setup with the READY version.</td></tr><tr><td class="id">SM-143</td><td>Firmware CI</td><td>GitHub compiles the sketch. The binary is not attached to the release.</td></tr><tr><td class="id">SM-054</td><td>Factory flash</td><td>Factory can flash and lock a board. The card still wants one logged flash from the pinned build.</td></tr><tr><td class="id">SM-056</td><td>Setup</td><td>Windows Setup exists. macOS, and a clean install with no surprise firewall prompt, do not.</td></tr></tbody>
+</table>
+
+</section>
+<section class="break">
+  <h2>Contents</h2>
+  <div class="index-grid"><div class="index-col"><h3>Check off <span class="count">11</span></h3><ol class="index"><li><span class="ident">MS-10</span> Make decision on infrastructure</li><li><span class="ident">SM-145</span> Decide local vs hosted (or both) and write it up</li><li><span class="ident">SM-146</span> Decide push vs pull for content delivery</li><li><span class="ident">SM-147</span> Security model for hosted mode</li><li><span class="ident">SM-148</span> Pick the hosted stack</li><li><span class="ident">MS-13</span> MCP structure</li><li><span class="ident">SM-049</span> Build an MCP connector so any authorized model can push</li><li><span class="ident">FN-030</span> Send a READY and firmware version handshake on every USB connect</li><li><span class="ident">FN-032</span> Chunked transfer with per-chunk ACK and checksum</li><li><span class="ident">FN-035</span> Over-the-air firmware updates</li><li><span class="ident">MS-14</span> Domain</li></ol></div><div class="index-col"><h3>Open <span class="count">17</span></h3><ol class="index"><li><span class="ident">V1D</span> Build the V1D</li><li><span class="ident">MILE</span> Fill out your milestones</li><li><span class="ident">ROLES</span> Fill out roles and responsibilities</li><li><span class="ident">MS-11</span> Dev plan</li><li><span class="ident">MS-12</span> Development compliance aspects</li><li><span class="ident">MS-15</span> Access</li><li><span class="ident">MS-16</span> Decide whether to pay for business email now</li><li><span class="ident">MK-127</span> Buy the domain for the chosen name</li><li><span class="ident">MK-129</span> Set up business email on the domain</li><li><span class="ident">FN-031</span> Timeout on the display BUSY pin and show display not detected</li><li><span class="ident">FN-157</span> Regression checklist to run before every firmware release</li><li><span class="ident">FN-152</span> USB tests across Windows and macOS machines, cables and ports</li><li><span class="ident">SM-054</span> Find the device by USB ID, free a busy port, and flash the pinned build</li><li><span class="ident">SM-056</span> One-click Windows and macOS setup with no firewall prompts</li><li><span class="ident">SM-142</span> Versioning and release process for firmware and the host app</li><li><span class="ident">SM-143</span> CI: build the firmware with arduino-cli and attach release binaries</li><li><span class="ident">OPS</span> Operator note for the pilot week</li></ol></div><div class="index-col"><h3>Later <span class="count">26</span></h3><ol class="index"><li><span class="ident">SM-048</span> Push a published Claude artifact to the device</li><li><span class="ident">FN-024</span> Test 2-bit grayscale and partial refresh on the UC8179</li><li><span class="ident">SM-047</span> Add dithering presets and a 2-bit grayscale output option</li><li><span class="ident">FN-034</span> Wi-Fi pull mode: wake, fetch the latest image, deep sleep</li><li><span class="ident">SM-052</span> Device pull endpoint for Wi-Fi mode</li><li><span class="ident">FN-038</span> Detect a 5 GHz-only network and tell the user it needs 2.4 GHz</li><li><span class="ident">FN-151</span> Wi-Fi tests: range, reconnect after router reboot, weak signal</li><li><span class="ident">FN-036</span> Map keys 1 to 3 to next screen, refresh now, and status</li><li><span class="ident">FN-037</span> Boot self-test and status screen (battery, Wi-Fi, version)</li><li><span class="ident">SM-060</span> E-ink design kit: CSS tokens and components for 800 by 480 black and white</li><li><span class="ident">SM-061</span> Templates: markets, calendar, weather, homelab, daily brief</li><li><span class="ident">SM-062</span> Template preview that shows the exact 1-bit render before pushing</li><li><span class="ident">SM-051</span> Scheduled refresh</li><li><span class="ident">SM-050</span> Google Sheet as a dashboard source</li><li><span class="ident">SM-059</span> Support several devices per user with playlists</li><li><span class="ident">SM-053</span> No-account local mode: desktop helper that uses the buyer&#x27;s own Claude</li><li><span class="ident">SM-055</span> Recover a device stuck in the bootloader automatically</li><li><span class="ident">SM-057</span> Guided repair flow built from TROUBLESHOOTING.md</li><li><span class="ident">SM-139</span> Create a GitHub organization and repos for firmware, host app, and templates</li><li><span class="ident">SM-140</span> Move the trmnl_usb firmware into the firmware repo with a README</li><li><span class="ident">SM-144</span> GitHub Project board for engineering work</li><li><span class="ident">SM-143b</span> GitHub issue templates that match the repair log</li><li><span class="ident">SM-063</span> Choose the store platform (Shopify) and connect the domain</li><li><span class="ident">SM-065</span> Set up Shopify: theme, product pages, preorder or waitlist, checkout</li><li><span class="ident">SM-075</span> Analytics: GA4, Meta pixel, and Shopify analytics</li><li><span class="ident">MAC</span> macOS installer and USB tests</li></ol></div></div>
+</section>
+<h2 class="section">Weekly cards</h2>
+<p class="blurb">The weekly list. V1 is the pilot. Milestones and roles stay open until the board matches this document.</p>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">V1D</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Build the V1D</h3>
+  <p>V1 is the first panel you can hand to someone who does not have this repo open. The software train is already at 0.1.27 (16 November 2026): Windows Setup, Desk, the Agent service, Factory, and the hosted MCP at https://mcp.fennsill.com/mcp. Building V1 means that path works on a PC you do not remote into.</p>
+  <p class="label">Where it stands</p>
+  <p>A buyer is supposed to run FennsillSetup.exe once as Admin, plug the panel in over USB, sign up, link the Device ID, paste the device key into Desk, and add the MCP URL plus an Authorization: Bearer header in Claude, ChatGPT, or Cursor. The Agent pulls the job and pushes an 800 by 480 frame. Access runs 30 days from the first MCP call after a real Agent heartbeat. You renew it. The buyer cannot.</p>
+  <p class="label">Done when</p>
+  <p>One person outside the build follows only the Quick Start, gets a page on the panel, and keeps doing that for a week without you on their machine. The release that survived that week is named 1.0. Until then, ship 0.1.x.</p>
+  <p class="label">Work</p>
+  <ol><li>Freeze the buyer steps above. New product ideas go to the After the pilot section of this document.</li><li>Install the GitHub release of Setup on a Windows PC that did not build FennSill. Plug in a factory-flashed panel. Create an account, link the Device ID, paste the key.</li><li>Push one page from Claude and one from ChatGPT, same panel, same account header.</li><li>Write the one-page operator note: how you renew or revoke a month, how you publish a signed firmware manifest, and the four checks when a push sits (Agent service running, USB connected, access window open, device key pasted).</li><li>Hand the Quick Start and a panel to one outsider. Collect every failure for a week. Those failures are the only V1 bug list.</li><li>Tag 1.0 only after that week.</li></ol>
+  <p class="note">Shopify, Wi-Fi pull, grayscale, macOS, and templates are later cards, not steps on this one.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">MILE</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Fill out your milestones</h3>
+  <p>The weekly board asked for milestones, and the Dec 31 list had a date on every row. A date is not a milestone.</p>
+  <p class="label">Where it stands</p>
+  <p>Every engineering row is assigned to KC and due 31 December 2026. The on-time figure on the weekly view was 81 percent against a 90 percent goal, with the same planning cards copied and overdue.</p>
+  <p class="label">Done when</p>
+  <p>The board has three dates, and each card sits under one of them. This PDF is the write-up.</p>
+  <p class="label">Work</p>
+  <ol><li>Close the cards in the Close these decisions section. Paste the decision sentence from each card onto the ticket, then check it off.</li><li>Leave a 31 December date only on the Finish before the pilot cards.</li><li>Move every After the pilot card onto a milestone named After the first pilot week. Give that milestone no December date.</li><li>Treat 31 December as: decisions written down, mailbox decided, and a Windows USB proof on a clean PC. The outsider&#x27;s week can fall in January if they are not lined up yet.</li></ol>
+  <p class="note">Clearing duplicate copies of this card does not move the pilot.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">ROLES</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Fill out roles and responsibilities</h3>
+  <p>The Dec 31 board has one assignee on every row: KC. The earlier weekly list also showed initials SO and TW on the duplicate planning cards.</p>
+  <p class="label">Where it stands</p>
+  <p>One person is sequencing firmware, cloud, factory, the store, and email. Two extra initials appear only on the weekly duplicates.</p>
+  <p class="label">Done when</p>
+  <p>You can point at one owner for the December work. If SO or TW is another person, they have one seat each and a written boundary.</p>
+  <p class="label">Work</p>
+  <ol><li>If KC is the only person building this, say so on the card and stop splitting seats. The job is the order in this PDF: close decisions, write compliance and access, prove USB, then the pilot.</li><li>If SO or TW is someone else, give one of them Device and the other Buyer path.</li><li>Device owns Factory, the permanent serial, the device key, firmware, the display-not-detected message, and the regression checklist.</li><li>Buyer path owns the account site, the MCP header, Setup, the Agent, the Quick Start, releases, the support mailbox, and holding Shopify, Wi-Fi, and local mode until after the pilot.</li><li>Either way, neither person ships 1.0 while the privacy link is still missing.</li></ol>
+  <p class="note">The factory master key stays offline. It is not a shared login.</p>
+</article>
+<h2 class="section">Close these decisions</h2>
+<p class="blurb">These are already in the firmware, the cloud, or the Windows apps. Check the card and paste the decision.</p>
+
+<article class="card close">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">MS-10</span></p>
+    <span class="badge close">Check off</span>
+  </div>
+  <h3>Make decision on infrastructure</h3>
+  <p>This milestone is the parent of the local-versus-hosted, push-versus-pull, security, and stack cards. It stays open while those sentences are still unspoken on the board.</p>
+  <p class="label">Where it stands</p>
+  <p>The running design is hosted. Buyers install a Windows agent that talks USB. Their AI calls https://mcp.fennsill.com/mcp. docs/SHIPPING.md says not to ship FennsillHost.exe. fennsill-host and panel-preview are marked deprecated. Cloud storage is SQLite in the cloud process.</p>
+  <p class="label">Done when</p>
+  <p>MS-10 is checked, and the four child cards below are checked with the same sentences.</p>
+  <p class="label">Work</p>
+  <ol><li>Write this on the card: Buyers use FennSill-hosted MCP. The PC agent pulls jobs and pushes frames over USB. Wi-Fi pull is a later mode. The server is our cloud process with SQLite. One repo through 1.0.</li><li>Check SM-145, SM-146, SM-147, and SM-148 with the text from their cards.</li><li>Leave SM-139 (split the GitHub repos) on the After the pilot milestone.</li></ol>
+  <p class="note">Revisit hosting when a second operator cannot run the current process, or when a buyer you want to keep refuses an account.</p>
+</article>
+
+<article class="card close">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-145</span></p>
+    <span class="badge close">Check off</span>
+  </div>
+  <h3>Decide local vs hosted (or both) and write it up</h3>
+  <p>The product had a local host in the tree and a hosted server in cloud/. Shipping both makes every support reply ambiguous.</p>
+  <p class="label">Where it stands</p>
+  <p>Hosted is what Setup, Desk, and Factory already tell a buyer to use. The local host app is deprecated in the tree.</p>
+  <p class="label">Done when</p>
+  <p>The card says: V1 is hosted only. A local no-account mode is SM-053 and stays parked.</p>
+  <p class="label">Work</p>
+  <ol><li>Paste the decision: FennSill hosts MCP. The buyer runs Setup, Desk, and the Agent. The buyer does not run a server and does not open a port.</li><li>Confirm the release you hand a pilot does not include FennsillHost.exe.</li><li>Point SM-053 at the reopen rule on that card.</li></ol>
+  <p class="note">Running both modes at once is how the board grew a second copy of every delivery ticket.</p>
+</article>
+
+<article class="card close">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-146</span></p>
+    <span class="badge close">Check off</span>
+  </div>
+  <h3>Decide push vs pull for content delivery</h3>
+  <p>USB push and Wi-Fi pull solve different rooms. The board treats them as one argument, so neither has a finish line.</p>
+  <p class="label">Where it stands</p>
+  <p>V1 delivery is USB. The Agent polls the cloud and writes 1024-byte chunks to the panel. Each chunk has a CRC-32. The panel answers ACK or NAK. The full frame is 48,000 bytes, which is 800 by 480 at 1 bit. That protocol is firmware/usb_protocol.py and firmware/fennsill/fennsill.ino.</p>
+  <p class="label">Done when</p>
+  <p>The card says: V1 is USB push via the Agent. Wi-Fi pull is FN-034 plus SM-052, after the pilot.</p>
+  <p class="label">Work</p>
+  <ol><li>Paste that sentence on SM-146.</li><li>Move FN-034, FN-038, FN-151, and SM-052 to After the first pilot week.</li><li>Keep the chunk, ACK, and checksum proof on FN-157. The packet format is already built.</li></ol>
+  <p class="note">A panel in another room, off USB, is a real product. It is the product after someone has used the USB one.</p>
+</article>
+
+<article class="card close">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-147</span></p>
+    <span class="badge close">Check off</span>
+  </div>
+  <h3>Security model for hosted mode</h3>
+  <p>Device keys, account auth, and what you store are the questions a privacy policy and a stolen-laptop story both ask.</p>
+  <p class="label">Where it stands</p>
+  <p>The panel id identifies the board and is not a secret. The device key is the secret and only works for that id. The MCP bearer is the account secret. Cloud stores the account, the device link, and jobs. Wi-Fi passwords are written over USB into panel flash and are refused by the cloud. A buyer cannot extend their own 30 days. This is written in cloud/README.md and docs/Fennsill-Cloud-Server-Brief.md.</p>
+  <p class="label">Done when</p>
+  <p>The card quotes those four sentences, and MS-12 uses the same sentences as the engineering input to counsel.</p>
+  <p class="label">Work</p>
+  <ol><li>Paste the four sentences onto SM-147 and check it.</li><li>Copy them into the MS-12 brief so the policy and the server describe one product.</li><li>Keep the factory master key out of the cloud host and out of any shared password entry that also holds the MCP admin login.</li></ol>
+  <p class="note">Adding set_wifi to the MCP tool list breaks this card. Wi-Fi stays on the USB line.</p>
+</article>
+
+<article class="card close">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-148</span></p>
+    <span class="badge close">Check off</span>
+  </div>
+  <h3>Pick the hosted stack</h3>
+  <p>The card offers a build-our-own server or a fork of a bring-your-own-server project such as LaraPaper. The tree already chose.</p>
+  <p class="label">Where it stands</p>
+  <p>cloud/ is the server. One process serves the account site and /mcp. The database is SQLite. SQL Server is unused. account-web/ is a spare copy of the site, and the live UI is the one inside cloud/.</p>
+  <p class="label">Done when</p>
+  <p>The card says: keep our cloud process and SQLite through the pilot. LaraPaper is not the V1 server.</p>
+  <p class="label">Work</p>
+  <ol><li>Paste that decision and check the card.</li><li>Point operators at cloud/README.md for how the container runs and how a buyer signs up.</li><li>Leave a SQL Server move off the board until a backup or a second host gives you a reason.</li></ol>
+  <p class="note">A fork would throw away the device-key and access-window work already in cloud/store.py.</p>
+</article>
+
+<article class="card close">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">MS-13</span></p>
+    <span class="badge close">Check off</span>
+  </div>
+  <h3>MCP structure</h3>
+  <p>Clients need one URL, one header, and a short tool list. Extra tools become support load and a larger security surface.</p>
+  <p class="label">Where it stands</p>
+  <p>The URL buyers use is https://mcp.fennsill.com/mcp. The header is Authorization: Bearer, copied from the account site. Device ID is entered on the account site when they link a panel. It is not a field in the MCP form. The allowlist in docs/SHIPPING.md is list panels, push a page, and live update.</p>
+  <p class="label">Done when</p>
+  <p>MS-13 and SM-049 are checked with that URL, that header, and that tool list.</p>
+  <p class="label">Work</p>
+  <ol><li>Paste the URL, the header rule, and the tool list on MS-13.</li><li>Check SM-049 with a pointer to the same text.</li><li>When a new tool is proposed, add it to the After the pilot list first. The pilot uses the allowlist as it stands.</li></ol>
+  <p class="note">ChatGPT and Claude custom connectors both follow this shape. A connector that asks for the Device ID in the MCP form is the wrong form.</p>
+</article>
+
+<article class="card close">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-049</span></p>
+    <span class="badge close">Check off</span>
+  </div>
+  <h3>Build an MCP connector so any authorized model can push</h3>
+  <p>The card is the build item under MS-13. The connector is the hosted server, not a separate plugin per model.</p>
+  <p class="label">Where it stands</p>
+  <p>cloud/main.py serves /mcp. Desk and Factory tell the buyer to use mcp.fennsill.com. Any client that can call a custom MCP server with a bearer header is in scope. Cursor is already one of those clients.</p>
+  <p class="label">Done when</p>
+  <p>A model other than Claude can push a page with the same URL and the same header. The clean-PC test on the V1D card is the proof.</p>
+  <p class="label">Work</p>
+  <ol><li>Check SM-049 as built, and point the proof at the V1D clean-PC test.</li><li>Write the buyer instructions once, in the Quick Start: URL, Authorization header, empty bearer-env field, no Device ID in the form.</li><li>Leave SM-048 parked. The model sends HTML through push. It does not hand you a signed-in Claude page.</li></ol>
+  <p class="note">A per-vendor OAuth app is a later convenience. Custom MCP is the V1 contract.</p>
+</article>
+
+<article class="card close">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">FN-030</span></p>
+    <span class="badge close">Check off</span>
+  </div>
+  <h3>Send a READY and firmware version handshake on every USB connect</h3>
+  <p>Desk has to know which board it is talking to, and which firmware, before it pushes a frame.</p>
+  <p class="label">Where it stands</p>
+  <p>On connect the panel sends READY, a version, id=, and serial=. HELLO and READY? ask for that line again. The host matcher is firmware/panel_ports.py. The firmware print is in firmware/fennsill/fennsill.ino. docs/DEVICE.md describes the same line.</p>
+  <p class="label">Done when</p>
+  <p>The card is checked. A missing READY line is a failure on FN-157, not a new protocol.</p>
+  <p class="label">Work</p>
+  <ol><li>Check FN-030.</li><li>Add one line to the FN-157 checklist: plug in, expect READY with a version and an FS id within a few seconds. Unplug and plug again, expect it again.</li><li>If a board answers a different READY shape, treat it as the old firmware and reflash from Factory. Keep the parser on the line you ship.</li></ol>
+  <p class="note">Windows COM serial numbers are not the product serial. The product serial is the one Factory locked.</p>
+</article>
+
+<article class="card close">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">FN-032</span></p>
+    <span class="badge close">Check off</span>
+  </div>
+  <h3>Chunked transfer with per-chunk ACK and checksum</h3>
+  <p>A full frame has to survive a noisy cable. The card is the reliability of the USB push.</p>
+  <p class="label">Where it stands</p>
+  <p>The host sends magic AFC1, then 1024-byte chunks, each with a CRC-32. The panel answers ACK with the chunk index, or NAK. A show packet, magic AFS1, carries the CRC of the whole 48,000-byte frame. This is firmware/usb_protocol.py and the matching reader in the sketch.</p>
+  <p class="label">Done when</p>
+  <p>The design card is checked. FN-157 includes one bad-chunk proof: a corrupted chunk is NAKed, the retry lands, and the panel shows the frame.</p>
+  <p class="label">Work</p>
+  <ol><li>Check FN-032 as the protocol you ship.</li><li>Put the bad-chunk retry on the FN-157 checklist.</li><li>Leave frame size alone until FN-024 says 2-bit is worth a larger buffer.</li></ol>
+  <p class="note">Wi-Fi image download is a different transport. It does not replace this USB format for V1.</p>
+</article>
+
+<article class="card close">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">FN-035</span></p>
+    <span class="badge close">Check off</span>
+  </div>
+  <h3>Over-the-air firmware updates</h3>
+  <p>You need a way to fix a panel that already left the bench, without asking the owner to run Factory.</p>
+  <p class="label">Where it stands</p>
+  <p>If Wi-Fi is saved, boot can fetch an HTTPS manifest. The signature is an HMAC over version and sha256. The binary URL has to be https, and the download hash has to match. The panel shows an update prompt. The top button installs. The middle button skips. Serial errors are ERR bad signature and the ota url, http, begin, write, sha, and end failures. Buyers are not given a tool that publishes manifests.</p>
+  <p class="label">Done when</p>
+  <p>The mechanism card is checked. The operator note on the OPS card says how you publish a manifest, and that the panel needs saved Wi-Fi for OTA to run.</p>
+  <p class="label">Work</p>
+  <ol><li>Check FN-035 as the updater you have.</li><li>Write the publish steps into the operator note: sign version plus sha256, host the binary on https, point the manifest URL, confirm the panel shows the prompt.</li><li>Keep OTA off the V1 buyer Quick Start until a pilot panel has actually installed one signed build. USB reflash from Factory remains the recovery path.</li></ol>
+  <p class="note">A buyer-facing channel that publishes firmware would undo the operator-only rule in the cloud brief.</p>
+</article>
+
+<article class="card close">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">MS-14</span></p>
+    <span class="badge close">Check off</span>
+  </div>
+  <h3>Domain</h3>
+  <p>The software, Desk, and Factory all tell buyers to open mcp.fennsill.com. A second name would split accounts.</p>
+  <p class="label">Where it stands</p>
+  <p>mcp.fennsill.com resolves and sits on Cloudflare addresses. A lookup for the apex name fennsill.com returned no address record from this network on 23 November 2026. The product host name is already chosen.</p>
+  <p class="label">Done when</p>
+  <p>MS-14 is checked: the product host is https://mcp.fennsill.com. MK-127 is the registrar confirmation, not a naming workshop.</p>
+  <p class="label">Work</p>
+  <ol><li>Check MS-14 with that host name.</li><li>On MK-127, confirm the registrar login is yours, auto-renew is on, and the Cloudflare zone is the one serving mcp.fennsill.com.</li><li>Leave the apex without a storefront until SM-063. Point the apex at the store only when the store exists.</li></ol>
+  <p class="note">Print the same host in the Quick Start that Desk already shows.</p>
+</article>
+<h2 class="section">Finish before the pilot</h2>
+<p class="blurb">Still required before anyone outside the build uses a panel. 31 December belongs to this list.</p>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">MS-11</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Dev plan</h3>
+  <p>MS-11 is the milestone that asked for this document. The board cannot stay a flat list due on one day.</p>
+  <p class="label">Where it stands</p>
+  <p>The decisions, the pilot gate, and the later work are mixed on one December date, all assigned to KC.</p>
+  <p class="label">Done when</p>
+  <p>This PDF is the dev plan. MS-11 is checked, and the board dates match the three sections.</p>
+  <p class="label">Work</p>
+  <ol><li>Read the Close, Before the pilot, and After the pilot sections once and mark anything you reject.</li><li>Apply the board edits in the last section of this PDF.</li><li>Check MS-11. Further planning edits land as notes on the rejected cards, not as a second empty Dev plan ticket.</li></ol>
+  <p class="note">The weekly milestone card MILE is the same job. Check both when the board matches this PDF.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">MS-12</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Development compliance aspects</h3>
+  <p>You are about to hand a device to someone else and store their account. The shipping checklist already stops the release on a privacy policy and an EULA.</p>
+  <p class="label">Where it stands</p>
+  <p>docs/SHIPPING.md lists the facts and says counsel reviews them before a public sale. There is no policy URL in Setup or the README yet. This card is the engineering brief counsel needs, plus the links once counsel has words you can publish.</p>
+  <p class="label">Done when</p>
+  <p>Setup and the README link to a counsel-reviewed privacy policy and EULA. The policy matches what the server actually stores.</p>
+  <p class="label">Work</p>
+  <ol><li>Send counsel this inventory, labeled as engineering notes: account email and password hash; device id, label, and device key; job records for pages pushed; agent heartbeats and the access-window clock; support mail once MK-129 exists.</li><li>State the exclusions in the same note. Wi-Fi passwords stay in panel flash and are refused by the cloud. Page HTML is rendered on the buyer PC. The AI vendor sees the prompt and the HTML under that vendor&#x27;s terms. FennSill does not receive the buyer&#x27;s AI login.</li><li>Say who operates the host, where a buyer emails you, and that access is a period you turn on and off.</li><li>Ask counsel for a privacy policy and an EULA you are allowed to link. Put those URLs in Setup and in the README. docs/SHIPPING.md already names those two places.</li><li>Read the published policy against SM-147 once more before the pilot. If the policy promises something the server does not do, change the policy or the server before anyone signs up.</li></ol>
+  <p class="note">This PDF is not the policy. Publish counsel&#x27;s text.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">MS-15</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Access</h3>
+  <p>A single-person project still has a bus factor. The pilot stalls if the login that can renew a buyer, or the one that can flash, is locked behind a laptop you do not have.</p>
+  <p class="label">Where it stands</p>
+  <p>The board does not list the systems. From the repo and the live host, the set is at least: GitHub (KCarino18/Fennsill), the Cloudflare account in front of mcp.fennsill.com, the machine or container that runs the cloud process, the domain registrar, and the offline factory master key.</p>
+  <p class="label">Done when</p>
+  <p>One page lists each system, who can log in, how the second factor works, and what you do if that person is unavailable. The factory master key is named on the page and stored offline, not pasted into the page.</p>
+  <p class="label">Work</p>
+  <ol><li>Make a row for GitHub, Cloudflare, the cloud host, the registrar, the mailbox from MK-129, and Factory.</li><li>For each row write the login name, where the second factor lives, and the backup. A printed backup code in a known drawer is enough.</li><li>Write the one action each system is for: push a release, edit DNS, renew a buyer or read a failed job, renew the domain, read support mail, flash a board.</li><li>Confirm you can still sign in to each one this month. A login you have not used since the last laptop is a broken row.</li><li>Leave Shopify off this page until SM-063 starts. Add it then.</li></ol>
+  <p class="note">Do not put the factory master key, device keys, or bearer tokens on the access page.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">MS-16</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Decide whether to pay for business email now</h3>
+  <p>The first buyer will reply to whatever address is on the Quick Start. A personal mailbox mixes that thread with everything else and disappears when you change laptops.</p>
+  <p class="label">Where it stands</p>
+  <p>MK-129 is the setup card. MS-16 is the yes or no. The product host name is already on a fennsill.com subdomain. There is no support address in the Quick Start today. The Quick Start points at the GitHub releases page.</p>
+  <p class="label">Done when</p>
+  <p>You decide yes, and you pay for one mailbox on the domain before the pilot. The address is the one printed in the Quick Start.</p>
+  <p class="label">Work</p>
+  <ol><li>Decide yes for a single mailbox. The pilot is the reason. A full suite of seats can wait.</li><li>Pick the host. Google Workspace, or a mailbox at the registrar or at Cloudflare, are the usual choices. Pick the one you will actually check on your phone.</li><li>Use support@ or hello@. One of those, until you have a reason to split sales and help.</li><li>Hand the setup steps to MK-129.</li><li>Put the address on the Quick Start and on the GitHub release that the pilot downloads.</li></ol>
+  <p class="note">Firmware does not wait on the mailbox. The pilot&#x27;s first week does.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">MK-127</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Buy the domain for the chosen name</h3>
+  <p>The host name is already in the binaries. Losing the registration would take the account site and MCP down together.</p>
+  <p class="label">Where it stands</p>
+  <p>mcp.fennsill.com answers on Cloudflare. The apex name did not return an address record from this network on 23 November 2026. The name is in use, and the bare domain is not a website yet.</p>
+  <p class="label">Done when</p>
+  <p>You are in the registrar account, auto-renew is on, the registrant email is one you read, and the Cloudflare zone serving mcp is the zone you administer. The lock on that registrar is covered by MS-15.</p>
+  <p class="label">Work</p>
+  <ol><li>Open the registrar and confirm the domain is yours and the expiration is more than a quarter away. Turn on auto-renew.</li><li>Confirm the nameservers are the Cloudflare account you control.</li><li>Leave the apex without an address record until the store from SM-063 exists. A parked page is optional. A second product name is not required.</li><li>Check the card once those three are true.</li></ol>
+  <p class="note">If the registrar login is missing, that is an MS-15 failure, and it is urgent because the subdomain is already how buyers are told to sign in.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">MK-129</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Set up business email on the domain</h3>
+  <p>MS-16 chooses to pay. This card is the mailbox existing and being watched.</p>
+  <p class="label">Where it stands</p>
+  <p>No support address is wired through the product. GitHub is the help link in the current Quick Start.</p>
+  <p class="label">Done when</p>
+  <p>Mail to the chosen address arrives, you can reply from it, and the Quick Start plus the pilot&#x27;s release page show it.</p>
+  <p class="label">Work</p>
+  <ol><li>After MS-16 picks the host, add the DNS records they give you. Do that in the same Cloudflare zone that serves mcp.fennsill.com.</li><li>Create the one mailbox. Sign it in on the phone you actually have with you.</li><li>Send a message from another account and reply. Check the spam folder on the far side once.</li><li>Replace the Quick Start help line with that address. Rebuild the Quick Start PDF the installer copies, and put the same address on the GitHub release.</li><li>During the pilot week, read it daily.</li></ol>
+  <p class="note">Aliases and a second seat wait until a second person is on the roles card.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">FN-031</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Timeout on the display BUSY pin and show display not detected</h3>
+  <p>The UC8179 holds BUSY high while it refreshes. If the panel is missing or wedged, a waiter with no timeout hangs the USB session.</p>
+  <p class="label">Where it stands</p>
+  <p>Firmware waits up to 15 seconds (BUSY_TIMEOUT_MS) and then prints ERR display not detected. The same sentence exists in firmware/usb_protocol.py. A search of the Desk and Factory C# sources does not show that sentence. The person at the PC can still see a generic failure.</p>
+  <p class="label">Done when</p>
+  <p>When the display never releases BUSY, Desk and Factory show display not detected, and the USB port is usable again for a later push.</p>
+  <p class="label">Work</p>
+  <ol><li>Reproduce it on the bench: disconnect the display ribbon, or force the timeout path, and confirm the serial line is ERR display not detected.</li><li>Surface that line in Factory&#x27;s log. Factory is who flashes and who will see a dead panel first.</li><li>Surface the same line in Desk when a push fails for that reason, next to the existing cloud and USB status.</li><li>Add the case to FN-157: ribbon unplugged or panel absent, expect the sentence within about 15 seconds, then a later good push still works.</li></ol>
+  <p class="note">The timeout itself is in the sketch. This card is the person seeing it.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">FN-157</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Regression checklist to run before every firmware release</h3>
+  <p>OTA and Factory will put a binary on a board a buyer already has. The checklist is what you run before that binary is the pinned one.</p>
+  <p class="label">Where it stands</p>
+  <p>There is a firmware CI compile. There is no written checklist in the repo that a person runs against a real panel.</p>
+  <p class="label">Done when</p>
+  <p>A short checklist lives next to the firmware, and the last release you flashed has the checklist filled in with pass or fail and the firmware version.</p>
+  <p class="label">Work</p>
+  <ol><li>Write the list so it fits on one screen: plug in and read READY with version and FS id; push one full 1-bit frame and watch it appear; unplug the display path and expect ERR display not detected within about 15 seconds; confirm a bad chunk is NAKed and the retry completes; confirm a reflash is still possible after those failures.</li><li>Run it on the board you are about to call pinned. Record version, date, and cable.</li><li>Put the filled checklist in the release notes for that firmware. A compile that passed CI is not a substitute for the panel lighting up.</li><li>Run the list again after any change under firmware/fennsill/.</li></ol>
+  <p class="note">Wi-Fi range and 2-bit photos are not on this list. They have their own cards after the pilot.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">FN-152</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>USB tests across Windows and macOS machines, cables and ports</h3>
+  <p>Panels fail in the field because of cables and ports more often than because of the protocol. The card covers two operating systems. Only Windows is a V1 installer.</p>
+  <p class="label">Where it stands</p>
+  <p>Setup is FennsillSetup.exe. The host stack is Windows services, COM ports, and a bundled runtime. There is no macOS installer in the tree.</p>
+  <p class="label">Done when</p>
+  <p>On Windows, two cables and two ports are written down, including one cable that does not carry data. macOS moves to the MAC card in After the pilot.</p>
+  <p class="label">Work</p>
+  <ol><li>On a Windows PC that did not compile the firmware, install the release. Use the cable you ship, a second data cable, and a charge-only cable.</li><li>Charge-only must fail as no READY, with Desk saying the panel was not found. It must not hang.</li><li>Try a rear port and a front port, or a hub and a direct port. Record which ones enumerated and which ones dropped mid-push.</li><li>Unplug during a push. Plug back in. The next push works without reinstalling Setup.</li><li>Write the macOS rows onto the MAC card. Check the Windows half of FN-152 now.</li></ol>
+  <p class="note">A green result on the dev machine is not this card.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-054</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Find the device by USB ID, free a busy port, and flash the pinned build</h3>
+  <p>Every panel that ships is flashed on your bench. The card is Factory&#x27;s daily path, including the failure where another program already holds the COM port.</p>
+  <p class="label">Where it stands</p>
+  <p>Factory flashes the XIAO ESP32-S3 image, locks a write-once serial of the form FS-YYMM-NNNNNN, and locks the device key. Prebuilt binaries live under factory/prebuilt/. CI compiles into that folder as an Actions artifact. Busy-port detection exists in firmware/panel_ports.py.</p>
+  <p class="label">Done when</p>
+  <p>One board that is not your everyday dev board is flashed from the pinned build. Serial and key survive a second Factory run. A port held open by another program is reported as busy, and Factory does not skip to a different board.</p>
+  <p class="label">Work</p>
+  <ol><li>Pick the exact binary you call pinned. Prefer the CI artifact for that commit over a local compile. Record the commit on the card.</li><li>Flash one board. Confirm READY shows the new version, and Factory shows the device id and serial.</li><li>Run Factory again. It must refuse to rewrite the serial and the device key.</li><li>Open the COM port in another program. Factory should say the port is busy and stop. Close the other program and confirm a status read still works.</li><li>Check the card after that log exists. Day-to-day flashing you already do counts if you write down the date and the binary.</li></ol>
+  <p class="note">Buyers do not run this. Recovery of a buyer&#x27;s board is still you, with Factory, until SM-055.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-056</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>One-click Windows and macOS setup with no firewall prompts</h3>
+  <p>The buyer&#x27;s first hour is Setup. Every extra dialog is a support mail.</p>
+  <p class="label">Where it stands</p>
+  <p>Windows Setup is real: FennsillSetup.exe, run as Admin once, installs Desk, the Agent service, the runtime, and the Quick Start PDF, and registers an uninstall entry. The Agent is a Windows service so Desk can close. macOS setup is not in the repo. Whether a clean Windows install raises a firewall prompt is not written down.</p>
+  <p class="label">Done when</p>
+  <p>A clean Windows install shows the administrator prompt and then Desk. Any firewall prompt is either gone or written on the Quick Start as the one expected click. macOS is the MAC card.</p>
+  <p class="label">Work</p>
+  <ol><li>Install the published Setup on a Windows user account that has never run FennSill. Count the prompts.</li><li>If Windows Firewall asks about the Agent or a bundled tool, decide one of two things: allow it from the installer, or show one sentence in the Quick Start. An undescribed prompt fails the card.</li><li>Confirm the service is running after reboot, with the panel unplugged and with it plugged in.</li><li>Uninstall from Settings, Apps, and confirm the service is gone.</li><li>Leave macOS on the MAC card. Do not block December on it.</li></ol>
+  <p class="note">The one administrator prompt is expected. Hiding it is not the goal.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-142</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Versioning and release process for firmware and the host app</h3>
+  <p>A buyer, a panel, and a cloud job have to name the same generation. The Windows apps have a GitHub release. The firmware has a sketch version and a CI artifact. Those numbers do not meet.</p>
+  <p class="label">Where it stands</p>
+  <p>installer/publish_release.ps1 publishes the Windows Setup and Factory executables. The public tag called out in the README is v0.1.27 from 16 November 2026. The firmware USB version in the protocol module is 1.2.0. CI uploads prebuilt binaries as a workflow artifact.</p>
+  <p class="label">Done when</p>
+  <p>Each pilot release has one note that lists the Setup version, the firmware READY version, and the commit both came from. 1.0 is reserved for the week after the pilot, as on the V1D card.</p>
+  <p class="label">Work</p>
+  <ol><li>Write a half page next to the publish script. The Windows version is the GitHub release. The firmware version is the READY string. They do not have to be the same number. They do have to be named together in the release note.</li><li>Keep shipping 0.1.x for the apps until the pilot week is over. Bump firmware the way you already bump the READY string, and mention it in that same note.</li><li>Point Factory at the binary named in the note. SM-143 is how that binary gets attached.</li><li>Check this card when one release note has been published in that shape, even if the pilot has not started.</li></ol>
+  <p class="note">Forcing one number across USB, Windows, and the cloud is extra process. Pairing them in the note is the V1 need.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-143</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>CI: build the firmware with arduino-cli and attach release binaries</h3>
+  <p>The binary you flash has to be the binary CI built, or you cannot tell a buyer which sketch they have.</p>
+  <p class="label">Where it stands</p>
+  <p>.github/workflows/build-firmware.yml runs on firmware pushes and on demand. It installs arduino-cli, the ESP32 core, and Seeed_GFX, and compiles firmware/fennsill for the XIAO ESP32-S3 Plus. It uploads factory/prebuilt/ as a workflow artifact. It does not attach that artifact to a GitHub Release.</p>
+  <p class="label">Done when</p>
+  <p>The release you point Factory at contains the CI-built binaries, and the release note from SM-142 names that tag.</p>
+  <p class="label">Work</p>
+  <ol><li>Run the workflow on the commit you intend to pin. Download the artifact and confirm the expected bin files are inside.</li><li>Attach those files to the GitHub Release next to Setup, or copy them into the release with the publish script. Pick one place and write it on SM-142.</li><li>Flash from that download, not from a local build, for the SM-054 proof.</li><li>Leave the issue-template work on its own card. The board showed it with the same SM-143 badge. Split the badge when you edit the board.</li></ol>
+  <p class="note">A green compile that stays inside Actions is not yet a pinned build.</p>
+</article>
+
+<article class="card pilot">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">OPS</span></p>
+    <span class="badge pilot">Open</span>
+  </div>
+  <h3>Operator note for the pilot week</h3>
+  <p>The V1D card depends on you renewing access, publishing a manifest, and explaining a stuck push without opening the repo. That note had no ticket, so it is here.</p>
+  <p class="label">Where it stands</p>
+  <p>cloud/README.md and the operator CLI cover renew and revoke. OTA publish is described in docs/DEVICE.md. The four stuck-push checks are spread across Desk strings and the Quick Start.</p>
+  <p class="label">Done when</p>
+  <p>One page you can follow when you are tired. It names the command you actually run.</p>
+  <p class="label">Work</p>
+  <ol><li>Write the renew and revoke steps the way you will run them on the host: how you identify the buyer, and what Desk should show after.</li><li>Write the manifest steps from FN-035: where the binary lives, how you sign, how you know the panel saw the prompt.</li><li>Write the four checks in order. Agent service running. Panel USB and a READY id. Access window open. Device key pasted and a recent heartbeat.</li><li>Put the support address from MK-129 at the top, so a mail from the pilot maps to this page.</li></ol>
+  <p class="note">This is the thin version of SM-057. Build the guided wizard after the week shows which failures repeat.</p>
+</article>
+<h2 class="section">After the pilot</h2>
+<p class="blurb">Real work, dated after the first pilot week. Leave the December date off these cards.</p>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-048</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Push a published Claude artifact to the device</h3>
+  <p>The card tries to move a signed-in Claude page onto the panel, including private artifacts.</p>
+  <p class="label">Where it stands</p>
+  <p>The path that exists is: the model produces HTML, push_artifact takes that HTML, Playwright renders 800 by 480 with no network, and the Agent sends the frame. There is no browser session in the cloud that is logged into Claude.</p>
+  <p class="label">Done when</p>
+  <p>The card is parked with this sentence: V1 pushes HTML the model already sent. Private Claude artifact pages are out.</p>
+  <p class="label">Work</p>
+  <ol><li>Mark SM-048 after the pilot, with the reopen rule.</li><li>Reopen it only when a buyer needs a page that cannot be expressed as the HTML their model can send to push_artifact.</li><li>If you reopen it, the work is a signed-in browser on a machine the buyer controls. Store no Claude password on the FennSill server.</li></ol>
+  <p class="note">Rendering arbitrary signed-in web pages in the cloud is a different product and a different privacy story from SM-147.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">FN-024</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Test 2-bit grayscale and partial refresh on the UC8179</h3>
+  <p>The panel controller can show more than a hard black-and-white threshold, and it can refresh a region. V1 frames are 1-bit and full-screen because that path is what you can already push.</p>
+  <p class="label">Where it stands</p>
+  <p>The USB frame is 48,000 bytes, 800 by 480, one bit per pixel. The sketch draws black or white. There is no partial-window update in the buyer path.</p>
+  <p class="label">Done when</p>
+  <p>You have side-by-side photos, at arm&#x27;s length, of a 1-bit page and a 2-bit page of the same content on the UC8179, plus a note on ghosting after repeated partial refreshes. The photos decide whether SM-047 changes the frame format.</p>
+  <p class="label">Work</p>
+  <ol><li>On the bench, drive the UC8179 in 2-bit mode with a still image you already push in 1-bit. Keep USB power and the current cable. This test does not need the cloud.</li><li>Photograph both. Write what you can read from a desk that you could not read before.</li><li>Partial refresh: update a small region, then repeat it. Count how many partials you can do before a full refresh is required to clear ghosting.</li><li>If 2-bit is not clearly better for the pages you actually send, stop and leave the 48,000-byte frame alone.</li><li>If it is better, schedule the protocol change: buffer size, CRC over the new length, and a READY version bump so old hosts refuse the new frame cleanly.</li></ol>
+  <p class="note">Do this after the pilot week. A format change during the pilot strands the binary you just proved.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-047</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Add dithering presets and a 2-bit grayscale output option</h3>
+  <p>Once FN-024 says the panel earns 2-bit, the renderer has to produce those bytes on purpose. Dithering is how photos and charts survive e-ink.</p>
+  <p class="label">Where it stands</p>
+  <p>Playwright renders an 800 by 480 page for the 1-bit push. templates/ has a few pages, including a market example. There is no dither preset and no 2-bit output.</p>
+  <p class="label">Done when</p>
+  <p>A renderer flag produces either the current 1-bit frame or a 2-bit frame from the same HTML, and a preset name is recorded on the job so you can reproduce it.</p>
+  <p class="label">Work</p>
+  <ol><li>Wait for the FN-024 photos. Match the preset to the mode that won.</li><li>Implement one dither and one plain threshold. Keep 1-bit as the default until a template opts in.</li><li>Put the preset next to SM-062 so the preview and the panel use the same bytes.</li><li>Ship it as a renderer change first. Templates opt in one at a time.</li></ol>
+  <p class="note">A gallery of presets before the panel test is artwork, not a release.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">FN-034</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Wi-Fi pull mode: wake, fetch the latest image, deep sleep</h3>
+  <p>A panel that stays on a desk can leave the USB cable. The buyer still gets a new page.</p>
+  <p class="label">Where it stands</p>
+  <p>Wi-Fi credentials can be sent over USB and stored in panel flash. The cloud refuses those secrets. OTA already uses Wi-Fi when it is configured. The panel does not yet wake, download a page, and sleep on a timer.</p>
+  <p class="label">Done when</p>
+  <p>With credentials already stored, the panel wakes on an interval, downloads one image for its device, displays it, and goes back to deep sleep. USB push still works when the cable is attached.</p>
+  <p class="label">Work</p>
+  <ol><li>Build SM-052 first, on the hosted cloud: one image per device, fetched with the device key.</li><li>Firmware: on the interval, join the saved 2.4 GHz network, fetch that image, check the hash, display, sleep. A failed fetch leaves the previous image up.</li><li>Start the interval at 15 minutes or slower. E-ink does not need a one-minute poll.</li><li>When the cable is present, the Agent owns the screen and the sleep loop stays quiet so the two writers do not fight.</li><li>Then run FN-038 and FN-151.</li></ol>
+  <p class="note">V1 buyers are USB buyers. Offer this after a pilot has asked to unplug the panel.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-052</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Device pull endpoint for Wi-Fi mode</h3>
+  <p>FN-034 needs a URL that returns the latest frame for one board and for no other board.</p>
+  <p class="label">Where it stands</p>
+  <p>Jobs are pushed by the Agent over USB. There is no image URL for the panel. Device keys already exist and are how the Agent authenticates.</p>
+  <p class="label">Done when</p>
+  <p>A panel with its device key can fetch the latest rendered frame for that device only. A wrong key is refused. The body is the bytes the panel will display, plus a hash.</p>
+  <p class="label">Work</p>
+  <ol><li>Add the endpoint on the existing cloud process. Authenticate with the device key. Return a clear empty result when that device has no page yet.</li><li>Store the last rendered frame beside the job so the panel does not wait on Playwright.</li><li>Hosted only. A self-hosted pull is the SM-053 conversation and stays parked.</li><li>Log the fetch time so you can see a panel that stopped calling. Do not log Wi-Fi credentials. The panel already has them.</li></ol>
+  <p class="note">The endpoint is unused until FN-034 calls it. Build them as a pair.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">FN-038</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Detect a 5 GHz-only network and tell the user it needs 2.4 GHz</h3>
+  <p>The ESP32-S3 radio is 2.4 GHz. A phone hotspot or a modern SSID that is 5 GHz only looks like a password failure, and people retype the password.</p>
+  <p class="label">Where it stands</p>
+  <p>The USB WIFI line stores SSID and passphrase. Association failure is not yet translated into a band message on the panel.</p>
+  <p class="label">Done when</p>
+  <p>After a failed join, the panel shows that it needs a 2.4 GHz network. A following 2.4 GHz SSID joins. Desk shows the same sentence when Wi-Fi was set from the PC.</p>
+  <p class="label">Work</p>
+  <ol><li>Reproduce with a hotspot that is 5 GHz only. Confirm association fails.</li><li>Show one sentence on the panel: this panel needs a 2.4 GHz network. Print the same sentence on the serial line so Desk can repeat it.</li><li>Join a 2.4 GHz SSID with the same procedure and confirm the message clears.</li><li>You learn the band by trying. The message follows a failed join. Say that in the Quick Start when Wi-Fi becomes a buyer feature.</li></ol>
+  <p class="note">This can ship with USB Wi-Fi setup, before pull mode is finished. It still waits until a buyer is asked to enter an SSID.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">FN-151</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Wi-Fi tests: range, reconnect after router reboot, weak signal</h3>
+  <p>Pull mode that works on the bench and dies in a hallway is a return.</p>
+  <p class="label">Where it stands</p>
+  <p>There is no written Wi-Fi range log. OTA and the WIFI command are the only radio use.</p>
+  <p class="label">Done when</p>
+  <p>A one-page log: the distance where fetch still works, the behavior after the router is power-cycled, and the behavior when the fetch fails at the edge. The previous image stays up on failure.</p>
+  <p class="label">Work</p>
+  <ol><li>Run this only after FN-034 and SM-052 work on the same desk as the router.</li><li>Walk the panel out. Note the last distance that completed a fetch. Note what the panel showed when the fetch failed.</li><li>Reboot the router. Time how long until the next successful fetch. The panel should recover on a later wake without a USB cable.</li><li>Attach the log to the firmware release that you would actually ship as Wi-Fi capable.</li></ol>
+  <p class="note">A single success next to the access point is FN-034&#x27;s done test, not this card.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">FN-036</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Map keys 1 to 3 to next screen, refresh now, and status</h3>
+  <p>A panel with buttons can advance a page and show who it is without a PC.</p>
+  <p class="label">Where it stands</p>
+  <p>The top button installs an OTA update and the middle button skips it, and only while that prompt is showing. There is no buyer mapping for next, refresh, and status.</p>
+  <p class="label">Done when</p>
+  <p>Outside the update prompt, three controls do next page, refresh now, and status. During the update prompt, the OTA meanings win.</p>
+  <p class="label">Work</p>
+  <ol><li>Inventory the physical buttons on the board you ship. Map only buttons that exist.</li><li>Next page needs a list of pages. That list is SM-059. Until playlists exist, next can cycle the last few stored frames, or this card waits.</li><li>Refresh now fetches over Wi-Fi if FN-034 exists, or asks the Agent over USB if the cable is connected.</li><li>Status uses the FN-037 screen.</li><li>Test the OTA prompt afterward. Top still installs. Middle still skips.</li></ol>
+  <p class="note">Ship this with FN-037 so the buttons agree.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">FN-037</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Boot self-test and status screen (battery, Wi-Fi, version)</h3>
+  <p>When a panel is blank, the owner needs to see that it booted and which firmware it is.</p>
+  <p class="label">Where it stands</p>
+  <p>Boot shows a splash, then waits for USB or an update prompt. READY on the serial line already carries the version and id. There is no on-panel status page.</p>
+  <p class="label">Done when</p>
+  <p>A status screen shows the READY version and the device id. Wi-Fi shows associated, not configured, or the FN-038 failure. Power shows USB power, or a battery percent only if a sense pin is actually wired.</p>
+  <p class="label">Work</p>
+  <ol><li>Confirm the hardware. If the desk product is USB-powered and has no sense pin, the power line reads USB power. Do not invent a percentage.</li><li>Draw the screen in the 1-bit frame you already have. Large type. Device id and version must be readable at arm&#x27;s length.</li><li>Show it from FN-036&#x27;s status key, and for a few seconds at boot if that does not delay the USB READY line.</li><li>READY on the cable stays the source Desk uses. The screen is for the person looking at the glass.</li></ol>
+  <p class="note">A battery reading without a wired sensor fails this card by lying.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-060</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>E-ink design kit: CSS tokens and components for 800 by 480 black and white</h3>
+  <p>Templates drift unless type size, margin, and the few layouts you like are named.</p>
+  <p class="label">Where it stands</p>
+  <p>Pages are hand-built HTML rendered at 800 by 480. There is no shared token file.</p>
+  <p class="label">Done when</p>
+  <p>One stylesheet defines the page size, the background, the ink color, type sizes that survive 1-bit, and four components: a stat, a list, a chart, and a footer with the time. A sample page uses only those.</p>
+  <p class="label">Work</p>
+  <ol><li>Start from a page you have already pushed and liked. Pull its sizes into variables.</li><li>Keep the kit black and white. Drop mid-gray lines and type smaller than what you could read on the last real panel.</li><li>Render through the same Playwright path the pusher uses, then threshold to the frame, so the kit cannot depend on color the panel will drop.</li><li>SM-061 templates import this file. They do not invent a second set of margins.</li></ol>
+  <p class="note">Build the kit when the second template starts. The first pilot page can be hand-built.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-061</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Templates: markets, calendar, weather, homelab, daily brief</h3>
+  <p>Buyers will ask for the same five pages. A template is that page with their data, rendered to the frame.</p>
+  <p class="label">Where it stands</p>
+  <p>templates/ already holds a market example and a chart page. Calendar, weather, homelab, and a daily brief are not a set.</p>
+  <p class="label">Done when</p>
+  <p>Each shipped template has a sample render on a real panel and a note of where the data comes from. You do not have to ship all five on the same day.</p>
+  <p class="label">Work</p>
+  <ol><li>After the pilot, build the one template the pilot actually asked for. That is the first done template.</li><li>Markets can extend the page you already have. Weather and calendar need a source you are willing to call from the renderer. Homelab data lives on their network, and rendering already happens on their PC.</li><li>A daily brief composes the others plus a short text block the model writes. Ship it after two of the pieces exist.</li><li>Each template uses SM-060 and is previewed with SM-062.</li></ol>
+  <p class="note">Five unfinished templates help December less than one page the pilot requested.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-062</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Template preview that shows the exact 1-bit render before pushing</h3>
+  <p>HTML in a browser looks sharper than the panel. People will approve the wrong image.</p>
+  <p class="label">Where it stands</p>
+  <p>The pusher renders with Playwright at 800 by 480 and then builds the 1-bit frame. The account site does not show that frame first.</p>
+  <p class="label">Done when</p>
+  <p>The preview image is the same bytes the panel will get. Approving it is what enqueues the push.</p>
+  <p class="label">Work</p>
+  <ol><li>Render the way production renders, including the dither or threshold from SM-047 once that exists. Until then, use the current 1-bit conversion.</li><li>Show that bitmap at 1:1 pixels, on white, before the push.</li><li>If the template changes, throw the preview away. A cached image from yesterday is how the panel and the preview diverge.</li><li>The buyer&#x27;s AI can skip the preview. A person picking a template on the site should not.</li></ol>
+  <p class="note">A mock that is merely the same pixel size fails the card. The bytes have to match.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-051</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Scheduled refresh</h3>
+  <p>Market open and market close are the obvious timers. A person should not have to ask the model twice a day.</p>
+  <p class="label">Where it stands</p>
+  <p>A push happens when an AI calls the tool, or when a person asks. There is no timer.</p>
+  <p class="label">Done when</p>
+  <p>A device can carry a schedule. At the chosen time the page is rendered again and pushed. A missed time waits for the next chance. Missed times do not stack into five stale pushes.</p>
+  <p class="label">Work</p>
+  <ol><li>The first slice is USB, because that is the V1 hardware. The Agent runs the clock, and only while the PC is on and the panel is plugged in. Write that limit down. A closed laptop misses the slot.</li><li>Use one example schedule: weekdays at the local open and close. Store the timezone on the device.</li><li>Rendering uses the same template path as a manual push.</li><li>The Wi-Fi slice moves the clock onto FN-034&#x27;s wake interval, and only after pull mode works. The Agent clock and the panel clock must not both push.</li></ol>
+  <p class="note">A timer inside the panel that fetches websites on its own is a different product. Keep rendering on the PC or the cloud.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-050</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Google Sheet as a dashboard source</h3>
+  <p>A lot of the pages people want are already a sheet: prices, chores, a homelab table.</p>
+  <p class="label">Where it stands</p>
+  <p>There is no sheet connector. Templates that need numbers use whatever the model typed into the HTML.</p>
+  <p class="label">Done when</p>
+  <p>A template can read a sheet the buyer chose and render it on the schedule from SM-051. The buyer can revoke that access.</p>
+  <p class="label">Work</p>
+  <ol><li>Start with a CSV URL or a published-sheet export the buyer pastes. Render those cells into the SM-060 table. This avoids OAuth while you learn which columns matter.</li><li>If that gets used, add Google OAuth on the account site. Store a refresh token for that sheet only. Show which sheet is linked, and offer a disconnect.</li><li>Fetch on the schedule, not on every panel wake. The panel receives a rendered frame either way.</li><li>A private sheet must be fetched with that token. Do not store the buyer&#x27;s Google password.</li></ol>
+  <p class="note">The CSV slice can ship before OAuth. Call the card done for OAuth only when disconnect works.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-059</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Support several devices per user with playlists</h3>
+  <p>One account can already be aimed at more than one board. A playlist is the missing object: which pages, in what order, how long each stays up.</p>
+  <p class="label">Where it stands</p>
+  <p>The account can link a device id and mint a key per device. Jobs target a device. There is no ordered playlist and no dwell time.</p>
+  <p class="label">Done when</p>
+  <p>An account with two linked panels can give each one a playlist. Each entry is a template plus its data, with a dwell time. The USB Agent advances the list while the PC is on.</p>
+  <p class="label">Work</p>
+  <ol><li>Confirm a second device links and gets its own key on today&#x27;s site. If a pilot owns two panels, fix that link before you build playlists.</li><li>Add a playlist as an ordered list on the device. Advance it from the same Agent clock as SM-051.</li><li>FN-036 next-page reads this list.</li><li>Wi-Fi advance waits for FN-034. Then the panel asks for the next entry.</li></ol>
+  <p class="note">A playlist of one page is just a push. Build this when someone has two pages they want left alone.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-053</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>No-account local mode: desktop helper that uses the buyer&#x27;s own Claude</h3>
+  <p>Some buyers will refuse an account or a hosted job queue.</p>
+  <p class="label">Where it stands</p>
+  <p>The shipped decision on SM-145 is hosted only. The local host executable is deprecated. Shipping this reopens that decision.</p>
+  <p class="label">Done when</p>
+  <p>The card stays parked. It reopens only when a buyer you are willing to support refuses an account.</p>
+  <p class="label">Work</p>
+  <ol><li>Leave the card in After the pilot with the reopen rule written on it.</li><li>If you reopen it, the helper runs on their PC, uses their AI credential, renders locally, and pushes USB. It does not embed a second MCP server on the public internet.</li><li>Give it a separate Quick Start. The hosted steps and the local steps will be misread if they share a page.</li><li>Name who supports it. A quiet local mode with no owner becomes the thing everyone is actually running.</li></ol>
+  <p class="note">Start this because a named buyer needs it, not because the card is old.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-055</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Recover a device stuck in the bootloader automatically</h3>
+  <p>A failed flash can leave the XIAO in the ROM bootloader. Today that is a Factory session and a person who recognizes the port.</p>
+  <p class="label">Where it stands</p>
+  <p>Factory is the recovery tool. panel_ports.py already classifies ready, busy, and silent ports. Automatic reflash of every silent board is how you wipe the wrong device.</p>
+  <p class="label">Done when</p>
+  <p>Factory offers recovery only when the USB identity matches the bootloader you expect, only one such port is present, and the operator confirms. If the board already has a FennSill serial, the confirm step names that serial.</p>
+  <p class="label">Work</p>
+  <ol><li>Write down the USB identity of this board in the bootloader, from a board you put there on purpose.</li><li>When exactly one port matches, Factory may offer to flash the pinned build. Any other count, it stops and lists the ports.</li><li>Confirmation is a click that shows the COM port and, if known, the serial. No timer proceeds on its own.</li><li>After recovery, run the FN-157 checklist before the board goes out.</li></ol>
+  <p class="note">A silent unknown port is not permission to flash. A recognized port plus a person confirming is the card.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-057</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Guided repair flow built from TROUBLESHOOTING.md</h3>
+  <p>After the pilot, the same few failures will show up in mail. A wizard is those failures in order.</p>
+  <p class="label">Where it stands</p>
+  <p>The Quick Start has a short troubleshooting list. The OPS card is the version you use during the pilot. A repair wizard is not what December needs.</p>
+  <p class="label">Done when</p>
+  <p>The wizard asks the questions that matched real pilot mail, in order: cable and READY, Agent service, device key and heartbeat, access window, and display not detected. Each dead end names the one next action.</p>
+  <p class="label">Work</p>
+  <ol><li>During the pilot, tag each mail with one cause. Design the wizard from those tags.</li><li>After the week, turn the causes you actually saw into the flow. Drop the ones you did not see.</li><li>Reuse the Desk status strings so the wizard and the app agree.</li><li>Keep Factory recovery (SM-055) as the branch for a board that never sends READY.</li></ol>
+  <p class="note">A wizard written before the week freezes the wrong tree.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-139</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Create a GitHub organization and repos for firmware, host app, and templates</h3>
+  <p>The card wants three repos. The release you have works as one repo, with one CI workflow and one publish script.</p>
+  <p class="label">Where it stands</p>
+  <p>The code lives in KCarino18/Fennsill. Firmware, cloud, Desk, Factory, and templates are directories. CI watches firmware/fennsill.</p>
+  <p class="label">Done when</p>
+  <p>Through 1.0 you stay in one repo. Reopen the split when two people are merging firmware and the Windows installer in each other&#x27;s way, or when templates need a public repo of their own.</p>
+  <p class="label">Work</p>
+  <ol><li>Write single-repo-through-1.0 on the card and move it to After the pilot.</li><li>If you later split, move firmware first, keep the compile green, and leave the Windows publish script in the repo that still tags Setup.</li><li>An organization account is an MS-15 row when you create it. Transfer the repo only after the pilot release is tagged.</li></ol>
+  <p class="note">A new empty organization does not make the pilot more reliable.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-140</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Move the trmnl_usb firmware into the firmware repo with a README</h3>
+  <p>The product grew out of an earlier USB sketch. The card wants that history inside the current firmware tree, with docs.</p>
+  <p class="label">Where it stands</p>
+  <p>The firmware you ship is firmware/fennsill. The USB protocol is documented in firmware/usb_protocol.py and docs/DEVICE.md. The buyer flash path does not use a sketch named trmnl_usb.</p>
+  <p class="label">Done when</p>
+  <p>The old sketch is archived with a README that points at firmware/fennsill, or you record that the history can stay where it is. The shipped tree stays firmware/fennsill either way.</p>
+  <p class="label">Work</p>
+  <ol><li>Find the old tree. If it is already gone, check the card as superseded by firmware/fennsill and stop.</li><li>If someone might still flash it, add a one-page README beside it: buyers get Factory and the pinned FennSill build.</li><li>Put buyer troubleshooting in the Quick Start and the OPS note. A second troubleshooting file in an old folder will be the one people follow by mistake.</li></ol>
+  <p class="note">Do not rename firmware/fennsill during a release week.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-144</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>GitHub Project board for engineering work</h3>
+  <p>The ticket asks for a project board that links back to this plan, so the cards and the write-up stay the same list.</p>
+  <p class="label">Where it stands</p>
+  <p>The work lives on the board these screenshots came from. GitHub has the repo and the firmware workflow. A second board that drifts from this PDF recreates the December pile.</p>
+  <p class="label">Done when</p>
+  <p>One GitHub Project whose columns are the three sections of this PDF, with the same ids, after the current board matches.</p>
+  <p class="label">Work</p>
+  <ol><li>Edit the current board first, using the checklist at the end of this PDF.</li><li>If GitHub should become the source, create columns for decisions already closed, before the pilot, and after the pilot.</li><li>Link the project from the README in one line. Point it at this PDF for the words.</li><li>When you check a card, close it in one place. Two open copies of the same id is how the weekly list filled with duplicates.</li></ol>
+  <p class="note">Creating the GitHub project before the sort copies the mess into a second tool.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-143b</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>GitHub issue templates that match the repair log</h3>
+  <p>The screenshot badged this row SM-143, the same id as firmware CI. It is a different card: what a bug report must contain so you can repair a panel.</p>
+  <p class="label">Where it stands</p>
+  <p>CI is the other SM-143, and it stays in the pilot section under that id. The issue template is separate work.</p>
+  <p class="label">Done when</p>
+  <p>A bug template asks for device id, serial, READY version, operating system, cable and port, whether READY appeared, the last ERR line, and whether Desk showed a heartbeat.</p>
+  <p class="label">Work</p>
+  <ol><li>Give this card its own id on the board so it stops sharing SM-143 with CI.</li><li>Add the template when a second person files bugs, or after the pilot week, whichever comes first. Until then the support mailbox and the OPS note are enough.</li><li>Use the same field names Desk already shows, so a buyer can copy them.</li><li>Factory-only failures stay a separate template. Buyers should not be sent the factory form.</li></ol>
+  <p class="note">Five fields a person will fill beat a long form they skip.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-063</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Choose the store platform (Shopify) and connect the domain</h3>
+  <p>The card has already chosen Shopify. What is left is connecting it to the domain after a stranger has used a panel.</p>
+  <p class="label">Where it stands</p>
+  <p>There is no store in the repo. The apex domain had no address record from the lookup on 23 November 2026. Buyers currently arrive through GitHub releases and mcp.fennsill.com.</p>
+  <p class="label">Done when</p>
+  <p>A Shopify store owns the apex, or a shop subdomain, on the Cloudflare zone you already control. The product page states that V1 needs Windows and USB, and an AI that supports custom MCP.</p>
+  <p class="label">Work</p>
+  <ol><li>Start this after the pilot week. The pilot itself can be an invoice and a shipment.</li><li>Create the Shopify store. Add the domain in Shopify and the DNS records in the same Cloudflare zone as mcp.fennsill.com. Leave the mcp host where it is.</li><li>One product: the flashed panel. State that Setup is Windows, that V1 needs the PC on USB, and that Wi-Fi pull is later.</li><li>Then do SM-065. Analytics is SM-075, after a page exists.</li></ol>
+  <p class="note">A checkout before the pilot sells a path you have not watched anyone else finish.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-065</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Set up Shopify: theme, product pages, preorder or waitlist, checkout</h3>
+  <p>SM-063 picks the platform and the DNS. This card is the page a person can read, and the way they pay or wait.</p>
+  <p class="label">Where it stands</p>
+  <p>Nothing is themed. You do not yet have pilot photos or a counsel-reviewed policy link.</p>
+  <p class="label">Done when</p>
+  <p>A product page shows the panel, the V1 buyer steps, the price or a waitlist, and links to the privacy policy and EULA from MS-12. Checkout is on only when you can ship another panel on a week you can name.</p>
+  <p class="label">Work</p>
+  <ol><li>Use a plain theme. The page needs the photo, the five buyer steps, and the Windows requirement.</li><li>If the next panel has no ship week, use a waitlist. If it does, turn on checkout for that quantity.</li><li>Put the support address from MK-129 on the page.</li><li>The order confirmation points at the GitHub release named in SM-142 and at the Quick Start. The store is not a second installer.</li></ol>
+  <p class="note">Preorder of Wi-Fi, grayscale, or macOS waits until those cards are done.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">SM-075</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>Analytics: GA4, Meta pixel, and Shopify analytics</h3>
+  <p>Once a store page exists you will want to know whether anyone saw it.</p>
+  <p class="label">Where it stands</p>
+  <p>There is no store page and no pixel.</p>
+  <p class="label">Done when</p>
+  <p>Shopify&#x27;s own analytics are on. GA4 is on if you will read it. A Meta pixel is on only if you are running ads. Each extra tool is named in the privacy policy before it is enabled.</p>
+  <p class="label">Work</p>
+  <ol><li>Ship SM-065 first. Read Shopify&#x27;s analytics for a week before adding more tools.</li><li>If you add GA4, add the counsel-approved sentence to the MS-12 policy in the same change.</li><li>Add a Meta pixel only when an ad account exists.</li><li>Leave analytics off mcp.fennsill.com. The account site is not the campaign page.</li></ol>
+  <p class="note">Three trackers on a waitlist is how the policy card reopens.</p>
+</article>
+
+<article class="card later">
+  <div class="card-top">
+    <p class="kicker"><span class="ident">MAC</span></p>
+    <span class="badge later">Later</span>
+  </div>
+  <h3>macOS installer and USB tests</h3>
+  <p>FN-152 and SM-056 both mention macOS. There is no Mac build in the tree, and V1&#x27;s installer is Windows. This card is where that work lives after the Windows halves are checked.</p>
+  <p class="label">Where it stands</p>
+  <p>Setup, the Agent service, COM ports, and the publish script are Windows. A Mac buyer cannot follow the Quick Start honestly.</p>
+  <p class="label">Done when</p>
+  <p>A Mac install sees READY, pushes one frame, and survives unplug and replug. Prompts are either gone or written down.</p>
+  <p class="label">Work</p>
+  <ol><li>Start after the Windows pilot week. The USB protocol stays. The service, the serial port names, and the installer are the work.</li><li>Repeat the FN-152 cable matrix on one Mac: the cable you ship, a second data cable, a charge-only cable, and an unplug during a push.</li><li>Decide how the helper stays running when the window is closed. A Windows service is not a Mac answer. Write the choice down before you build it.</li><li>Ship a separate Mac Quick Start. The Windows steps about the administrator prompt and Services will be wrong there.</li></ol>
+  <p class="note">Checking the Windows halves of FN-152 and SM-056 does not check this card.</p>
+</article>
+
+<p class="end">FennSill product plan, 23 November 2026. Counsel still owns the words of the privacy policy and the EULA.</p>
+</body>
+</html>

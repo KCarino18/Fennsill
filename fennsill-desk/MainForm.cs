@@ -1,11 +1,12 @@
 using System.Diagnostics;
+using System.Drawing.Drawing2D;
 using System.Text;
 using System.Text.Json;
 
 namespace FennsillDesk;
 
 /// <summary>
-/// Fennsill desk: panel identity + status. USB cloud delivery is owned by the
+/// Fennsill desk: panel identity + display queue. USB cloud delivery is owned by the
 /// FennSill Agent Windows service — Desk never starts or kills cloud_agent.py.
 /// Page pushes are MCP-only (no local Import/Paste page).
 /// </summary>
@@ -17,20 +18,23 @@ public class MainForm : Form
     readonly Label _hint = new();
     readonly TextBox _deviceIdBox = new();
     readonly TextBox _serialBox = new();
-    readonly TextBox _installKeyBox = new();
+    readonly Label _queueEmpty = new();
+    readonly FlowLayoutPanel _queuePanel = new();
     readonly System.Windows.Forms.Timer _panelTimer = new();
+    readonly Dictionary<string, Image> _previewCache = new();
+    string _queueFingerprint = "";
     bool _panelReady;
     bool _setupRanForThisPlug;
     string _panelPorts = "";
     string _deviceId = "";
     string _serial = "";
-    string _installKey = "";
 
     public MainForm()
     {
         _root = FindProjectRoot();
         Directory.CreateDirectory(Path.Combine(_root, "connector", "pages"));
         Directory.CreateDirectory(Path.Combine(_root, "connector", "inbox"));
+        Directory.CreateDirectory(Path.Combine(_root, "connector", "queue_previews"));
         BuildUi();
         _panelTimer.Interval = 3000;
         _panelTimer.Tick += async (_, _) => await RefreshPanelStatus();
@@ -115,9 +119,9 @@ public class MainForm : Form
         var muted = Color.FromArgb(154, 149, 140);
 
         Text = "FennSill";
-        Width = 760;
-        Height = 560;
-        MinimumSize = new Size(640, 480);
+        Width = 820;
+        Height = 780;
+        MinimumSize = new Size(700, 620);
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = bg;
         ForeColor = text;
@@ -142,14 +146,14 @@ public class MainForm : Form
         };
 
         _readyBanner.Location = new Point(28, 78);
-        _readyBanner.Size = new Size(680, 28);
+        _readyBanner.Size = new Size(740, 28);
         _readyBanner.Font = new Font("Segoe UI Semibold", 13F);
         _readyBanner.ForeColor = Color.FromArgb(232, 184, 74);
         _readyBanner.Text = "Waiting for panel…";
 
         _status.Location = new Point(28, 112);
         _status.AutoSize = true;
-        _status.MaximumSize = new Size(680, 0);
+        _status.MaximumSize = new Size(740, 0);
         _status.ForeColor = muted;
         _status.Text = "Panel updates come from ChatGPT / Claude through cloud MCP.";
 
@@ -164,15 +168,15 @@ public class MainForm : Form
         var identity = new TableLayoutPanel
         {
             Location = new Point(28, 176),
-            Size = new Size(680, 132),
+            Size = new Size(740, 88),
             ColumnCount = 3,
-            RowCount = 3,
+            RowCount = 2,
             BackColor = Color.Transparent,
         };
         identity.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
         identity.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         identity.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 88));
-        for (var i = 0; i < 3; i++)
+        for (var i = 0; i < 2; i++)
             identity.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
 
         void StyleIdBox(TextBox box)
@@ -200,14 +204,11 @@ public class MainForm : Form
 
         StyleIdBox(_deviceIdBox);
         StyleIdBox(_serialBox);
-        StyleIdBox(_installKeyBox);
         _deviceIdBox.Text = "(not bound yet)";
         _serialBox.Text = "(not bound yet)";
-        _installKeyBox.Text = "(not bound yet)";
 
         var copyDevice = CopyBtn(() => _deviceId);
         var copySerial = CopyBtn(() => _serial);
-        var copyKey = CopyBtn(() => _installKey);
         void CopyClick(object? sender, EventArgs e)
         {
             if (sender is not Button btn || btn.Tag is not Func<string> getter) return;
@@ -229,7 +230,6 @@ public class MainForm : Form
         }
         copyDevice.Click += CopyClick;
         copySerial.Click += CopyClick;
-        copyKey.Click += CopyClick;
 
         Label IdLabel(string caption) => new()
         {
@@ -246,12 +246,9 @@ public class MainForm : Form
         identity.Controls.Add(IdLabel("Serial"), 0, 1);
         identity.Controls.Add(_serialBox, 1, 1);
         identity.Controls.Add(copySerial, 2, 1);
-        identity.Controls.Add(IdLabel("Install key"), 0, 2);
-        identity.Controls.Add(_installKeyBox, 1, 2);
-        identity.Controls.Add(copyKey, 2, 2);
 
-        _hint.Location = new Point(28, 318);
-        _hint.Size = new Size(680, 56);
+        _hint.Location = new Point(28, 272);
+        _hint.Size = new Size(740, 56);
         _hint.ForeColor = muted;
         _hint.Text =
             "Device ID → website “Link your panel” only (not the ChatGPT/Claude MCP form).\n" +
@@ -260,8 +257,8 @@ public class MainForm : Form
 
         var actions = new FlowLayoutPanel
         {
-            Location = new Point(28, 384),
-            Size = new Size(680, 80),
+            Location = new Point(28, 336),
+            Size = new Size(740, 48),
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = true,
             BackColor = Color.Transparent,
@@ -286,6 +283,29 @@ public class MainForm : Form
         actions.Controls.Add(refresh);
         actions.Controls.Add(pasteKey);
 
+        var queueLabel = new Label
+        {
+            Text = "Display queue",
+            Font = new Font("Segoe UI Semibold", 12F),
+            ForeColor = text,
+            AutoSize = true,
+            Location = new Point(28, 392),
+        };
+
+        _queueEmpty.Text = "Queue empty — pushes from your AI land here.";
+        _queueEmpty.ForeColor = muted;
+        _queueEmpty.AutoSize = true;
+        _queueEmpty.Location = new Point(28, 424);
+
+        _queuePanel.Location = new Point(28, 424);
+        _queuePanel.Size = new Size(740, 280);
+        _queuePanel.AutoScroll = true;
+        _queuePanel.FlowDirection = FlowDirection.TopDown;
+        _queuePanel.WrapContents = false;
+        _queuePanel.BackColor = Color.FromArgb(22, 24, 28);
+        _queuePanel.Padding = new Padding(8);
+        _queuePanel.Visible = false;
+
         top.Controls.Add(title);
         top.Controls.Add(_readyBanner);
         top.Controls.Add(_status);
@@ -293,17 +313,175 @@ public class MainForm : Form
         top.Controls.Add(identity);
         top.Controls.Add(_hint);
         top.Controls.Add(actions);
+        top.Controls.Add(queueLabel);
+        top.Controls.Add(_queueEmpty);
+        top.Controls.Add(_queuePanel);
         Controls.Add(top);
         ApplyIdentityUi();
+        RefreshQueueUi();
     }
 
     void ApplyIdentityUi()
     {
         _deviceIdBox.Text = string.IsNullOrEmpty(_deviceId) ? "(not bound yet)" : _deviceId;
         _serialBox.Text = string.IsNullOrEmpty(_serial) ? "(not bound yet)" : _serial;
-        _installKeyBox.Text = string.IsNullOrEmpty(_installKey) ? "(not bound yet)" : _installKey;
     }
 
+    void RefreshQueueUi(bool force = false)
+    {
+        var items = DisplayQueue.Load(_root);
+        var fingerprint = string.Join("|", items.Select(i =>
+            $"{i.Id}:{i.Status}:{i.HoldSec}:{i.HeldUntil}:{i.PreviewPath}"));
+        if (!force && fingerprint == _queueFingerprint) return;
+        _queueFingerprint = fingerprint;
+
+        foreach (Control c in _queuePanel.Controls)
+            c.Dispose();
+        _queuePanel.Controls.Clear();
+
+        if (items.Count == 0)
+        {
+            _queueEmpty.Visible = true;
+            _queuePanel.Visible = false;
+            return;
+        }
+
+        _queueEmpty.Visible = false;
+        _queuePanel.Visible = true;
+
+        var text = Color.FromArgb(242, 240, 235);
+        var muted = Color.FromArgb(154, 149, 140);
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            var item = items[i];
+            var row = new Panel
+            {
+                Width = _queuePanel.ClientSize.Width - 28,
+                Height = 132,
+                Margin = new Padding(0, 0, 0, 8),
+                BackColor = Color.FromArgb(28, 31, 36),
+            };
+
+            var thumb = new PictureBox
+            {
+                Location = new Point(8, 6),
+                Size = new Size(200, 120),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.FromArgb(18, 20, 24),
+                BorderStyle = BorderStyle.FixedSingle,
+            };
+            thumb.Image = LoadPreview(item.PreviewPath);
+
+            var showing = string.Equals(item.Status, "showing", StringComparison.OrdinalIgnoreCase);
+            var holdLabel = item.HoldSec > 0
+                ? (item.HoldSec >= 60 ? $"{item.HoldSec / 60} min hold" : $"{item.HoldSec}s hold")
+                : "no hold";
+            var state = showing ? "Now showing" : "Waiting";
+            if (showing && item.HeldUntil is double until)
+            {
+                var left = Math.Max(0, (int)(until - DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
+                state = left > 0 ? $"Now showing · {left}s left" : "Now showing · ending";
+            }
+
+            var titleLbl = new Label
+            {
+                Text = string.IsNullOrWhiteSpace(item.Title) ? item.Id[..Math.Min(8, item.Id.Length)] : item.Title,
+                Font = new Font("Segoe UI Semibold", 11F),
+                ForeColor = text,
+                Location = new Point(220, 10),
+                AutoSize = true,
+                MaximumSize = new Size(320, 0),
+            };
+            var metaLbl = new Label
+            {
+                Text = $"{state} · {holdLabel}",
+                ForeColor = showing ? Color.FromArgb(120, 200, 140) : muted,
+                Location = new Point(220, 40),
+                AutoSize = true,
+            };
+
+            Button SmallBtn(string caption) => new()
+            {
+                Text = caption,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(40, 44, 52),
+                ForeColor = text,
+                Size = new Size(72, 28),
+                Cursor = Cursors.Hand,
+            };
+
+            var up = SmallBtn("Up");
+            var down = SmallBtn("Down");
+            var remove = SmallBtn("Remove");
+            up.Location = new Point(220, 88);
+            down.Location = new Point(300, 88);
+            remove.Location = new Point(380, 88);
+            up.Enabled = !showing && i > 0 &&
+                         !string.Equals(items[i - 1].Status, "showing", StringComparison.OrdinalIgnoreCase);
+            down.Enabled = !showing && i < items.Count - 1;
+            var capturedId = item.Id;
+            up.Click += (_, _) =>
+            {
+                if (DisplayQueue.Move(_root, capturedId, -1))
+                    RefreshQueueUi(force: true);
+            };
+            down.Click += (_, _) =>
+            {
+                if (DisplayQueue.Move(_root, capturedId, 1))
+                    RefreshQueueUi(force: true);
+            };
+            remove.Click += async (_, _) =>
+            {
+                var removed = DisplayQueue.Remove(_root, capturedId);
+                if (removed != null && !string.IsNullOrWhiteSpace(removed.JobId))
+                    await DisplayQueue.CompleteCloudJobAsync(removed.JobId, false, "removed from desk queue");
+                RefreshQueueUi(force: true);
+            };
+
+            row.Controls.Add(thumb);
+            row.Controls.Add(titleLbl);
+            row.Controls.Add(metaLbl);
+            row.Controls.Add(up);
+            row.Controls.Add(down);
+            row.Controls.Add(remove);
+            _queuePanel.Controls.Add(row);
+        }
+    }
+
+    Image? LoadPreview(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
+        try
+        {
+            var stamp = File.GetLastWriteTimeUtc(path).Ticks;
+            var key = path + "|" + stamp;
+            if (_previewCache.TryGetValue(key, out var cached))
+                return cached;
+            // Copy into memory so the Agent can rewrite the file.
+            using var fs = File.OpenRead(path);
+            using var img = Image.FromStream(fs);
+            var bmp = new Bitmap(200, 120);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.Clear(Color.White);
+                g.DrawImage(img, 0, 0, 200, 120);
+            }
+            // Drop old cache entries for this path.
+            foreach (var old in _previewCache.Keys.Where(k => k.StartsWith(path + "|", StringComparison.Ordinal)).ToList())
+            {
+                _previewCache[old].Dispose();
+                _previewCache.Remove(old);
+            }
+            _previewCache[key] = bmp;
+            return bmp;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     static bool UsbPausedForCloudPush()
     {
@@ -317,7 +495,6 @@ public class MainForm : Form
             var lines = File.ReadAllLines(path);
             if (lines.Length >= 2 && long.TryParse(lines[1], out var until))
                 return DateTimeOffset.UtcNow.ToUnixTimeSeconds() < until;
-            // Missing expiry — treat as paused briefly.
             return (DateTime.UtcNow - File.GetLastWriteTimeUtc(path)).TotalSeconds < 120;
         }
         catch
@@ -328,16 +505,20 @@ public class MainForm : Form
 
     async Task RefreshPanelStatus()
     {
-        // Cloud agent holds COM while pushing — don't steal the port mid-transfer.
         if (UsbPausedForCloudPush())
         {
             _status.Text = (string.IsNullOrEmpty(_panelPorts) ? "Panel connected." : $"Panel {_panelPorts}")
                 + "  ·  Cloud: writing to panel…";
+            RefreshQueueUi();
             return;
         }
 
         var script = ResolveConnectorScript("identity_status.py", "panel_status.py", "status_check.py");
-        if (script == null) return;
+        if (script == null)
+        {
+            RefreshQueueUi();
+            return;
+        }
         var wasReady = _panelReady;
         try
         {
@@ -366,8 +547,6 @@ public class MainForm : Form
                 _deviceId = did.GetString()?.Trim().ToUpperInvariant() ?? "";
             if (doc.RootElement.TryGetProperty("serial", out var ser))
                 _serial = ser.GetString()?.Trim() ?? "";
-            if (doc.RootElement.TryGetProperty("install_key", out var ik))
-                _installKey = ik.GetString()?.Trim() ?? "";
             _panelTimer.Interval = _panelReady ? 12000 : 3000;
         }
         catch
@@ -396,6 +575,7 @@ public class MainForm : Form
             _status.Text = seen + "  ·  " + cloudLine;
         }
         ApplyIdentityUi();
+        RefreshQueueUi();
     }
 
     static string DescribeCloudCheckIn()
@@ -427,10 +607,17 @@ public class MainForm : Form
                 hbObj.TryGetProperty("device_id", out var didEl))
                 did = didEl.GetString();
 
+            string holdExtra = "";
+            if (root.TryGetProperty("holding_title", out var ht) &&
+                ht.GetString() is { Length: > 0 } title)
+            {
+                holdExtra = $" · holding “{title}”";
+            }
+
             if (ok && hb == 200 && age.TotalSeconds <= 90)
                 return string.IsNullOrEmpty(did)
-                    ? "Cloud: checked in"
-                    : $"Cloud: checked in ({did})";
+                    ? "Cloud: checked in" + holdExtra
+                    : $"Cloud: checked in ({did})" + holdExtra;
 
             if (age.TotalSeconds > 90)
                 return "Cloud: agent stale — check Windows service “FennSill Agent” is running";
@@ -514,7 +701,6 @@ public class MainForm : Form
         }
         catch { /* optional */ }
 
-        // Refresh identity from bind file after setup.
         try
         {
             BeginInvoke(async () => await RefreshPanelStatus());
@@ -537,7 +723,6 @@ public class MainForm : Form
             return;
         }
 
-        // Allow pasting MCP / cloud base URL to point the agent at a LAN server.
         var maybeUrl = text.Split('\n', '\r')[0].Trim().TrimEnd('/');
         if (maybeUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
             maybeUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
@@ -570,7 +755,6 @@ public class MainForm : Form
 
         if (text.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             text = text[7..].Trim();
-        // Device keys are long tokens; reject accidental HTML paste.
         if (text.Contains('<') || text.Length < 20)
         {
             MessageBox.Show(
@@ -608,7 +792,9 @@ public class MainForm : Form
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
         _panelTimer.Stop();
-        // Cloud agent is a Windows service — closing Desk must not stop check-in.
+        foreach (var img in _previewCache.Values)
+            img.Dispose();
+        _previewCache.Clear();
         base.OnFormClosed(e);
     }
 }

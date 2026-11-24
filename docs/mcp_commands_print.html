@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fennsill MCP Commands</title>
+<style>
+  @page {
+    size: letter;
+    margin: 0.55in 0.6in 0.6in 0.6in;
+  }
+
+  :root {
+    --ink: #0a0a0a;
+    --muted: #3a3a3a;
+    --rule: #0a0a0a;
+    --band: #0a0a0a;
+    --paper: #f7f5f1;
+    --card: #ffffff;
+    --accent: #1a1a1a;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    color: var(--ink);
+    background: var(--paper);
+    font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.35;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    width: 100%;
+    min-height: 10.4in;
+  }
+
+  .break {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  /* Masthead */
+  header.doc-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 18px;
+    align-items: end;
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+  }
+
+  .brand-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .brand {
+    font-family: "Arial Narrow", "Franklin Gothic Medium", "Segoe UI", sans-serif;
+    font-size: 28pt;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    line-height: 1;
+    margin: 0;
+  }
+
+  .doc-title {
+    font-family: "Arial Narrow", "Franklin Gothic Medium", "Segoe UI", sans-serif;
+    font-size: 14pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .meta {
+    text-align: right;
+    font-size: 8.5pt;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    line-height: 1.45;
+  }
+
+  .meta strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .lede {
+    margin: 0 0 18px;
+    max-width: 6.6in;
+    font-size: 10.5pt;
+    color: var(--muted);
+  }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: var(--ink);
+    color: #fff;
+    padding: 10px 14px;
+    margin: 0 0 22px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9pt;
+    letter-spacing: 0.02em;
+  }
+
+  .flow span.arrow {
+    opacity: 0.55;
+    font-family: "Segoe UI", sans-serif;
+  }
+
+  /* Tool cards */
+  .tool {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 0 0 16px;
+    border: 1.5px solid var(--ink);
+    background: var(--card);
+  }
+
+  .tool-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    background: var(--band);
+    color: #fff;
+    padding: 8px 12px;
+  }
+
+  .tool-name {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 11.5pt;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin: 0;
+  }
+
+  .badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .badge {
+    border: 1px solid #fff;
+    padding: 2px 7px;
+    font-size: 7.5pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .badge.muted {
+    opacity: 0.75;
+    border-style: dashed;
+  }
+
+  .tool-body {
+    padding: 10px 12px 12px;
+  }
+
+  .summary {
+    margin: 0 0 10px;
+    font-size: 10pt;
+  }
+
+  table.params {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+  }
+
+  table.params th {
+    text-align: left;
+    font-size: 7.5pt;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-bottom: 1.5px solid var(--ink);
+    padding: 0 8px 6px 0;
+    font-weight: 700;
+  }
+
+  table.params td {
+    border-bottom: 1px solid #cfcfcf;
+    padding: 6px 8px 6px 0;
+    vertical-align: top;
+  }
+
+  table.params tr:last-child td {
+    border-bottom: none;
+  }
+
+  table.params code,
+  .mono {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9pt;
+  }
+
+  .req {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    font-size: 8pt;
+    text-transform: uppercase;
+  }
+
+  .req.yes { color: var(--ink); }
+  .req.no { color: #666; font-weight: 600; }
+
+  .note {
+    margin: 10px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid #d0d0d0;
+    font-size: 9pt;
+    color: var(--muted);
+  }
+
+  /* Callout */
+  .callout {
+    break-inside: avoid;
+    border: 2px solid var(--ink);
+    padding: 12px 14px;
+    margin: 8px 0 18px;
+    background: #fff;
+  }
+
+  .callout h2 {
+    margin: 0 0 6px;
+    font-family: "Arial Narrow", "Franklin Gothic Medium", "Segoe UI", sans-serif;
+    font-size: 11pt;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .callout p {
+    margin: 0;
+    font-size: 10pt;
+  }
+
+  .callout code {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9.5pt;
+  }
+
+  /* Example block */
+  .example {
+    break-inside: avoid;
+    border: 1.5px solid var(--ink);
+    margin-top: 6px;
+  }
+
+  .example-head {
+    background: var(--ink);
+    color: #fff;
+    padding: 8px 12px;
+    font-family: "Arial Narrow", "Franklin Gothic Medium", "Segoe UI", sans-serif;
+    font-size: 10pt;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .example pre {
+    margin: 0;
+    padding: 12px 14px;
+    background: #fff;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9pt;
+    line-height: 1.45;
+    white-space: pre-wrap;
+  }
+
+  footer.doc-foot {
+    margin-top: 22px;
+    padding-top: 10px;
+    border-top: 1.5px solid var(--ink);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 8pt;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .section-label {
+    font-family: "Arial Narrow", "Franklin Gothic Medium", "Segoe UI", sans-serif;
+    font-size: 9pt;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 800;
+    margin: 0 0 10px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--ink);
+  }
+</style>
+</head>
+<body>
+  <section class="page">
+    <header class="doc-head">
+      <div class="brand-block">
+        <p class="brand">FENNSILL</p>
+        <h1 class="doc-title">MCP Command Reference</h1>
+      </div>
+      <div class="meta">
+        <strong>Product documentation</strong><br>
+        Audience: operators &amp; AI integrators<br>
+        Panel: 800 × 480 e-ink<br>
+        Revision: 1.4 · Nov 2026
+      </div>
+    </header>
+
+    <p class="lede">
+      Tools exposed by the Fennsill Model Context Protocol server for Claude, ChatGPT,
+      Cursor, Gemini, Grok, and compatible clients. The buyer talks to their AI; the AI
+      calls these tools. Never substitute a web preview for a panel push.
+    </p>
+
+    <div class="flow">
+      <span>list_panels</span>
+      <span class="arrow">→</span>
+      <span>push_chart</span>
+      <span class="arrow">or</span>
+      <span>push_artifact</span>
+      <span class="arrow">→</span>
+      <span>delivered: true</span>
+    </div>
+
+    <p class="section-label">Core tools</p>
+
+    <article class="tool">
+      <div class="tool-head">
+        <h2 class="tool-name">list_panels</h2>
+        <div class="badges">
+          <span class="badge">Call first</span>
+          <span class="badge">Cloud</span>
+          <span class="badge">Local</span>
+        </div>
+      </div>
+      <div class="tool-body">
+        <p class="summary">
+          Lists e-ink panels linked to the account (cloud) or plugged in over USB (local).
+          Returns <code class="mono">device_id</code> values required by push tools, plus online / setup hints on cloud.
+        </p>
+        <table class="params">
+          <thead>
+            <tr><th style="width:22%">Parameter</th><th style="width:16%">Required</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="3" style="color:#555">No parameters.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="tool">
+      <div class="tool-head">
+        <h2 class="tool-name">push_chart</h2>
+        <div class="badges">
+          <span class="badge">Graphs</span>
+          <span class="badge">Cloud</span>
+          <span class="badge">Local</span>
+        </div>
+      </div>
+      <div class="tool-body">
+        <p class="summary">
+          Preferred path for charts. Pass structured data; the server renders a clean
+          800×480 black/white page and pushes it. Do not hand-write HTML for simple graphs.
+        </p>
+        <table class="params">
+          <thead>
+            <tr><th style="width:22%">Parameter</th><th style="width:16%">Required</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>device_id</code></td>
+              <td><span class="req yes">Cloud</span></td>
+              <td>From <code>list_panels</code> (example <code>FSA1B2C3D4E5F6</code>). Optional on local USB.</td>
+            </tr>
+            <tr>
+              <td><code>title</code></td>
+              <td><span class="req yes">Yes</span></td>
+              <td>Chart headline on the panel (max 80 characters).</td>
+            </tr>
+            <tr>
+              <td><code>labels</code></td>
+              <td><span class="req yes">Yes</span></td>
+              <td>Array of category names, 1–24 items.</td>
+            </tr>
+            <tr>
+              <td><code>values</code></td>
+              <td><span class="req yes">Yes</span></td>
+              <td>Numeric series; must match <code>labels</code> length.</td>
+            </tr>
+            <tr>
+              <td><code>chart_type</code></td>
+              <td><span class="req no">No</span></td>
+              <td><code>auto</code> (default), <code>bar</code>, <code>line</code>, <code>hbar</code>, <code>table</code>.</td>
+            </tr>
+            <tr>
+              <td><code>unit</code></td>
+              <td><span class="req no">No</span></td>
+              <td>Optional suffix such as <code>$</code> or <code>%</code>.</td>
+            </tr>
+            <tr>
+              <td><code>subtitle</code></td>
+              <td><span class="req no">No</span></td>
+              <td>Secondary line under the title.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="tool">
+      <div class="tool-head">
+        <h2 class="tool-name">push_artifact</h2>
+        <div class="badges">
+          <span class="badge">Custom layout</span>
+          <span class="badge">Cloud</span>
+          <span class="badge">Local</span>
+        </div>
+      </div>
+      <div class="tool-body">
+        <p class="summary">
+          Push a finished custom page for checklists and multi-section dashboards.
+          For simple graphs from data points, use <code>push_chart</code> instead.
+        </p>
+        <table class="params">
+          <thead>
+            <tr><th style="width:22%">Parameter</th><th style="width:16%">Required</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>device_id</code></td>
+              <td><span class="req yes">Cloud</span></td>
+              <td>From <code>list_panels</code>.</td>
+            </tr>
+            <tr>
+              <td><code>html</code> or <code>svg</code></td>
+              <td><span class="req yes">One</span></td>
+              <td>800×480, pure black/white, inline CSS only, no external URLs. Prefer HTML for dashboards.</td>
+            </tr>
+            <tr>
+              <td><code>title</code></td>
+              <td><span class="req no">No</span></td>
+              <td>Optional job label on cloud.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <section class="page break">
+    <header class="doc-head">
+      <div class="brand-block">
+        <p class="brand">FENNSILL</p>
+        <h1 class="doc-title">MCP Command Reference</h1>
+      </div>
+      <div class="meta">
+        <strong>Page 2 of 2</strong><br>
+        Status, live feeds &amp; local Wi‑Fi<br>
+        Revision: 1.4 · Nov 2026
+      </div>
+    </header>
+
+    <p class="section-label">Status &amp; live feeds</p>
+
+    <article class="tool">
+      <div class="tool-head">
+        <h2 class="tool-name">get_push_status</h2>
+        <div class="badges">
+          <span class="badge">Status</span>
+          <span class="badge">Cloud</span>
+          <span class="badge muted">Not local</span>
+        </div>
+      </div>
+      <div class="tool-body">
+        <p class="summary">
+          Confirm whether a push reached the panel. Use when <code>delivered</code> is false,
+          or to inspect recent jobs for a device.
+        </p>
+        <table class="params">
+          <thead>
+            <tr><th style="width:22%">Parameter</th><th style="width:16%">Required</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>job_id</code></td>
+              <td><span class="req no">One of</span></td>
+              <td>From the last <code>push_chart</code> / <code>push_artifact</code> response.</td>
+            </tr>
+            <tr>
+              <td><code>device_id</code></td>
+              <td><span class="req no">One of</span></td>
+              <td>Lists recent jobs for that panel when <code>job_id</code> is omitted.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="tool">
+      <div class="tool-head">
+        <h2 class="tool-name">start_live_update</h2>
+        <div class="badges">
+          <span class="badge">Recurring</span>
+          <span class="badge">Cloud</span>
+          <span class="badge">Local</span>
+        </div>
+      </div>
+      <div class="tool-body">
+        <p class="summary">
+          Start a recurring live feed so the panel stays current without pasting content.
+          Not for one-shot charts — use <code>push_chart</code> for those.
+        </p>
+        <table class="params">
+          <thead>
+            <tr><th style="width:22%">Parameter</th><th style="width:16%">Required</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>device_id</code></td>
+              <td><span class="req yes">Cloud</span></td>
+              <td>From <code>list_panels</code>.</td>
+            </tr>
+            <tr>
+              <td><code>kind</code></td>
+              <td><span class="req yes">Yes</span></td>
+              <td>Currently <code>nfl_scores</code> only.</td>
+            </tr>
+            <tr>
+              <td><code>interval_sec</code></td>
+              <td><span class="req no">No</span></td>
+              <td>Default <code>300</code>. Allowed range 60–3600.</td>
+            </tr>
+            <tr>
+              <td><code>title</code></td>
+              <td><span class="req no">No</span></td>
+              <td>Optional feed label.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="tool">
+      <div class="tool-head">
+        <h2 class="tool-name">stop_live_update</h2>
+        <div class="badges">
+          <span class="badge">Stop feed</span>
+          <span class="badge">Cloud</span>
+          <span class="badge">Local</span>
+        </div>
+      </div>
+      <div class="tool-body">
+        <p class="summary">Stops a live feed previously started with <code>start_live_update</code>.</p>
+        <table class="params">
+          <thead>
+            <tr><th style="width:22%">Parameter</th><th style="width:16%">Required</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>device_id</code></td>
+              <td><span class="req yes">Cloud</span></td>
+              <td>From <code>list_panels</code>.</td>
+            </tr>
+            <tr>
+              <td><code>kind</code></td>
+              <td><span class="req no">No</span></td>
+              <td>Omit to stop all live feeds on that panel.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="tool">
+      <div class="tool-head">
+        <h2 class="tool-name">set_wifi</h2>
+        <div class="badges">
+          <span class="badge">USB only</span>
+          <span class="badge">Local</span>
+          <span class="badge muted">Not cloud</span>
+        </div>
+      </div>
+      <div class="tool-body">
+        <p class="summary">Sends home Wi‑Fi credentials to the panel over USB. Intentionally unavailable on cloud MCP.</p>
+        <table class="params">
+          <thead>
+            <tr><th style="width:22%">Parameter</th><th style="width:16%">Required</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>ssid</code></td>
+              <td><span class="req yes">Yes</span></td>
+              <td>Network name (max 32 characters).</td>
+            </tr>
+            <tr>
+              <td><code>password</code></td>
+              <td><span class="req yes">Yes</span></td>
+              <td>Wi‑Fi password (max 63 characters).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <div class="callout">
+      <h2>Success rule</h2>
+      <p>
+        Only tell the user the screen updated when the tool returns
+        <code>delivered: true</code>. If delivery is pending or failed, report the status
+        or call <code>get_push_status</code> with the <code>job_id</code>.
+      </p>
+    </div>
+
+    <div class="example">
+      <div class="example-head">Example — graph from data</div>
+      <pre>1. list_panels
+2. push_chart(
+     device_id  = "FSA1B2C3D4E5F6",
+     title      = "Q1–Q4 Revenue",
+     labels     = ["Q1", "Q2", "Q3", "Q4"],
+     values     = [12, 18, 15, 22],
+     chart_type = "auto",
+     unit       = "$"
+   )
+3. Confirm delivered: true</pre>
+    </div>
+
+    <footer class="doc-foot">
+      <span>Fennsill · MCP Command Reference · Confidential product documentation</span>
+      <span>mcp.fennsill.com</span>
+    </footer>
+  </section>
+</body>
+</html>

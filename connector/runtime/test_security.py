@@ -35,10 +35,21 @@ def test_artifact_validation():
         security.validate_artifact_args({"html": '<img src="https://evil.example/x.png">'})
         raise SystemExit("https artifact accepted")
     except security.SecurityError as exc:
-        expect("network" in str(exc).lower() or "file" in str(exc).lower(), exc)
+        msg = str(exc).lower()
+        expect("self-contained" in msg or "network" in msg or "url" in msg, exc)
     try:
         security.validate_artifact_args({"html": '<a href="file:///etc/passwd">x</a>'})
         raise SystemExit("file uri accepted")
+    except security.SecurityError:
+        pass
+    try:
+        security.validate_artifact_args({"html": '<a href="//evil.example/x">x</a>'})
+        raise SystemExit("protocol-relative uri accepted")
+    except security.SecurityError:
+        pass
+    try:
+        security.validate_artifact_args({"html": '<a href="javascript&#58;alert(1)">x</a>'})
+        raise SystemExit("entity javascript uri accepted")
     except security.SecurityError:
         pass
     try:
@@ -50,6 +61,59 @@ def test_artifact_validation():
     expect(clean["html"] == "<h1>Today</h1>" and clean["svg"] is None, clean)
     page = wrap_page(html=clean["html"])
     expect("Content-Security-Policy" in page and "connect-src 'none'" in page, page[:200])
+    expect("script-src 'none'" in page, page[:400])
+
+
+def test_chart_validation_and_render():
+    from chart_page import render_chart_html
+
+    try:
+        security.validate_chart_args(
+            title="Sales",
+            labels=["A", "B"],
+            values=[1],
+        )
+        raise SystemExit("mismatched lengths accepted")
+    except security.SecurityError as exc:
+        expect("same length" in str(exc).lower(), exc)
+    try:
+        security.validate_chart_args(
+            title="Sales",
+            labels=[f"L{i}" for i in range(25)],
+            values=list(range(25)),
+        )
+        raise SystemExit("too many points accepted")
+    except security.SecurityError as exc:
+        expect("24" in str(exc), exc)
+
+    clean = security.validate_chart_args(
+        title="Q Revenue",
+        labels=["Q1", "Q2", "Q3", "Q4"],
+        values=[12, 18, 15, 22],
+        chart_type="auto",
+        unit="$",
+    )
+    for kind in ("bar", "line", "hbar", "table"):
+        page = render_chart_html(
+            title=clean["title"],
+            labels=clean["labels"],
+            values=clean["values"],
+            chart_type=kind,
+            unit=clean["unit"],
+        )
+        expect("800px" in page and "480px" in page, kind)
+        expect("<script" not in page.lower(), kind)
+        expect("https://" not in page.lower(), kind)
+        expect("&lt;" not in page or "Q1" in page, kind)
+    # Escaping hostile labels
+    page = render_chart_html(
+        title='<img src=x>',
+        labels=['<script>alert(1)</script>'],
+        values=[3],
+        chart_type="table",
+    )
+    expect("<script>alert" not in page, page[:200])
+    expect("&lt;script&gt;" in page, page[:400])
 
 
 def test_wifi_validation_and_redaction():
@@ -123,7 +187,15 @@ def test_mcp_refuses_hostile_calls():
         listed = mcp_server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
         names = [tool["name"] for tool in listed["result"]["tools"]]
         expect(
-            names == ["list_panels", "push_artifact", "start_live_update", "stop_live_update", "set_wifi"],
+            names
+            == [
+                "list_panels",
+                "push_chart",
+                "push_artifact",
+                "start_live_update",
+                "stop_live_update",
+                "set_wifi",
+            ],
             names,
         )
         again = mcp_server.handle({"jsonrpc": "2.0", "id": 11, "method": "tools/list"})
@@ -131,6 +203,10 @@ def test_mcp_refuses_hostile_calls():
         for tool in listed["result"]["tools"]:
             expect(tool["inputSchema"].get("additionalProperties") is False, tool)
             expect(isinstance(tool["description"], str) and len(tool["description"]) > 8, tool["name"])
+        chart_tool = next(t for t in listed["result"]["tools"] if t["name"] == "push_chart")
+        expect("labels" in chart_tool["inputSchema"]["properties"], chart_tool)
+        expect("values" in chart_tool["inputSchema"]["properties"], chart_tool)
+        expect(set(chart_tool["inputSchema"]["required"]) >= {"title", "labels", "values"}, chart_tool)
 
         bad = mcp_server.handle(
             {
@@ -191,6 +267,7 @@ def test_pages_library():
 
 if __name__ == "__main__":
     test_artifact_validation()
+    test_chart_validation_and_render()
     test_wifi_validation_and_redaction()
     test_message_limits()
     test_linked_provider_allowlist()

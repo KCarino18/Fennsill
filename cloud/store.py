@@ -23,6 +23,9 @@ ONLINE_SEC = 300
 RATE_WINDOW_SEC = 600
 RATE_LIMIT = 30
 PERIOD_DAYS = 30
+MAX_HOLD_SEC = 6 * 3600
+# Local Desk queue may hold a claimed job for minutes before USB show.
+CLAIM_STALE_SEC = MAX_HOLD_SEC + 600
 
 
 class StoreError(Exception):
@@ -107,6 +110,7 @@ def init_db() -> None:
                 title TEXT NOT NULL DEFAULT '',
                 feed_kind TEXT,
                 interval_sec INTEGER,
+                hold_sec INTEGER NOT NULL DEFAULT 0,
                 status TEXT NOT NULL,
                 error TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL,
@@ -131,6 +135,15 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_rate ON push_rate(user_id, device_id, created_at);
             """
         )
+        # Existing DBs created before hold_sec — add column if missing.
+        cols = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(push_jobs)").fetchall()
+        }
+        if "hold_sec" not in cols:
+            conn.execute(
+                "ALTER TABLE push_jobs ADD COLUMN hold_sec INTEGER NOT NULL DEFAULT 0"
+            )
 
 
 def hash_password(password: str, salt: bytes | None = None) -> str:
@@ -483,6 +496,14 @@ def _check_rate(conn, user_id: int, device_id: str) -> None:
     )
 
 
+def clamp_hold_sec(value) -> int:
+    try:
+        n = int(value or 0)
+    except (TypeError, ValueError):
+        n = 0
+    return max(0, min(n, MAX_HOLD_SEC))
+
+
 def enqueue_job(
     *,
     user_id: int,
@@ -493,10 +514,12 @@ def enqueue_job(
     title: str = "",
     feed_kind: str | None = None,
     interval_sec: int | None = None,
+    hold_sec: int | None = 0,
 ) -> dict:
     device_id = device_id.strip().upper()
     if job_type not in ("push", "live_start", "live_stop"):
         raise StoreError("bad_request", "Invalid job_type.")
+    hold = clamp_hold_sec(hold_sec)
     require_mcp_access(user_id)  # ensures period open / starts clock
     with connect() as conn:
         owned = conn.execute(
@@ -521,8 +544,8 @@ def enqueue_job(
             """
             INSERT INTO push_jobs
             (id, user_id, device_id, job_type, html, svg, title, feed_kind, interval_sec,
-             status, error, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', '', ?, ?)
+             hold_sec, status, error, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', '', ?, ?)
             """,
             (
                 job_id,
@@ -534,11 +557,17 @@ def enqueue_job(
                 (title or "")[:80],
                 feed_kind,
                 interval_sec,
+                hold if job_type == "push" else 0,
                 now,
                 now,
             ),
         )
-    return {"job_id": job_id, "device_id": device_id, "status": "queued"}
+    return {
+        "job_id": job_id,
+        "device_id": device_id,
+        "status": "queued",
+        "hold_sec": hold if job_type == "push" else 0,
+    }
 
 
 def claim_next_job(device_auth: dict) -> dict | None:
@@ -559,8 +588,8 @@ def claim_next_job(device_auth: dict) -> dict | None:
             return None  # 204
         if sub["status"] == "inactive" or not period_is_open(sub):
             raise StoreError("subscription_inactive", "Subscription inactive.", 403)
-        # Reclaim jobs stuck in 'claimed' if the agent died mid-push (~2 min).
-        stale = stamp(datetime.now(timezone.utc) - timedelta(seconds=120))
+        # Reclaim jobs stuck in 'claimed' if the agent died mid-queue/push.
+        stale = stamp(datetime.now(timezone.utc) - timedelta(seconds=CLAIM_STALE_SEC))
         conn.execute(
             """
             UPDATE push_jobs SET status = 'queued', updated_at = ?
@@ -590,6 +619,11 @@ def claim_next_job(device_auth: dict) -> dict | None:
         if cur.rowcount == 0:
             return None
         claimed = conn.execute("SELECT * FROM push_jobs WHERE id = ?", (row["id"],)).fetchone()
+        hold = 0
+        try:
+            hold = int(claimed["hold_sec"] or 0)
+        except (KeyError, TypeError, ValueError):
+            hold = 0
         return {
             "job_id": claimed["id"],
             "device_id": claimed["device_id"],
@@ -599,6 +633,7 @@ def claim_next_job(device_auth: dict) -> dict | None:
             "title": claimed["title"],
             "feed_kind": claimed["feed_kind"],
             "interval_sec": claimed["interval_sec"],
+            "hold_sec": hold,
             "status": claimed["status"],
         }
 
@@ -623,12 +658,18 @@ def get_job_for_user(user_id: int, job_id: str) -> dict:
         row = conn.execute("SELECT * FROM push_jobs WHERE id = ?", (job_id,)).fetchone()
     if not row or int(row["user_id"]) != int(user_id):
         raise StoreError("not_found", "Job not found.", 404)
+    hold = 0
+    try:
+        hold = int(row["hold_sec"] or 0)
+    except (KeyError, TypeError, ValueError):
+        hold = 0
     return {
         "job_id": row["id"],
         "device_id": row["device_id"],
         "title": row["title"],
         "status": row["status"],
         "error": row["error"] or "",
+        "hold_sec": hold,
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
         "delivered": row["status"] == "done",

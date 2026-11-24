@@ -2,7 +2,7 @@
 1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj
 2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj
 3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>endobj
-4 0 obj<< /Length 2412 >>stream
+4 0 obj<< /Length 2562 >>stream
 BT
 /F1 18 Tf
 50 720 Td
@@ -98,12 +98,13 @@ T*
 T*
 (   - AI cannot push: re-check MCP URL and Authorization Bearer header on the same account.) Tj
 T*
-(   - Uninstall: Settings > Apps > Installed apps > FennSill.) Tj
+(   - ChatGPT says tools unavailable / connector missing in this chat \(Desk still checked in\):) Tj
 T*
-() Tj
+(     Open the FennSill connector ? Manage ? Refresh \(or re-save the Authorization header\),) Tj
 T*
-(Need help? https://github.com/KCarino18/Fennsill/releases) Tj
+(     then start a NEW chat and select FennSill. Do not remint the device key.) Tj
 T*
+ET
 ET
 endstream
 endobj
@@ -115,8 +116,8 @@ xref
 0000000056 00000 n 
 0000000111 00000 n 
 0000000235 00000 n 
-0000002697 00000 n 
+0000002847 00000 n 
 trailer<< /Size 6 /Root 1 0 R >>
 startxref
-2765
+2915
 %%EOF

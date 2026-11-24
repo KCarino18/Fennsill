@@ -23,9 +23,29 @@ import store  # noqa: E402
 from security_artifact import (  # noqa: E402
     SecurityError,
     body_has_wifi_keys,
+    require_string,
     validate_artifact_args,
+    validate_chart_args,
     validate_device_id,
 )
+
+# Shared tool copy lives next to the connector catalog.
+_REPO = CLOUD_ROOT.parent
+if str(_REPO / "connector") not in sys.path:
+    sys.path.insert(0, str(_REPO / "connector"))
+if str(_REPO / "templates") not in sys.path:
+    sys.path.insert(0, str(_REPO / "templates"))
+
+from mcp_catalog import (  # noqa: E402
+    CLOUD_INSTRUCTIONS,
+    GET_PUSH_STATUS,
+    LIST_PANELS_CLOUD,
+    PUSH_ARTIFACT,
+    PUSH_CHART,
+    START_LIVE,
+    STOP_LIVE,
+)
+from chart_page import render_chart_html  # noqa: E402
 
 HOST = os.environ.get("FENNSILL_CLOUD_HOST", "0.0.0.0")
 PORT = int(os.environ.get("FENNSILL_CLOUD_PORT", "8080"))
@@ -38,17 +58,7 @@ WEB_DIR = CLOUD_ROOT / "web"
 
 server = MCPServer(
     "fennsill-cloud",
-    instructions=(
-        "Fennsill cloud pushes finished 800x480 black/white self-contained HTML/SVG "
-        "to the buyer's e-ink panel via a queued job. Call list_panels, then push_artifact "
-        "with that device_id. push_artifact waits for USB delivery and returns delivered=true "
-        "when the panel refreshed — only then tell the user the screen updated. "
-        "If delivered is false, report status/error or call get_push_status. "
-        "Do not say 'unconfirmed' when delivered is true. "
-        "Offline at enqueue time is OK; the Fennsill Agent Windows service still delivers over USB. "
-        "Do not create a web Artifact preview as a substitute. "
-        "Do not send Wi-Fi credentials — delivery is hardwired USB via the local Agent service."
-    ),
+    instructions=CLOUD_INSTRUCTIONS,
 )
 
 
@@ -292,16 +302,41 @@ def _tool_result(payload: Any) -> str:
     return json.dumps(payload, indent=2)
 
 
-@server.tool(
-    description=(
-        "List Fennsill e-ink panels linked to this MCP account. "
-        "Works even before the first heartbeat so you can see whether a panel is linked "
-        "and whether last_seen_at/online is set. If panels is empty, the buyer must link "
-        "the panel id on mcp.fennsill.com using the same account as this MCP bearer. "
-        "If linked but online=false and last_seen_at is null, they must mint a device key "
-        "on that same account, paste it into Fennsill Desk; the Agent service must be running."
-    )
-)
+def _wait_for_job(user_id: int, job_id: str, device_id: str) -> dict[str, Any]:
+    """Block until the local agent completes so clients can confirm without a second call."""
+    deadline = time.time() + 90
+    status = store.get_job_for_user(user_id, job_id)
+    while time.time() < deadline and status["status"] in ("queued", "claimed"):
+        time.sleep(1.0)
+        status = store.get_job_for_user(user_id, job_id)
+    still_waiting = status["status"] in ("queued", "claimed")
+    if status.get("delivered"):
+        message = "Panel refresh confirmed."
+    elif status["status"] == "failed":
+        message = f"Push failed: {status.get('error')}"
+    elif still_waiting:
+        message = (
+            "In the panel queue (waiting its turn or hold time). "
+            "Not a failed push — call get_push_status with this job_id shortly."
+        )
+    else:
+        message = (
+            "Queued; Agent service has not confirmed the panel refresh yet. "
+            "Call get_push_status with this job_id shortly."
+        )
+    return {
+        "ok": True,
+        "job_id": job_id,
+        "device_id": device_id,
+        "status": status["status"],
+        "hold_sec": status.get("hold_sec", 0),
+        "delivered": bool(status.get("delivered")),
+        "error": status.get("error") or "",
+        "message": message,
+    }
+
+
+@server.tool(description=LIST_PANELS_CLOUD)
 def list_panels(ctx: Context) -> str:
     try:
         user = _mcp_user(ctx)
@@ -310,13 +345,18 @@ def list_panels(ctx: Context) -> str:
         if not panels:
             hint = (
                 "No panels linked to this MCP account. On mcp.fennsill.com (same bearer), "
-                "link the device id shown in Fennsill.exe."
+                "link the device id shown in Fennsill.exe, then call list_panels again."
             )
         elif not any(p.get("last_seen_at") for p in panels):
             hint = (
                 "Panel(s) linked but none have heartbeated for this account. "
                 "Mint a device key on this same account, paste it into Fennsill Desk, "
-                "and ensure the Fennsill Agent service is running. A key from another account will not activate these rows."
+                "and ensure the Fennsill Agent service is running."
+            )
+        elif len(panels) == 1:
+            hint = (
+                f"One panel linked. Pass device_id={panels[0].get('device_id')} "
+                "to push_chart or push_artifact."
             )
         payload: dict[str, Any] = {"ok": True, "panels": panels}
         if hint:
@@ -326,62 +366,49 @@ def list_panels(ctx: Context) -> str:
         return _tool_result({"ok": False, "error": exc.message, "code": exc.code})
 
 
-@server.tool(
-    description=(
-        "Push a finished 800x480 black/white HTML or SVG page to a linked Fennsill panel. "
-        "Requires device_id from list_panels. Self-contained only — no external URLs. "
-        "Waits for the desk USB agent to finish (up to ~90s) and returns delivered=true "
-        "when the panel refresh succeeds, or delivered=false with error/status if not. "
-        "If list_panels shows offline, still enqueue — the Agent service will pick it up when online. "
-        "Do not tell the user the push failed solely because online was false at enqueue time. "
-        "Only say the screen refreshed when delivered is true."
-    )
-)
-def push_artifact(
+@server.tool(description=PUSH_CHART)
+def push_chart(
     ctx: Context,
     device_id: str,
-    html: str | None = None,
-    svg: str | None = None,
-    title: str = "",
+    title: str,
+    labels: list[str],
+    values: list[float],
+    chart_type: str = "auto",
+    unit: str = "",
+    subtitle: str = "",
+    hold_sec: int = 0,
 ) -> str:
     try:
         user = _mcp_user(ctx)
-        args = validate_artifact_args(html=html, svg=svg, device_id=device_id)
+        clean = validate_chart_args(
+            device_id=device_id,
+            title=title,
+            labels=labels,
+            values=values,
+            chart_type=chart_type,
+            unit=unit,
+            subtitle=subtitle,
+            require_device_id=True,
+        )
+        html = render_chart_html(
+            title=clean["title"],
+            labels=clean["labels"],
+            values=clean["values"],
+            chart_type=clean["chart_type"],
+            unit=clean["unit"],
+            subtitle=clean["subtitle"],
+        )
         result = store.enqueue_job(
             user_id=int(user["id"]),
-            device_id=args["device_id"],
+            device_id=clean["device_id"],
             job_type="push",
-            html=args["html"],
-            svg=args["svg"],
-            title=title or "",
+            html=html,
+            svg=None,
+            title=clean["title"],
+            hold_sec=hold_sec,
         )
-        job_id = result["job_id"]
-        # Block until the local agent completes so ChatGPT can confirm the refresh
-        # without a second tool call (models often skip get_push_status).
-        deadline = time.time() + 90
-        status = store.get_job_for_user(int(user["id"]), job_id)
-        while time.time() < deadline and status["status"] in ("queued", "claimed"):
-            time.sleep(1.0)
-            status = store.get_job_for_user(int(user["id"]), job_id)
         return _tool_result(
-            {
-                "ok": True,
-                "job_id": job_id,
-                "device_id": result["device_id"],
-                "status": status["status"],
-                "delivered": bool(status.get("delivered")),
-                "error": status.get("error") or "",
-                "message": (
-                    "Panel refresh confirmed."
-                    if status.get("delivered")
-                    else (
-                        f"Push failed: {status.get('error')}"
-                        if status["status"] == "failed"
-                        else "Queued; Agent service has not confirmed the panel refresh yet. "
-                        "Call get_push_status with this job_id shortly."
-                    )
-                ),
-            }
+            _wait_for_job(int(user["id"]), result["job_id"], result["device_id"])
         )
     except SecurityError as exc:
         return _tool_result({"ok": False, "error": str(exc)})
@@ -389,13 +416,38 @@ def push_artifact(
         return _tool_result({"ok": False, "error": exc.message, "code": exc.code})
 
 
-@server.tool(
-    description=(
-        "Check whether a push_artifact job reached the panel. "
-        "Pass job_id from push_artifact. Poll until status is done (delivered) or failed. "
-        "Optionally pass device_id with no job_id to see recent pushes for that panel."
-    )
-)
+@server.tool(description=PUSH_ARTIFACT)
+def push_artifact(
+    ctx: Context,
+    device_id: str,
+    html: str | None = None,
+    svg: str | None = None,
+    title: str = "",
+    hold_sec: int = 0,
+) -> str:
+    try:
+        user = _mcp_user(ctx)
+        args = validate_artifact_args(html=html, svg=svg, device_id=device_id)
+        title_clean = require_string(title or "", "title", allow_empty=True, max_chars=80)
+        result = store.enqueue_job(
+            user_id=int(user["id"]),
+            device_id=args["device_id"],
+            job_type="push",
+            html=args["html"],
+            svg=args["svg"],
+            title=title_clean,
+            hold_sec=hold_sec,
+        )
+        return _tool_result(
+            _wait_for_job(int(user["id"]), result["job_id"], result["device_id"])
+        )
+    except SecurityError as exc:
+        return _tool_result({"ok": False, "error": str(exc)})
+    except store.StoreError as exc:
+        return _tool_result({"ok": False, "error": exc.message, "code": exc.code})
+
+
+@server.tool(description=GET_PUSH_STATUS)
 def get_push_status(
     ctx: Context,
     job_id: str | None = None,
@@ -406,7 +458,11 @@ def get_push_status(
         store.require_mcp_access(int(user["id"]))
         if job_id:
             return _tool_result({"ok": True, **store.get_job_for_user(int(user["id"]), job_id)})
-        did = validate_device_id(device_id) if device_id else None
+        if not device_id:
+            raise SecurityError(
+                "Pass job_id from the last push, or device_id from list_panels to list recent jobs."
+            )
+        did = validate_device_id(device_id)
         jobs = store.recent_jobs_for_user(int(user["id"]), did, limit=5)
         return _tool_result({"ok": True, "jobs": jobs})
     except SecurityError as exc:
@@ -415,7 +471,7 @@ def get_push_status(
         return _tool_result({"ok": False, "error": exc.message, "code": exc.code})
 
 
-@server.tool(description="Start a recurring live feed job for a linked panel (agent runs the feed).")
+@server.tool(description=START_LIVE)
 def start_live_update(
     ctx: Context,
     device_id: str,
@@ -426,16 +482,18 @@ def start_live_update(
     try:
         user = _mcp_user(ctx)
         device_id = validate_device_id(device_id)
+        kind = require_string(kind, "kind", max_chars=32).strip().lower()
         if kind != "nfl_scores":
-            raise SecurityError("Unsupported live feed kind.")
+            raise SecurityError("kind must be nfl_scores. For one-shot charts, call push_chart.")
         interval_sec = int(interval_sec)
         if interval_sec < 60 or interval_sec > 3600:
             raise SecurityError("interval_sec must be between 60 and 3600.")
+        title_clean = require_string(title or "", "title", allow_empty=True, max_chars=80)
         result = store.enqueue_job(
             user_id=int(user["id"]),
             device_id=device_id,
             job_type="live_start",
-            title=title or "",
+            title=title_clean,
             feed_kind=kind,
             interval_sec=interval_sec,
         )
@@ -446,11 +504,17 @@ def start_live_update(
         return _tool_result({"ok": False, "error": exc.message, "code": exc.code})
 
 
-@server.tool(description="Stop a live feed previously started with start_live_update.")
+@server.tool(description=STOP_LIVE)
 def stop_live_update(ctx: Context, device_id: str, kind: str | None = None) -> str:
     try:
         user = _mcp_user(ctx)
         device_id = validate_device_id(device_id)
+        if kind is not None and str(kind).strip():
+            kind = require_string(str(kind), "kind", max_chars=32).strip().lower()
+            if kind != "nfl_scores":
+                raise SecurityError("kind must be nfl_scores, or omit kind to stop all feeds.")
+        else:
+            kind = None
         result = store.enqueue_job(
             user_id=int(user["id"]),
             device_id=device_id,
@@ -467,6 +531,43 @@ def stop_live_update(ctx: Context, device_id: str, kind: str | None = None) -> s
 # set_wifi is intentionally NOT registered.
 
 
+def _transport_security() -> TransportSecuritySettings:
+    """Protect Streamable HTTP against DNS rebinding; allow production + local hosts."""
+    hosts = [
+        "mcp.fennsill.com",
+        "localhost",
+        "127.0.0.1",
+        f"localhost:{PORT}",
+        f"127.0.0.1:{PORT}",
+    ]
+    # Include Host derived from PUBLIC_URL when it is a real hostname.
+    try:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(PUBLIC_URL)
+        if parsed.hostname and parsed.hostname not in ("0.0.0.0",):
+            hosts.append(parsed.hostname)
+            if parsed.port:
+                hosts.append(f"{parsed.hostname}:{parsed.port}")
+            elif parsed.scheme == "https":
+                hosts.append(f"{parsed.hostname}:443")
+            elif parsed.scheme == "http":
+                hosts.append(f"{parsed.hostname}:{PORT}")
+    except Exception:
+        pass
+    # Deduplicate while preserving order.
+    seen: set[str] = set()
+    allowed = []
+    for h in hosts:
+        if h not in seen:
+            seen.add(h)
+            allowed.append(h)
+    return TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=allowed,
+    )
+
+
 def main() -> None:
     store.init_db()
     print(f"FENNSILL_CLOUD http://{HOST}:{PORT}/mcp", flush=True)
@@ -477,7 +578,7 @@ def main() -> None:
         port=PORT,
         streamable_http_path="/mcp",
         stateless_http=True,
-        transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
+        transport_security=_transport_security(),
     )
 
 

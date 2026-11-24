@@ -1,10 +1,10 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "note": "Frozen tools. The buyer talks to their AI. The AI calls these tools. No paste UI required.",
   "tools": [
     {
       "name": "list_panels",
-      "description": "List Fennsill e-ink panels plugged in over USB.",
+      "description": "Call this first. Lists Fennsill e-ink panels plugged in over USB on this computer.",
       "inputSchema": {
         "type": "object",
         "properties": {},
@@ -12,20 +12,78 @@
       }
     },
     {
+      "name": "push_chart",
+      "description": "Push a clean 800x480 black/white chart to the panel from structured data. Use this whenever the user asks for a graph/chart/plot of data points — do not hand-write HTML. Required: title, labels[], values[] (same length). Optional chart_type: auto|bar|line|hbar|table (default auto). On local USB, device_id is optional.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "Chart headline shown on the panel."
+          },
+          "labels": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 24,
+            "items": { "type": "string", "maxLength": 40 },
+            "description": "Category labels, same order/length as values."
+          },
+          "values": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 24,
+            "items": { "type": "number" },
+            "description": "Numeric series, same order/length as labels."
+          },
+          "chart_type": {
+            "type": "string",
+            "enum": ["auto", "bar", "line", "hbar", "table"],
+            "default": "auto",
+            "description": "Layout. Use auto if unsure."
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 16,
+            "description": "Optional unit suffix (e.g. %, $, pts)."
+          },
+          "subtitle": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Optional secondary line under the title."
+          },
+          "hold_sec": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 21600,
+            "description": "Seconds to keep this page on the panel before the next queued push (default 0)."
+          }
+        },
+        "required": ["title", "labels", "values"],
+        "additionalProperties": false
+      }
+    },
+    {
       "name": "push_artifact",
-      "description": "Push a finished 800x480 black/white HTML or SVG page to the Fennsill panel now. Use this after you build charts/dashboards from the user's data (including SQL results they pasted). Self-contained HTML only — no external URLs inside the page. You may look up live data first, then bake the numbers into the HTML.",
+      "description": "Push a custom 800x480 black/white self-contained HTML or SVG page to the panel. Use only for custom dashboards/layouts — for simple graphs from data points, prefer push_chart. No external URLs; inline CSS only; pure black/white high contrast. Prefer html over svg for dashboards. Optional hold_sec keeps the page up before the next queued push. Only report success when the tool confirms the panel refresh.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "html": {
             "type": "string",
             "maxLength": 512000,
-            "description": "Finished HTML page (800x480, self-contained)."
+            "description": "Finished 800x480 self-contained HTML. Pure B/W, inline CSS, no external URLs."
           },
           "svg": {
             "type": "string",
             "maxLength": 512000,
-            "description": "Finished SVG page (800x480, self-contained)."
+            "description": "Finished 800x480 self-contained SVG (same rules as html)."
+          },
+          "hold_sec": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 21600,
+            "description": "Seconds to keep this page on the panel before the next queued push (default 0)."
           }
         },
         "additionalProperties": false
@@ -33,7 +91,7 @@
     },
     {
       "name": "start_live_update",
-      "description": "Start a recurring live feed on the Fennsill panel so it stays up to date without the user pasting anything. Use when the user asks to keep scores or similar data current. kind=nfl_scores refreshes NFL scoreboard HTML on an interval.",
+      "description": "Start a recurring live feed on the panel (keeps updating without the user pasting). Use for ongoing feeds like NFL scores — not for one-shot charts (use push_chart). kind must be nfl_scores. Default interval_sec is 300.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -59,13 +117,14 @@
     },
     {
       "name": "stop_live_update",
-      "description": "Stop a live feed previously started with start_live_update. Omit kind to stop all live feeds.",
+      "description": "Stop a live feed previously started with start_live_update. Omit kind to stop all live feeds on that panel.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "kind": {
             "type": "string",
-            "enum": ["nfl_scores"]
+            "enum": ["nfl_scores"],
+            "description": "Feed to stop. Omit to stop all."
           }
         },
         "additionalProperties": false
@@ -73,12 +132,20 @@
     },
     {
       "name": "set_wifi",
-      "description": "Send home Wi-Fi name and password to the panel over USB.",
+      "description": "Send home Wi-Fi name and password to the panel over USB (local only).",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "ssid": { "type": "string", "maxLength": 32 },
-          "password": { "type": "string", "maxLength": 63 }
+          "ssid": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Wi-Fi network name."
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 63,
+            "description": "Wi-Fi password."
+          }
         },
         "required": ["ssid", "password"],
         "additionalProperties": false

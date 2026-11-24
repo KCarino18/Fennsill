@@ -27,7 +27,7 @@ CSP = (
     "img-src data:; "
     "style-src 'unsafe-inline'; "
     "font-src data:; "
-    "script-src 'unsafe-inline'; "
+    "script-src 'none'; "
     "connect-src 'none'; "
     "frame-src 'none'; "
     "object-src 'none'; "
@@ -335,7 +335,7 @@ def _shot_png(page_html):
             context = browser.new_context(
                 viewport={"width": WIDTH, "height": HEIGHT},
                 device_scale_factor=1,
-                java_script_enabled=True,
+                java_script_enabled=False,
                 bypass_csp=False,
                 accept_downloads=False,
                 offline=True,

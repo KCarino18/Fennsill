@@ -30,6 +30,15 @@ os.environ.setdefault("FENNSILL_PAGES", str(ROOT / "connector" / "pages"))
 from mcp.server.mcpserver import MCPServer  # noqa: E402
 from mcp.server.transport_security import TransportSecuritySettings  # noqa: E402
 
+from mcp_catalog import (  # noqa: E402
+    LOCAL_INSTRUCTIONS,
+    LIST_PANELS_LOCAL,
+    PUSH_ARTIFACT,
+    PUSH_CHART,
+    SET_WIFI,
+    START_LIVE,
+    STOP_LIVE,
+)
 from mcp_server import call_tool  # noqa: E402
 from security import SecurityError  # noqa: E402
 
@@ -38,11 +47,7 @@ PORT = int(os.environ.get("FENNSILL_MCP_PORT", "8766"))
 
 server = MCPServer(
     "fennsill",
-    instructions=(
-        "Fennsill pushes finished 800x480 HTML/SVG pages to a USB e-ink panel. "
-        "Call list_panels, then push_artifact. Do not create a Claude Artifact web preview "
-        "as a substitute for pushing to the panel."
-    ),
+    instructions=LOCAL_INSTRUCTIONS,
 )
 
 
@@ -56,17 +61,34 @@ def _run(name: str, arguments: dict[str, Any] | None = None) -> str:
         return json.dumps({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
 
 
-@server.tool(description="List Fennsill e-ink panels plugged in over USB.")
+@server.tool(description=LIST_PANELS_LOCAL)
 def list_panels() -> str:
     return _run("list_panels")
 
 
-@server.tool(
-    description=(
-        "Push a finished 800x480 black/white HTML or SVG page to the Fennsill panel now. "
-        "Self-contained HTML only — no external URLs. Prefer html for dashboards."
+@server.tool(description=PUSH_CHART + " On local USB, device_id is optional.")
+def push_chart(
+    title: str,
+    labels: list[str],
+    values: list[float],
+    chart_type: str = "auto",
+    unit: str = "",
+    subtitle: str = "",
+) -> str:
+    return _run(
+        "push_chart",
+        {
+            "title": title,
+            "labels": labels,
+            "values": values,
+            "chart_type": chart_type,
+            "unit": unit,
+            "subtitle": subtitle,
+        },
     )
-)
+
+
+@server.tool(description=PUSH_ARTIFACT)
 def push_artifact(html: str | None = None, svg: str | None = None) -> str:
     args: dict[str, Any] = {}
     if html:
@@ -76,13 +98,7 @@ def push_artifact(html: str | None = None, svg: str | None = None) -> str:
     return _run("push_artifact", args)
 
 
-@server.tool(
-    description=(
-        "Start a recurring live feed on the Fennsill panel via the local Fennsill worker. "
-        "kind=nfl_scores or kind=counter. Scheduled ChatGPT/Cursor tasks should call push_artifact "
-        "each run for one-shot updates; use this for continuous local refresh without a cloud schedule."
-    )
-)
+@server.tool(description=START_LIVE)
 def start_live_update(kind: str, interval_sec: int = 300, title: str = "") -> str:
     return _run(
         "start_live_update",
@@ -90,7 +106,7 @@ def start_live_update(kind: str, interval_sec: int = 300, title: str = "") -> st
     )
 
 
-@server.tool(description="Stop a live feed previously started with start_live_update.")
+@server.tool(description=STOP_LIVE)
 def stop_live_update(kind: str | None = None) -> str:
     args: dict[str, Any] = {}
     if kind:
@@ -98,7 +114,7 @@ def stop_live_update(kind: str | None = None) -> str:
     return _run("stop_live_update", args)
 
 
-@server.tool(description="Send home Wi-Fi name and password to the panel over USB.")
+@server.tool(description=SET_WIFI)
 def set_wifi(ssid: str, password: str) -> str:
     return _run("set_wifi", {"ssid": ssid, "password": password})
 

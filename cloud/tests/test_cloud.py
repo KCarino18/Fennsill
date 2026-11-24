@@ -14,13 +14,18 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+REPO = ROOT.parent
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(REPO / "templates"))
+sys.path.insert(0, str(REPO / "connector"))
+sys.path.insert(0, str(REPO / "connector" / "runtime"))
 
 import store  # noqa: E402
 from security_artifact import (  # noqa: E402
     SecurityError,
     body_has_wifi_keys,
     validate_artifact_args,
+    validate_chart_args,
 )
 
 
@@ -191,15 +196,80 @@ class CloudStoreTests(unittest.TestCase):
 
 
 class ToolRegistrationTests(unittest.TestCase):
+    def setUp(self):
+        self._td = tempfile.TemporaryDirectory()
+        store.DB_PATH = Path(self._td.name) / "test.db"
+        store.init_db()
+
+    def tearDown(self):
+        self._td.cleanup()
+
     def test_no_set_wifi_tool(self):
         import main as cloud_main
 
         names = {t.name for t in cloud_main.server._tool_manager.list_tools()}
         expect("list_panels" in names, names)
+        expect("push_chart" in names, names)
         expect("push_artifact" in names, names)
         expect("get_push_status" in names, names)
         expect("set_wifi" not in names, names)
 
+    def test_cloud_instructions_prefer_push_chart(self):
+        import main as cloud_main
+
+        text = cloud_main.server.instructions or ""
+        expect("push_chart" in text, text)
+        expect("delivered" in text, text)
+
+    def test_dns_rebinding_enabled(self):
+        import main as cloud_main
+
+        settings = cloud_main._transport_security()
+        expect(settings.enable_dns_rebinding_protection is True, settings)
+        expect("mcp.fennsill.com" in settings.allowed_hosts, settings.allowed_hosts)
+
+    def test_chart_args_and_enqueue(self):
+        a = store.signup("chart@example.com", "password1")
+        user = store.user_from_session(a["token"])
+        uid = int(user["id"])
+        store.link_device(uid, "FSA1B2C3D4E5F6")
+        key = store.issue_device_token(uid, "FSA1B2C3D4E5F6")
+        store.heartbeat(store.auth_device_token(key))
+        clean = validate_chart_args(
+            device_id="FSA1B2C3D4E5F6",
+            title="Demo",
+            labels=["A", "B"],
+            values=[1, 2],
+            require_device_id=True,
+        )
+        from chart_page import render_chart_html
+
+        html = render_chart_html(
+            title=clean["title"],
+            labels=clean["labels"],
+            values=clean["values"],
+            chart_type="bar",
+        )
+        job = store.enqueue_job(
+            user_id=uid,
+            device_id=clean["device_id"],
+            html=html,
+            title=clean["title"],
+        )
+        expect(bool(job.get("job_id")), job)
+        try:
+            validate_chart_args(
+                device_id="BAD",
+                title="x",
+                labels=["A"],
+                values=[1],
+                require_device_id=True,
+            )
+            raise AssertionError("bad device id")
+        except SecurityError as exc:
+            expect("list_panels" in str(exc).lower() or "fs" in str(exc).lower(), exc)
+
 
 if __name__ == "__main__":
     unittest.main()
+

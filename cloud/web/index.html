@@ -48,6 +48,12 @@
           Under <strong>Headers</strong>, set <code>Authorization</code> to the Copy header value (<code>Bearer &lt;token&gt;</code>).
           Do <strong>not</strong> put Device ID in the MCP form.
         </p>
+        <p class="hint">
+          If ChatGPT says tools are unavailable but Desk still shows Cloud checked in:
+          open the FennSill connector → <strong>Refresh</strong> (or re-save the Authorization header),
+          then start a <strong>new chat</strong>. Do not mint a new device key.
+          Last resort: delete the connector and add the same URL + header again.
+        </p>
         <p class="hint">MCP URL</p>
         <div class="copy-row">
           <code id="mcp-url"></code>

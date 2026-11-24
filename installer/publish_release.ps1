@@ -39,7 +39,15 @@ function Sync-Tree([string]$src, [string]$dst) {
 }
 
 Write-Host "Publishing Desk..."
-dotnet publish (Join-Path $Root "fennsill-desk\FennsillDesk.csproj") -c Release -o $deskOut --nologo
+$deskCsproj = Join-Path $Root "fennsill-desk\FennsillDesk.csproj"
+$deskText = Get-Content -LiteralPath $deskCsproj -Raw
+if ($deskText -match '<Version>[^<]*</Version>') {
+  $deskText = [regex]::Replace($deskText, '<Version>[^<]*</Version>', "<Version>$Version</Version>")
+} else {
+  $deskText = $deskText -replace '(<AssemblyName>FennsillDesk</AssemblyName>)', "`$1`r`n    <Version>$Version</Version>"
+}
+Set-Content -LiteralPath $deskCsproj -Value $deskText -NoNewline
+dotnet publish $deskCsproj -c Release -o $deskOut --nologo
 $deskBuilt = Get-ChildItem $deskOut -Filter "*.exe" |
   Where-Object { $_.Name -match "Fennsill" -and $_.Name -notmatch "Factory|Setup|Agent" } |
   Sort-Object { if ($_.Name -eq "Fennsill.exe") { 0 } else { 1 } } |

@@ -396,23 +396,85 @@ def ensure_playwright_browsers() -> None:
             print(f"playwright install {browser} failed: {exc}", flush=True)
 
 
-def run_job(job: dict) -> tuple[bool, str]:
+def _queue_status_fields() -> dict:
+    try:
+        from display_queue import STATUS_SHOWING, list_items
+
+        items = list_items()
+        showing = next((i for i in items if i.get("status") == STATUS_SHOWING), None)
+        return {
+            "queue_len": len(items),
+            "screen_held_until": showing.get("held_until") if showing else None,
+            "holding_job_id": (showing or {}).get("job_id") or "",
+            "holding_title": (showing or {}).get("title") or "",
+        }
+    except Exception:
+        return {}
+
+
+def complete_cloud_job(token: str, job_id: str, *, ok: bool, error: str = "") -> None:
+    if not job_id:
+        return
+    done_st, done = call(
+        "POST",
+        f"/api/agent/jobs/{job_id}/complete",
+        token,
+        {"ok": ok, "error": error or ""},
+    )
+    print(f"complete {done_st} ok={ok} {error or done}", flush=True)
+    append_push_log(
+        f"complete job_id={job_id} ok={ok} http={done_st} err={error or ''}"
+    )
+
+
+def buffer_job_to_queue(job: dict) -> tuple[bool, str]:
+    """Render a claimed cloud job into the local Desk/Agent queue (no USB yet)."""
     job_type = (job.get("job_type") or job.get("type") or "push").strip().lower()
     if job_type not in ("push", "artifact", ""):
         return False, f"unsupported job_type={job_type}"
     html = job.get("html")
     svg = job.get("svg")
     title = job.get("title") or ""
+    job_id = str(job.get("job_id") or "")
+    hold_sec = job.get("hold_sec", 0)
+    append_push_log(
+        f"buffer_start job_id={job_id} title={title!r} hold_sec={hold_sec!r}"
+    )
+    try:
+        from display_queue import append_item, clamp_hold_sec, has_job
+        from intake import render_frame
+
+        if job_id and has_job(job_id):
+            append_push_log(f"buffer_skip_duplicate job_id={job_id}")
+            return True, ""
+        args = {}
+        if html:
+            args["html"] = html
+        if svg:
+            args["svg"] = svg
+        frame = render_frame(args)
+        item = append_item(
+            job_id=job_id,
+            title=title,
+            hold_sec=clamp_hold_sec(hold_sec),
+            frame=frame,
+        )
+        append_push_log(f"buffered id={item['id']} job_id={job_id}")
+        return True, ""
+    except Exception as exc:
+        append_push_log(f"buffer_fail {exc}")
+        return False, str(exc)
+
+
+def push_queue_item(item: dict) -> tuple[bool, str]:
+    """USB-push a queued frame to the panel."""
+    title = item.get("title") or ""
     last_err = "panel push failed"
-    # Log before importing intake/Playwright — that import can hang and used to
-    # leave claimed jobs with zero local evidence.
-    append_push_log(f"run_job_start title={title!r} has_html={bool(html)} has_svg={bool(svg)}")
-    # Win the COM lock even while Desk status polls / Factory was just closed.
+    append_push_log(f"push_queue_start id={item.get('id')} title={title!r}")
     os.environ["FENNSILL_SERIAL_LOCK_TIMEOUT"] = "90"
     set_usb_pause(True)
-    time.sleep(1.5)  # let in-flight Desk READY polls finish
+    time.sleep(1.5)
     try:
-        # Fail fast with a clear error if the Desk payload omitted USB helpers.
         try:
             import push_page  # noqa: F401
         except ImportError as exc:
@@ -422,23 +484,19 @@ def run_job(job: dict) -> tuple[bool, str]:
             )
             append_push_log(msg)
             return False, msg
-        from intake import intake_page
+        from display_queue import load_frame_bytes
+        from intake import push_frame_to_panel
+        from security import SecurityError
 
-        append_push_log("intake_imported")
+        frame = load_frame_bytes(item)
         for attempt in range(10):
             try:
                 append_push_log(f"attempt={attempt + 1} title={title!r}")
-                result = intake_page(
-                    html=html, svg=svg, title=title, source="cloud", push=True
-                )
-                if result.get("pushed"):
-                    append_push_log(f"pushed_ok page_id={result.get('page_id')}")
-                    return True, ""
-                last_err = (
-                    result.get("panel_error")
-                    or result.get("note")
-                    or "panel push failed"
-                )
+                push_frame_to_panel(frame)
+                append_push_log(f"pushed_ok id={item.get('id')}")
+                return True, ""
+            except (SecurityError, TimeoutError, OSError, ValueError) as exc:
+                last_err = str(exc)
                 append_push_log(f"push_fail {last_err}")
                 busy = "busy" in last_err.lower() or "lock" in last_err.lower()
                 if busy and attempt < 9:
@@ -455,6 +513,162 @@ def run_job(job: dict) -> tuple[bool, str]:
         return False, last_err
     finally:
         set_usb_pause(False)
+
+
+def run_job(job: dict) -> tuple[bool, str]:
+    """Legacy one-shot path: buffer then push that item immediately."""
+    job_type = (job.get("job_type") or job.get("type") or "push").strip().lower()
+    if job_type not in ("push", "artifact", ""):
+        return False, f"unsupported job_type={job_type}"
+    html = job.get("html")
+    svg = job.get("svg")
+    title = job.get("title") or ""
+    job_id = str(job.get("job_id") or "")
+    hold_sec = job.get("hold_sec", 0)
+    try:
+        from display_queue import append_item, clamp_hold_sec
+        from intake import render_frame
+
+        args = {}
+        if html:
+            args["html"] = html
+        if svg:
+            args["svg"] = svg
+        frame = render_frame(args)
+        item = append_item(
+            job_id=job_id,
+            title=title,
+            hold_sec=clamp_hold_sec(hold_sec),
+            frame=frame,
+        )
+    except Exception as exc:
+        return False, str(exc)
+    return push_queue_item(item)
+
+
+def drain_cloud_jobs(token: str) -> int:
+    """Claim cloud jobs into the local queue until empty or error. Returns count."""
+    from display_queue import has_job
+
+    claimed = 0
+    for _ in range(20):
+        st, job = call("GET", "/api/agent/jobs/next", token)
+        if st in (403, 429, 1010):
+            return -st
+        if st == 204 or job is None:
+            break
+        if st != 200:
+            print(f"jobs/next {st} {job}", flush=True)
+            break
+        job_id = str(job.get("job_id") or "")
+        job_type = (job.get("job_type") or "push").strip().lower()
+        print(f"claimed job {job_id}", flush=True)
+        append_push_log(f"claimed job_id={job_id} title={job.get('title')!r}")
+        if job_type not in ("push", "artifact", ""):
+            complete_cloud_job(
+                token, job_id, ok=False, error=f"unsupported job_type={job_type}"
+            )
+            continue
+        if job_id and has_job(job_id):
+            # Already in the local queue — keep cloud status claimed until shown.
+            append_push_log(f"claim_already_queued job_id={job_id}")
+            continue
+        call("GET", "/api/agent/heartbeat", token)
+        ok, err = buffer_job_to_queue(job)
+        if not ok:
+            complete_cloud_job(token, job_id, ok=False, error=err)
+            continue
+        claimed += 1
+    return claimed
+
+
+def advance_local_queue(token: str) -> None:
+    """Show the queue head, hold, then advance. Completes cloud job on panel show."""
+    from display_queue import (
+        STATUS_SHOWING,
+        STATUS_WAITING,
+        finish_head,
+        head_item,
+        mark_showing,
+    )
+
+    item = head_item()
+    if not item:
+        return
+    now = time.time()
+    held_until = item.get("held_until")
+    if item.get("status") == STATUS_SHOWING and held_until is not None:
+        try:
+            until = float(held_until)
+        except (TypeError, ValueError):
+            until = 0.0
+        if until > now:
+            return
+        # Hold finished — drop head and let the next item play next loop.
+        finish_head(item["id"])
+        append_push_log(f"hold_done id={item.get('id')}")
+        return
+
+    if item.get("status") != STATUS_WAITING and item.get("status") != STATUS_SHOWING:
+        item["status"] = STATUS_WAITING
+
+    if item.get("status") == STATUS_SHOWING:
+        # held_until missing or past — advance
+        finish_head(item["id"])
+        return
+
+    # Waiting head → push to panel.
+    write_status(
+        {
+            "ok": True,
+            "cloud": cloud_base(),
+            "heartbeat_status": 200,
+            "job_in_progress": item.get("job_id") or item.get("id"),
+            "job_title": item.get("title") or "",
+            "ts": int(time.time()),
+            **_queue_status_fields(),
+        }
+    )
+    call("GET", "/api/agent/heartbeat", token)
+    ok, err = push_queue_item(item)
+    call("GET", "/api/agent/heartbeat", token)
+    job_id = str(item.get("job_id") or "")
+    if not ok:
+        complete_cloud_job(token, job_id, ok=False, error=err)
+        finish_head(item["id"])
+        write_status(
+            {
+                "ok": True,
+                "cloud": cloud_base(),
+                "heartbeat_status": 200,
+                "last_job_id": job_id,
+                "last_job_ok": False,
+                "last_job_error": err or "",
+                "ts": int(time.time()),
+                **_queue_status_fields(),
+            }
+        )
+        return
+
+    complete_cloud_job(token, job_id, ok=True, error="")
+    hold_sec = int(item.get("hold_sec") or 0)
+    if hold_sec > 0:
+        mark_showing(item["id"], held_until=now + hold_sec)
+        append_push_log(f"holding id={item.get('id')} sec={hold_sec}")
+    else:
+        finish_head(item["id"])
+    write_status(
+        {
+            "ok": True,
+            "cloud": cloud_base(),
+            "heartbeat_status": 200,
+            "last_job_id": job_id,
+            "last_job_ok": True,
+            "last_job_error": "",
+            "ts": int(time.time()),
+            **_queue_status_fields(),
+        }
+    )
 
 
 def main() -> int:
@@ -491,16 +705,16 @@ def main() -> int:
             or "attention required" in err_text.lower()
             or "error code" in err_text.lower()
         )
-        write_status(
-            {
-                "ok": st == 200,
-                "cloud": cloud_base(),
-                "heartbeat_status": st,
-                "heartbeat": hb,
-                "cloudflare_block": cf_block,
-                "ts": int(time.time()),
-            }
-        )
+        status_payload = {
+            "ok": st == 200,
+            "cloud": cloud_base(),
+            "heartbeat_status": st,
+            "heartbeat": hb,
+            "cloudflare_block": cf_block,
+            "ts": int(time.time()),
+            **_queue_status_fields(),
+        }
+        write_status(status_payload)
         if st != 200:
             fail_streak += 1
             print(f"heartbeat {st} {hb}", flush=True)
@@ -512,64 +726,39 @@ def main() -> int:
             continue
         fail_streak = 0
 
-        st, job = call("GET", "/api/agent/jobs/next", token)
-        if st in (403, 429, 1010):
+        drained = drain_cloud_jobs(token)
+        if drained < 0:
+            code = -drained
             fail_streak += 1
-            print(f"jobs/next {st} {job}", flush=True)
+            print(f"jobs/next {code}", flush=True)
             time.sleep(min(180, 15 * fail_streak))
             continue
-        if st == 204 or job is None:
-            time.sleep(idle_sleep)
-            continue
-        if st != 200:
-            print(f"jobs/next {st} {job}", flush=True)
-            time.sleep(5)
+
+        advance_local_queue(token)
+
+        from display_queue import STATUS_SHOWING, head_item
+
+        head = head_item()
+        if head and head.get("status") == STATUS_SHOWING:
+            # Heartbeat during hold; wake often enough for Desk removes / hold end.
+            call("GET", "/api/agent/heartbeat", token)
+            write_status(
+                {
+                    "ok": True,
+                    "cloud": cloud_base(),
+                    "heartbeat_status": 200,
+                    "heartbeat": hb,
+                    "ts": int(time.time()),
+                    **_queue_status_fields(),
+                }
+            )
+            time.sleep(1.0)
             continue
 
-        job_id = str(job.get("job_id") or "")
-        print(f"claimed job {job_id}", flush=True)
-        append_push_log(f"claimed job_id={job_id} title={job.get('title')!r}")
-        write_status(
-            {
-                "ok": True,
-                "cloud": cloud_base(),
-                "heartbeat_status": 200,
-                "job_in_progress": job_id,
-                "job_title": job.get("title") or "",
-                "ts": int(time.time()),
-            }
-        )
-        # Keep "online" true while Playwright/USB work runs (can take >60s).
-        call("GET", "/api/agent/heartbeat", token)
-        try:
-            ok, err = run_job(job)
-        except Exception as exc:
-            ok, err = False, f"run_job_crash: {exc}"
-            append_push_log(err)
-        call("GET", "/api/agent/heartbeat", token)
-        done_st, done = call(
-            "POST",
-            f"/api/agent/jobs/{job_id}/complete",
-            token,
-            {"ok": ok, "error": err},
-        )
-        print(f"complete {done_st} ok={ok} {err or done}", flush=True)
-        append_push_log(
-            f"complete job_id={job_id} ok={ok} http={done_st} err={err or ''}"
-        )
-        write_status(
-            {
-                "ok": True,
-                "cloud": cloud_base(),
-                "heartbeat_status": 200,
-                "last_job_id": job_id,
-                "last_job_ok": ok,
-                "last_job_error": err or "",
-                "last_job_complete_status": done_st,
-                "ts": int(time.time()),
-            }
-        )
-        time.sleep(1.0)
+        if drained == 0 and not head:
+            time.sleep(idle_sleep)
+        else:
+            time.sleep(0.5)
 
 
 if __name__ == "__main__":

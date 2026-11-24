@@ -31,6 +31,23 @@ static class Program
             // Still open the app — FindProjectRoot may use the project folder.
         }
 
+        // Installed builds: pull the latest GitHub release Setup if newer.
+        // Project/dev builds skip (see AutoUpdate.ShouldSkip).
+        var updating = false;
+        try
+        {
+            updating = AutoUpdate.TryApplyAsync().GetAwaiter().GetResult();
+        }
+        catch
+        {
+            // Continue with the current build.
+        }
+        if (updating)
+        {
+            GC.KeepAlive(mutex);
+            return;
+        }
+
         Application.Run(new MainForm());
         GC.KeepAlive(mutex);
     }
