@@ -6,12 +6,12 @@ Cloud MCP uses **SQLite** -- **no SQL Server** required.
 
 ## One-click downloads (Windows)
 
-**Latest release: [v0.1.30](https://github.com/KCarino18/Fennsill/releases/tag/v0.1.30)** -- 2026-11-23
+**Latest release: [v0.1.31](https://github.com/KCarino18/Fennsill/releases/tag/v0.1.31)** -- 2026-11-23
 
 | What | Download |
 |------|----------|
-| **FennSill Setup** (Desk + Agent service -- run as Admin once) | [FennsillSetup.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.30/FennsillSetup.exe) |
-| **FennSill Factory** (flasher -- manufacturing PC) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.30/FennsillFactory.exe) |
+| **FennSill Setup** (Desk + Agent service -- run as Admin once) | [FennsillSetup.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.31/FennsillSetup.exe) |
+| **FennSill Factory** (flasher -- manufacturing PC) | [FennsillFactory.exe](https://github.com/KCarino18/Fennsill/releases/download/v0.1.31/FennsillFactory.exe) |
 | **All releases** | [github.com/KCarino18/Fennsill/releases](https://github.com/KCarino18/Fennsill/releases) |
 
 **Panels ship already flashed.** Buyers only need Setup + account + MCP.
