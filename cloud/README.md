@@ -21,15 +21,21 @@ Service: `http://127.0.0.1:8080/mcp` and `/api/...`
 
 ## Unraid / Docker
 
+Build from the **repo root** (not `cd cloud`). The image needs shared files outside `cloud/`
+(`connector/runtime/artifact_security.py`, `connector/mcp_catalog.py`, `templates/chart_page.py`):
+
 ```bash
-cd cloud
-docker build -t fennsill-cloud .
+cd /path/to/repo
+docker build -f cloud/Dockerfile -t fennsill-cloud:latest .
 docker run -d --name fennsill-cloud \
   -p 8080:8080 \
   -v fennsill_cloud_data:/data \
   -e FENNSILL_PUBLIC_URL=https://mcp.yourdomain.com \
-  fennsill-cloud
+  fennsill-cloud:latest
 ```
+
+If an Unraid User Script still runs `docker build` inside `cloud/`, change it to the
+`-f cloud/Dockerfile` form above or the container crashes on import and Cloudflare returns 502.
 
 Put TLS (Swag / NPM / reverse proxy) in front. Public URL should be `https://mcp.yourdomain.com/mcp`.
 
